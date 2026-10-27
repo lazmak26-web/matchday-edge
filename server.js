@@ -97,23 +97,6 @@ function normalizeTeamKey(home, away) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   HELPER — extract nested fields safely
-   ═══════════════════════════════════════════════════════════ */
-function extractField(obj, paths) {
-  if (!obj) return null;
-  for (const path of paths) {
-    const parts = path.split('.');
-    let v = obj;
-    for (const p of parts) {
-      if (v == null) break;
-      v = v[p];
-    }
-    if (v != null) return v;
-  }
-  return null;
-}
-
-/* ═══════════════════════════════════════════════════════════
    FOOTBALL-DATA.ORG
    ═══════════════════════════════════════════════════════════ */
 async function apiGet(endpoint) {
@@ -208,12 +191,11 @@ function todayStr() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ODDS — من Bzzoiro Sports Data
+   ODDS — Bzzoiro (with fallback to per-event odds endpoint)
    ─────────────────────────────────────────────────────────
-   ملاحظة: هاد الدالة كتحاول تقرا الهيكل المحتمل ديال Bzzoiro.
-   إلا واجهتك مشكلة، شوف logs ديال Railway، ولا دخل لـ:
-       GET /api/debug/bzzoiro
-   باش تشوف الـ response الخام و تعدل الـ parsing إلا احتاج.
+   - كتحاول تقرا odds من event.odds.bookmakers (inline)
+   - إلا ما لقاتش، كتدير طلب لـ /v2/events/{id}/odds/
+   - كتستعمل DEBUG=1 باش تطبع أول event كامل
    ═══════════════════════════════════════════════════════════ */
 async function fetchOdds() {
   if (!BZZOIRO_API_KEY) {
@@ -238,7 +220,6 @@ async function fetchOdds() {
     const oddsMap = new Map();
 
     try {
-      // نجيبو events ديال اليوم من Bzzoiro
       const url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${today}&date_to=${today}`;
       console.log(`  → GET ${url}`);
 
@@ -255,31 +236,64 @@ async function fetchOdds() {
       }
 
       const data = await r.json();
-
-      // Log للـ debug
-      console.log(`  · Response keys: ${Object.keys(data).join(', ')}`);
-
       const events = data.results || data.data || (Array.isArray(data) ? data : []);
       console.log(`  · Got ${events.length} events`);
 
+      // DEBUG: اطبع أول event كامل
       if (events.length > 0 && process.env.DEBUG) {
         console.log('  · First event keys:', Object.keys(events[0]).join(', '));
-        console.log('  · First event sample:', JSON.stringify(events[0]).slice(0, 500));
+        console.log('  · First event FULL:', JSON.stringify(events[0], null, 2).slice(0, 2000));
       }
 
       let withOdds = 0;
+      let probed = 0;
 
       for (const ev of events) {
-        // نلقاو أسماء الفرق
-        const homeName = extractField(ev, ['home_team.name', 'home.name', 'homeTeam.name', 'home']);
-        const awayName = extractField(ev, ['away_team.name', 'away.name', 'awayTeam.name', 'away']);
+        // نجيبو أسماء الفرق من أي هيكل محتمل
+        const homeName = ev.home_team?.name || ev.home?.name || ev.home_team || ev.home;
+        const awayName = ev.away_team?.name || ev.away?.name || ev.away_team || ev.away;
 
-        if (!homeName || !awayName || typeof homeName !== 'string') continue;
+        if (!homeName || !awayName || typeof homeName !== 'string' || typeof awayName !== 'string') {
+          if (probed < 1 && process.env.DEBUG) {
+            console.log('  · Skipping event — no team names:', Object.keys(ev).join(','));
+          }
+          continue;
+        }
 
         const key = normalizeTeamKey(homeName, awayName);
 
-        // نلقاو الـ bookmakers
-        const bookmakers = extractField(ev, ['odds.bookmakers', 'bookmakers', 'odds', 'markets']) || [];
+        // نحاولو نجيبو الـ odds
+        let bookmakers = ev.odds?.bookmakers || ev.bookmakers || ev.odds || null;
+
+        // إلا ما كانش، نجيبو من endpoint منفصل
+        if ((!bookmakers || !Array.isArray(bookmakers) || !bookmakers.length) && ev.id) {
+          if (probed < 2) {
+            probed++;
+            console.log(`  · Probing odds endpoint for event ${ev.id}...`);
+          }
+          try {
+            const oddsRes = await fetch(`${BZZOIRO_API_BASE}/v2/events/${ev.id}/odds/`, {
+              headers: {
+                'Authorization': `Token ${BZZOIRO_API_KEY}`,
+                'Accept': 'application/json'
+              }
+            });
+            if (oddsRes.ok) {
+              const oddsData = await oddsRes.json();
+              bookmakers = oddsData.bookmakers || oddsData.results || oddsData.odds || oddsData;
+              if (probed <= 2) {
+                console.log(`    → Odds response for event ${ev.id}:`, JSON.stringify(oddsData).slice(0, 400));
+              }
+            } else {
+              if (probed <= 2) console.log(`    → Event ${ev.id} odds endpoint: HTTP ${oddsRes.status}`);
+            }
+          } catch (e) {
+            if (probed <= 2) console.log(`    → Event ${ev.id} odds error: ${e.message}`);
+          }
+          // delay صغير باش ما نضربوش الـ API
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
         if (!Array.isArray(bookmakers) || !bookmakers.length) continue;
 
         const best = {
@@ -291,41 +305,68 @@ async function fetchOdds() {
         };
 
         for (const book of bookmakers) {
-          const bookName = extractField(book, ['name', 'title', 'book']) || 'N/A';
-          const markets = extractField(book, ['markets', 'odds']) || (Array.isArray(book) ? book : []);
+          if (!book || typeof book !== 'object') continue;
+
+          const bookName = book.name || book.title || book.bookmaker || book.book_name || 'N/A';
+          const markets = book.markets || book.odds || [];
+
+          // ─── حالة 1: الـ odds مسطحة مباشرة فـ book (بدون markets) ───
+          if (!markets.length && (book.home || book.away || book.draw)) {
+            const h = parseFloat(book.home);
+            const d = parseFloat(book.draw);
+            const a = parseFloat(book.away);
+            if (h > 1 && d > 1 && a > 1) {
+              if (h > best.home.price) best.home = { price: h, book: bookName };
+              if (d > best.draw.price) best.draw = { price: d, book: bookName };
+              if (a > best.away.price) best.away = { price: a, book: bookName };
+            }
+            const o = parseFloat(book.over_25 || book.over25 || book['over_2.5']);
+            const u = parseFloat(book.under_25 || book.under25 || book['under_2.5']);
+            if (o > 1) best.over25 = { price: o, book: bookName };
+            if (u > 1) best.under25 = { price: u, book: bookName };
+            continue;
+          }
+
           if (!Array.isArray(markets)) continue;
 
+          // ─── حالة 2: markets array (شبيه بـ The Odds API) ───
           for (const market of markets) {
-            const mkey = String(extractField(market, ['key', 'name', 'type']) || '');
-            const outcomes = market.outcomes || market.selections || [];
-            if (!Array.isArray(outcomes)) continue;
+            if (!market) continue;
 
-            // 1X2 (Match Result)
-            if (/1x2|match.winner|h2h|result/i.test(mkey)) {
-              for (const o of outcomes) {
-                const oname = String(o.name || o.label || '').toLowerCase();
-                const price = parseFloat(o.price || o.odds || o.value);
-                if (!price || price < 1) continue;
+            const mkey = String(market.key || market.name || market.type || market.label || '').toLowerCase();
+            const outcomes = market.outcomes || market.selections || market.prices || [];
+            if (!Array.isArray(outcomes) || !outcomes.length) continue;
 
-                if (oname === '1' || oname === 'home' || oname === homeName.toLowerCase()) {
-                  if (price > best.home.price) best.home = { price, book: bookName };
-                } else if (oname === 'x' || oname === 'draw') {
-                  if (price > best.draw.price) best.draw = { price, book: bookName };
-                } else if (oname === '2' || oname === 'away' || oname === awayName.toLowerCase()) {
-                  if (price > best.away.price) best.away = { price, book: bookName };
-                }
+            const is1X2 = /1x2|match|winner|result|h2h|moneyline|ml/.test(mkey) ||
+                          /1x2|winner|match/i.test(market.name || '');
+            const isOU = /over.under|totals|total|o\/u|ou/.test(mkey) ||
+                         /over|under|total/i.test(market.name || '');
+
+            for (const o of outcomes) {
+              if (!o) continue;
+
+              const oname = String(o.name || o.label || o.selection || o.outcome || '').toLowerCase();
+              const price = parseFloat(o.price || o.odds || o.value || o.decimal);
+              const point = parseFloat(o.point || o.handicap || o.line || 0);
+              if (!price || price <= 1) continue;
+
+              if (is1X2) {
+                const isHome = oname === '1' || oname === 'home' ||
+                               oname === homeName.toLowerCase() ||
+                               oname.includes(homeName.toLowerCase());
+                const isDraw = oname === 'x' || oname === 'draw' || oname === 'tie';
+                const isAway = oname === '2' || oname === 'away' ||
+                               oname === awayName.toLowerCase() ||
+                               oname.includes(awayName.toLowerCase());
+
+                if (isHome && price > best.home.price) best.home = { price, book: bookName };
+                else if (isDraw && price > best.draw.price) best.draw = { price, book: bookName };
+                else if (isAway && price > best.away.price) best.away = { price, book: bookName };
               }
-            }
 
-            // Over/Under 2.5
-            if (/over.under|totals|total/i.test(mkey)) {
-              for (const o of outcomes) {
-                const oname = String(o.name || o.label || '').toLowerCase();
-                const point = parseFloat(o.point || o.handicap || 0);
-                const price = parseFloat(o.price || o.odds || o.value);
-                if (!price || price < 1) continue;
+              if (isOU && (point === 2.5 || point === 2 || point === 3)) {
+                // غير 2.5 مهمتنا
                 if (point !== 2.5) continue;
-
                 if (oname.startsWith('over') || oname === 'o') {
                   if (price > best.over25.price) best.over25 = { price, book: bookName };
                 } else if (oname.startsWith('under') || oname === 'u') {
@@ -512,13 +553,39 @@ app.get('/api/debug/bzzoiro', async (req, res) => {
     let parsed = null;
     try { parsed = JSON.parse(text); } catch (e) {}
 
+    // جيب أول event ID باش نختبرو الـ odds endpoint
+    let firstEventOdds = null;
+    const firstEventId = parsed?.results?.[0]?.id;
+    if (firstEventId) {
+      try {
+        const oddsRes = await fetch(`${BZZOIRO_API_BASE}/v2/events/${firstEventId}/odds/`, {
+          headers: {
+            'Authorization': `Token ${BZZOIRO_API_KEY}`,
+            'Accept': 'application/json'
+          }
+        });
+        const oddsText = await oddsRes.text();
+        let oddsParsed = null;
+        try { oddsParsed = JSON.parse(oddsText); } catch (e) {}
+        firstEventOdds = {
+          eventId: firstEventId,
+          status: oddsRes.status,
+          preview: oddsText.slice(0, 3000),
+          parsedKeys: oddsParsed && typeof oddsParsed === 'object' ? Object.keys(oddsParsed) : null
+        };
+      } catch (e) {
+        firstEventOdds = { eventId: firstEventId, error: e.message };
+      }
+    }
+
     res.json({
-      url,
+      eventsUrl: url,
       status: r.status,
       contentType: r.headers.get('content-type'),
       preview: text.slice(0, 5000),
       parsedKeys: parsed && typeof parsed === 'object' ? Object.keys(parsed) : null,
-      resultCount: parsed?.results?.length ?? parsed?.data?.length ?? (Array.isArray(parsed) ? parsed.length : null)
+      resultCount: parsed?.results?.length ?? parsed?.data?.length ?? (Array.isArray(parsed) ? parsed.length : null),
+      firstEventOdds
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
