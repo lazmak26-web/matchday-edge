@@ -1,84 +1,156 @@
-// server.js — Matchday Edge backend (Railway)
 const express = require('express');
 const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const API_BASE = 'https://footballdata.io/api/v1';
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
+const API_BASE = 'https://api.football-data.org/v4';
 
-// Kayjib l'frontend mn public/
-app.use(express.static(path.join(__dirname, 'public')));
+// ═══════════════════════════════════════════════════════════
+// CACHE — bach ma ne7r9och l'API calls
+// ═══════════════════════════════════════════════════════════
+const cache = {
+  fixtures: { data: null, date: null, fetchedAt: 0 },
+  forms: new Map(),
+  prefetching: false
+};
+const TTL = { fixtures: 15 * 60 * 1000, forms: 6 * 60 * 60 * 1000 };
+const RATE = { lastRequest: 0, minInterval: 6500 };
 
-// CORS (mzyan l'dev, Railway ma y7tajch bzaf)
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
-});
+// Rate-limited fetch (10 req/min free tier)
+async function apiFetch(url) {
+  const wait = Math.max(0, RATE.minInterval - (Date.now() - RATE.lastRequest));
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  RATE.lastRequest = Date.now();
 
-// Endpoint li l'frontend kay3ayet 3lih
-app.get('/api/fixtures', async (req, res) => {
-  if (!API_KEY) {
-    return res.status(500).json({ error: 'FOOTBALL_DATA_API_KEY is not set' });
+  const r = await fetch(url, { headers: { 'X-Auth-Token': API_KEY } });
+  if (!r.ok) {
+    const text = await r.text().catch(() => '');
+    throw new Error(`football-data.org ${r.status}: ${text.slice(0, 150)}`);
+  }
+  return r.json();
+}
+
+// Kayjib matches dyal l'yom
+async function getFixtures() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (cache.fixtures.data && cache.fixtures.date === today &&
+      Date.now() - cache.fixtures.fetchedAt < TTL.fixtures) {
+    return cache.fixtures.data;
   }
 
+  console.log('📡 Fetching fixtures for', today);
+  const data = await apiFetch(`${API_BASE}/matches?date=${today}`);
+  const raw = data.matches || [];
+  console.log('📦 Got', raw.length, 'raw matches');
+
+  const fixtures = raw.map(m => ({
+    id: String(m.id),
+    league: (m.competition && m.competition.name) || 'Unknown league',
+    date: m.utcDate ? m.utcDate.slice(0, 10) : today,
+    kickoff: m.utcDate ? m.utcDate.slice(11, 16) : 'N/A',
+    home: { id: m.homeTeam && m.homeTeam.id, name: (m.homeTeam && m.homeTeam.name) || 'Home' },
+    away: { id: m.awayTeam && m.awayTeam.id, name: (m.awayTeam && m.awayTeam.name) || 'Away' },
+    odds: null,
+    h2h: null,
+    weather: null
+  })).filter(f => f.home.id && f.away.id);
+
+  cache.fixtures = { data: fixtures, date: today, fetchedAt: Date.now() };
+  return fixtures;
+}
+
+// Kayjib form (akhir 5 matches) dyal team wa7ed
+async function getForm(teamId) {
+  const cached = cache.forms.get(teamId);
+  if (cached && Date.now() - cached.fetchedAt < TTL.forms) return cached;
+
+  const data = await apiFetch(`${API_BASE}/teams/${teamId}/matches?status=FINISHED&limit=10`);
+  const finished = (data.matches || [])
+    .filter(m => m.status === 'FINISHED' && m.score && m.score.fullTime &&
+                 m.score.fullTime.home !== null && m.score.fullTime.away !== null)
+    .slice(-5);
+
+  let form = '', gf = 0, ga = 0, n = 0;
+  for (const m of finished) {
+    const isHome = m.homeTeam && m.homeTeam.id === teamId;
+    const gFor = isHome ? m.score.fullTime.home : m.score.fullTime.away;
+    const gAgainst = isHome ? m.score.fullTime.away : m.score.fullTime.home;
+    if (gFor > gAgainst) form += 'W';
+    else if (gFor < gAgainst) form += 'L';
+    else form += 'D';
+    gf += gFor; ga += gAgainst; n++;
+  }
+
+  const result = {
+    form: form || null,
+    gf5: n ? gf : null,
+    ga5: n ? ga : null,
+    xgFor: n ? +(gf / n).toFixed(2) : null,
+    xgAgainst: n ? +(ga / n).toFixed(2) : null,
+    injuries: null,
+    fetchedAt: Date.now()
+  };
+  cache.forms.set(teamId, result);
+  return result;
+}
+
+// Prefetch forms f background
+async function prefetchForms(fixtures) {
+  if (cache.prefetching) return;
+  cache.prefetching = true;
+  const teams = new Set();
+  for (const fx of fixtures) { teams.add(fx.home.id); teams.add(fx.away.id); }
+  console.log(`🔄 Prefetching forms for ${teams.size} teams`);
+
+  for (const teamId of teams) {
+    const cached = cache.forms.get(teamId);
+    if (cached && Date.now() - cached.fetchedAt < TTL.forms) continue;
+    try { await getForm(teamId); }
+    catch (e) { console.error(`  ✗ Team ${teamId}:`, e.message); }
+  }
+  cache.prefetching = false;
+  console.log('✅ Prefetch complete');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ROUTES
+// ═══════════════════════════════════════════════════════════
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/fixtures', async (req, res) => {
+  if (!API_KEY) {
+    return res.status(500).json({
+      error: 'FOOTBALL_DATA_API_KEY not set. Add it in Railway → Variables.'
+    });
+  }
   try {
-    const r = await fetch(`${API_BASE}/fixtures/today?limit=50`, {
-      headers: { Authorization: `Bearer ${API_KEY}` }
-    });
-    if (!r.ok) throw new Error(`footballdata.io: ${r.status}`);
-    const json = await r.json();
-    const fixtures = json.data || [];
-
-    const mapped = fixtures.map(m => {
-      const h = m.home_team || m.home || {};
-      const a = m.away_team || m.away || {};
-      const kickoff = (m.kickoff_time || m.time || '').toString().slice(0, 5) || 'N/A';
-      const odds = m.odds || m.bookmakers || null;
-
-      return {
-        id: String(m.match_id || m.id || `${h.name}-${a.name}-${m.match_date}`),
-        league: m.league?.name || m.competition?.name || 'Unknown league',
-        date: m.match_date || m.date || new Date().toISOString().slice(0, 10),
-        kickoff,
-        home: {
-          name: h.name || 'Home',
-          form: typeof h.form === 'string' ? h.form : Array.isArray(h.form) ? h.form.slice(-5).join('') : null,
-          gf5: h.goals_for_last_5 ?? null,
-          ga5: h.goals_against_last_5 ?? null,
-          xgFor: h.xg ?? h.xg_for ?? null,
-          xgAgainst: h.xg_against ?? null,
-          injuries: h.injuries || null
-        },
-        away: {
-          name: a.name || 'Away',
-          form: typeof a.form === 'string' ? a.form : Array.isArray(a.form) ? a.form.slice(-5).join('') : null,
-          gf5: a.goals_for_last_5 ?? null,
-          ga5: a.goals_against_last_5 ?? null,
-          xgFor: a.xg ?? a.xg_for ?? null,
-          xgAgainst: a.xg_against ?? null,
-          injuries: a.injuries || null
-        },
-        odds: Array.isArray(odds) && odds.length ? odds : null,
-        h2h: m.h2h || null,
-        weather: m.weather || null
-      };
-    });
-
-    res.json({ fixtures: mapped });
+    const fixtures = await getFixtures();
+    // Enrich b cached forms only (ma kaystenach)
+    const enriched = fixtures.map(fx => ({
+      ...fx,
+      home: { ...fx.home, ...(cache.forms.get(fx.home.id) || {}) },
+      away: { ...fx.away, ...(cache.forms.get(fx.away.id) || {}) }
+    }));
+    // Start background prefetch
+    prefetchForms(fixtures).catch(e => console.error('Prefetch:', e.message));
+    res.json({ fixtures: enriched });
   } catch (e) {
+    console.error('❌ /api/fixtures:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// Fallback: ila ma3ndekch frontend, 3ayet l'API
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/api/status', (req, res) => {
+  res.json({
+    fixtures: (cache.fixtures.data || []).length,
+    formsCached: cache.forms.size,
+    prefetching: cache.prefetching,
+    lastFetch: cache.fixtures.fetchedAt ? new Date(cache.fixtures.fetchedAt).toISOString() : null
+  });
 });
 
 app.listen(PORT, () => {
-  console.log(`Matchday Edge running on port ${PORT}`);
+  console.log(`✅ Matchday Edge on port ${PORT}`);
+  console.log(`   API key: ${API_KEY ? 'SET ✓' : 'MISSING ✗'}`);
 });
