@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Matchday Edge - Pro Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* =========================================================
+   PREMIUM DARK DASHBOARD DESIGN
+   ========================================================= */
+:root {
+  --bg: #060B14;
+  --panel: rgba(15, 23, 42, 0.7);
+  --panel2: rgba(30, 41, 59, 0.5);
+  --panel3: rgba(51, 65, 85, 0.5);
+  --ink: #F8FAFC;
+  --muted: #94A3B8;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.15);
+  
+  --accent: #10B981;
+  --accent-ink: #022C22;
+  --accent-soft: rgba(16, 185, 129, 0.15);
+  
+  --hot: #F97316;
+  --hot-soft: rgba(249, 115, 22, 0.15);
+  
+  --good: #34D399;
+  --good-bg: rgba(52, 211, 153, 0.15);
+  --warn: #FBBF24;
+  --warn-bg: rgba(251, 191, 36, 0.15);
+  --bad: #F87171;
+  --bad-bg: rgba(248, 113, 113, 0.15);
+  
+  --c-home: #10B981;
+  --c-draw: #64748B;
+  --c-away: #F97316;
+  
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.3);
+  
+  --radius: 12px;
+  --radius-lg: 18px;
+  
+  --display: 'Outfit', system-ui, sans-serif;
+  --body: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg);
+  background-image: 
+    radial-gradient(circle at 10% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 100%, rgba(56, 189, 248, 0.08) 0%, transparent 40%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font: 15px/1.6 var(--body);
+  padding-block: 0 64px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1200px; margin: 0 auto; }
+
+h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.02em; }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.na { color: var(--muted); font-family: var(--mono); font-size: 0.85em; opacity: 0.7; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* HEADER */
+header.top {
+  position: relative;
+  padding: 50px 0 30px;
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.pitch { position: absolute; right: -60px; top: -50px; width: 400px; height: 240px; color: var(--line-strong); pointer-events: none; opacity: 0.4; }
+.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+header.top h1 { font-size: clamp(40px, 7vw, 72px); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; }
+header.top h1 em { font-style: normal; color: transparent; background: linear-gradient(90deg, #10B981, #38BDF8); -webkit-background-clip: text; background-clip: text; }
+.lede { max-width: 65ch; color: var(--muted); margin: 16px 0 0; font-size: 16px; line-height: 1.6; }
+
+.stats {
+  display: flex; flex-wrap: wrap; gap: 0; margin-top: 32px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; backdrop-filter: blur(12px);
+}
+.stats > div { padding-right: 40px; margin-right: 40px; border-right: 1px solid var(--line); }
+.stats > div:last-child { border-right: 0; padding-right: 0; margin-right: 0; }
+.stats b { display: block; font: 700 32px/1 var(--display); color: var(--ink); margin-bottom: 4px; letter-spacing: -0.02em; }
+.stats span { color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-size: 11px; font-weight: 600; }
+
+/* NOTICE */
+.notice {
+  margin: 20px 0 0; padding: 16px 20px; border: 1px solid var(--warn-bg); background: var(--warn-bg);
+  color: var(--warn); border-radius: var(--radius); font-size: 14px; display: flex; gap: 12px; align-items: flex-start; line-height: 1.5;
+}
+.notice::before { content: '⚠'; flex: none; font-size: 16px; }
+.notice strong { font-weight: 600; }
+
+/* SECTIONS */
+section { margin-top: 48px; }
+.sec-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; margin-bottom: 20px; }
+.sec-h h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.sec-h p { margin: 0; color: var(--muted); font-size: 14px; }
+
+/* CONTROLS (Sliders) */
+.controls {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr)); gap: 20px 40px;
+  padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow); backdrop-filter: blur(12px);
+}
+.controls label { display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--muted); }
+.controls .row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.controls .row > span:first-child { color: var(--ink); font-weight: 600; font-size: 14px; }
+.controls output { font-family: var(--mono); color: var(--accent); font-weight: 600; font-size: 16px; background: var(--accent-soft); padding: 2px 8px; border-radius: 6px; }
+.controls .hint { font-size: 12px; line-height: 1.5; opacity: 0.8; }
+
+input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 24px; }
+input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: var(--panel3); border-radius: 3px; }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: var(--accent);
+  cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px var(--accent); transition: transform 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+/* BOARD (Value Bets) */
+.board { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); backdrop-filter: blur(12px); }
+.board-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 16px 20px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--panel2); white-space: nowrap; padding-block: 14px; }
+tr:last-child td { border-bottom: 0; }
+tbody tr { transition: background 0.15s; }
+tbody tr:hover { background: var(--panel2); }
+td.r, th.r { text-align: right; }
+td.match-cell { min-width: 200px; }
+td.match-cell b { font-weight: 600; display: block; margin-bottom: 4px; color: var(--ink); }
+.empty { padding: 30px 20px; color: var(--muted); font-size: 14px; text-align: center; }
+
+/* PILLS (Badges) */
+.pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font: 600 11px/1.5 var(--mono); white-space: nowrap; letter-spacing: 0.02em; }
+.pill.good { background: var(--good-bg); color: var(--good); border: 1px solid rgba(52, 211, 153, 0.2); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(251, 191, 36, 0.2); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); border: 1px solid rgba(248, 113, 113, 0.2); }
+.pill.neutral { background: var(--panel2); color: var(--muted); border: 1px solid var(--line-strong); }
+.pill.hot { background: var(--hot-soft); color: var(--hot); border: 1px solid rgba(249, 115, 22, 0.2); }
+.pill.accent { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(16, 185, 129, 0.2); }
+
+/* TOOLBAR */
+.toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; padding: 14px 20px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 20px;
+  box-shadow: var(--shadow); backdrop-filter: blur(12px);
+}
+.toolbar .tool { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.toolbar .tool > span { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-family: var(--mono); font-weight: 600; }
+.toolbar select { background: var(--panel2); border: 1px solid var(--line-strong); border-radius: 6px; padding: 8px 12px; font-size: 13px; color: var(--ink); cursor: pointer; outline: none; }
+.toolbar select:focus { border-color: var(--accent); }
+.toolbar .toggle { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink); cursor: pointer; margin-left: auto; }
+.toolbar .toggle input { accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer; }
+
+/* CARDS (Matches) */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 540px), 1fr)); gap: 24px; }
+.card {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+  border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
+  padding: 24px; display: flex; flex-direction: column; gap: 20px; min-width: 0;
+  box-shadow: var(--shadow); position: relative; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  backdrop-filter: blur(12px);
+}
+.card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: rgba(16, 185, 129, 0.4); }
+.card.has-value { border-top: 3px solid var(--good); padding-top: 22px; }
+.card.is-started { opacity: 0.6; filter: grayscale(0.5); }
+.card.is-started:hover { box-shadow: var(--shadow); transform: none; border-color: var(--line-strong); }
+
+.card-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.card-top .meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.card h3 { font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card h3 .vs { font: 500 12px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.kickoff { font-family: var(--mono); font-size: 13px; color: var(--ink); font-weight: 500; background: var(--panel3); padding: 4px 8px; border-radius: 6px; }
+
+/* PROBABILITY BARS */
+.bar { display: flex; height: 40px; border-radius: 8px; overflow: hidden; gap: 3px; background: var(--panel3); padding: 3px; }
+.bar span { display: flex; align-items: center; justify-content: center; font: 700 13px var(--mono); color: #fff; min-width: 0; border-radius: 4px; transition: width 0.5s ease; }
+.bar .h { background: linear-gradient(90deg, #059669, #10B981); }
+.bar .d { background: linear-gradient(90deg, #475569, #64748B); }
+.bar .a { background: linear-gradient(90deg, #EA580C, #F97316); }
+
+.bar-legend { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; font-size: 13px; color: var(--muted); margin-top: 10px; font-family: var(--mono); }
+.bar-legend > div:nth-child(2) { text-align: center; }
+.bar-legend > div:nth-child(3) { text-align: right; }
+.bar-legend b { color: var(--ink); font-weight: 600; }
+.bar-legend .mk { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+/* PREDICTIONS GRID */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-top: 8px; }
+@media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
+.k { font: 600 10px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.pick { font: 700 20px/1.2 var(--display); letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; color: var(--ink); }
+.pick .conf { font: 600 12px var(--mono); color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 6px; }
+.meter { height: 6px; background: var(--panel3); border-radius: 3px; margin-top: 12px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+.score { font: 600 36px/1 var(--mono); letter-spacing: 0.02em; margin-bottom: 12px; color: var(--ink); }
+.alts { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* VALUE BET BOX */
+.value { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 16px 20px; background: var(--panel2); transition: border-color 0.2s; }
+.value.hit { border-color: var(--good); background: linear-gradient(180deg, var(--good-bg) 0%, var(--panel2) 100%); }
+.value.hit dl dd { color: var(--good); }
+.value .vh { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.value .sel { font: 700 18px var(--display); letter-spacing: -0.01em; color: var(--ink); }
+.value dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px 16px; margin: 0; }
+.value dt { font: 600 10px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.value dd { margin: 0; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--ink); }
+.value .none { color: var(--muted); font-size: 14px; margin: 0; line-height: 1.6; }
+.value .flag { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line-strong); font-size: 13px; color: var(--warn); line-height: 1.5; }
+.value .flag strong { font-weight: 600; }
+
+/* SUMMARY & REASONS */
+.sum { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.reasons { margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.reasons li { padding: 10px 0 10px 24px; border-top: 1px solid var(--line); position: relative; color: var(--ink); line-height: 1.6; }
+.reasons li:first-child { border-top: 0; }
+.reasons li::before { content: '▸'; position: absolute; left: 0; top: 10px; color: var(--accent); font-weight: 700; }
+.reasons li:last-child { padding-bottom: 0; }
+
+/* DETAILS / ACCORDION */
+details { border-top: 1px solid var(--line); padding-top: 14px; }
+summary { cursor: pointer; font: 600 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 4px 0; list-style: none; display: flex; align-items: center; gap: 8px; transition: color 0.15s; }
+summary:hover { color: var(--ink); }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: '▸'; transition: transform 0.15s; font-size: 14px; color: var(--accent); }
+details[open] summary::before { transform: rotate(90deg); }
+details[open] summary { margin-bottom: 16px; color: var(--ink); }
+.tbl-scroll { overflow-x: auto; margin-top: 10px; border: 1px solid var(--line-strong); border-radius: 8px; }
+.tbl-scroll table { font-size: 13px; }
+.tbl-scroll th { background: var(--panel3); }
+.tbl-scroll th:first-child, .tbl-scroll td:first-child { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+pre { margin: 0; padding: 16px; background: #020617; border: 1px solid var(--line-strong); border-radius: 8px; overflow-x: auto; font: 12px/1.6 var(--mono); max-height: 400px; color: #A7F3D0; }
+
+/* BUTTONS */
+.btn { background: var(--panel2); border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; color: var(--ink); }
+.btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: #34D399; color: var(--accent-ink); transform: translateY(-1px); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+/* DATA FEED */
+.feed-wrap { margin-top: 48px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); backdrop-filter: blur(12px); }
+.feed-wrap > summary { padding: 20px 24px; font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--ink); text-transform: none; letter-spacing: -0.02em; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-top: 0; }
+.feed-wrap > summary:hover { color: var(--accent); }
+.feed-wrap > summary::before { content: none; }
+.feed-wrap > summary::after { content: '▾'; font-size: 20px; color: var(--muted); transition: transform 0.2s; }
+.feed-wrap[open] > summary::after { transform: rotate(180deg); }
+.feed-wrap[open] > summary { border-bottom: 1px solid var(--line); background: var(--panel2); }
+.feed { padding: 24px; display: flex; flex-direction: column; gap: 16px; background: var(--bg); }
+.feed p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.7; }
+.feed textarea { width: 100%; min-height: 220px; background: #020617; border: 1px solid var(--line-strong); border-radius: 8px; padding: 16px; font: 13px/1.6 var(--mono); resize: vertical; color: #A7F3D0; }
+.feed textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.feed input[type=text] { width: 100%; background: #020617; border: 1px solid var(--line-strong); border-radius: 8px; padding: 12px 16px; color: var(--ink); font-size: 14px; }
+.feed input[type=text]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.msg { font-size: 13px; min-height: 1.4em; font-family: var(--mono); padding: 8px 12px; border-radius: 6px; margin-top: 8px; display: none; }
+.msg:not(:empty) { display: block; }
+.msg.err { color: var(--bad); background: var(--bad-bg); border: 1px solid rgba(248, 113, 113, 0.3); }
+.msg.ok { color: var(--good); background: var(--good-bg); border: 1px solid rgba(52, 211, 153, 0.3); }
+
+/* FOOTER */
+footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; max-width: 80ch; line-height: 1.7; }
+
+/* ANIMATIONS */
+@media (prefers-reduced-motion: no-preference) {
+  .meter i, .bar span { transition: flex 0.5s ease, width 0.5s ease; }
+  .card { transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <svg class="pitch" viewBox="0 0 300 170" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <rect x="2" y="2" width="296" height="166" rx="4"/><line x1="150" y1="2" x2="150" y2="168"/>
+      <circle cx="150" cy="85" r="34"/><rect x="2" y="45" width="48" height="80"/><rect x="250" y="45" width="48" height="80"/>
+      <circle cx="150" cy="85" r="2" fill="currentColor"/>
+    </svg>
+    <div class="eyebrow" id="today">Matchday</div>
+    <h1>Matchday <em>Edge</em></h1>
+    <p class="lede">Win, draw and loss probabilities, likely scorelines and positive expected value prices for every fixture in the feed. Bookmaker margin removed, model blended with the market, nothing filled in where data is missing.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div id="notice"></div>
+
+  <section aria-labelledby="h-set">
+    <div class="sec-h"><h2 id="h-set">Model settings</h2><p>Changes recalculate every match immediately.</p></div>
+    <div class="controls">
+      <label for="mw"><span class="row"><span>Market weight in final probability</span><output id="mw-o" for="mw">60%</output></span>
+        <input type="range" id="mw" min="0" max="100" step="5" value="60">
+        <span class="hint">0% trusts the Poisson model only, 100% trusts the de-vigged market only. Markets are efficient; lean on them.</span></label>
+      <label for="mev"><span class="row"><span>Minimum EV to flag a bet</span><output id="mev-o" for="mev">2.0%</output></span>
+        <input type="range" id="mev" min="0" max="10" step="0.5" value="2">
+        <span class="hint">Only prices with expected value above this are shown as value bets.</span></label>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-val">
+    <div class="sec-h"><h2 id="h-val">Value board</h2><p>Best positive-EV price per upcoming match, highest first.</p></div>
+    <div class="board"><div class="board-scroll" id="board"></div></div>
+  </section>
+
+  <section aria-labelledby="h-mat">
+    <div class="sec-h"><h2 id="h-mat">Matches</h2><p id="mat-sub"></p></div>
+    <div class="toolbar">
+      <label class="tool"><span>Sort</span>
+        <select id="sort-by">
+          <option value="kickoff">Kickoff</option>
+          <option value="ev">Best EV</option>
+          <option value="confidence">Confidence</option>
+        </select>
+      </label>
+      <label class="tool"><span>League</span>
+        <select id="filter-league"><option value="">All</option></select>
+      </label>
+      <label class="toggle"><input type="checkbox" id="show-started"> Show started matches</label>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <details class="feed-wrap">
+    <summary>Data feed</summary>
+    <div class="feed">
+      <p>Paste a list of fixtures in the format below, upload a JSON file, or fetch from a URL. Leave any field out or set it to null and it shows as N/A. Without xG for both teams the match is shown from the market only, and no bet is suggested. Started matches are hidden from the value board and never produce a bet.</p>
+      <label for="json-in" class="k">Fixtures JSON</label>
+      <textarea id="json-in" spellcheck="false"></textarea>
+      <div class="actions">
+        <button class="btn primary" id="run" type="button">Analyse pasted JSON</button>
+        <label class="btn" for="file-in" style="cursor:pointer">Upload .json</label>
+        <input type="file" id="file-in" accept="application/json,.json" hidden>
+        <button class="btn" id="reset" type="button">Back to sample data</button>
+      </div>
+      <label for="url-in" class="k" style="margin-top:8px">Feed URL</label>
+      <input type="text" id="url-in" placeholder="https://your-worker.example/fixtures.json" autocomplete="off">
+      <div class="actions"><button class="btn" id="fetch" type="button">Fetch feed</button></div>
+      <p>Odds and fixture APIs need a key that should not sit in a browser. Run a small server or edge function that calls football-data.org, Odds-API.io or similar, maps the response to this shape and allows cross-origin requests, then put its address here.</p>
+      <div class="msg" id="msg" role="status"></div>
+    </div>
+  </details>
+
+  <footer>
+    Predictions are statistical estimates and can be wrong. A positive EV is only as good as the inputs behind it, and a large gap between model and market is more often a data problem than an edge. Bet only what you can afford to lose. 18+.
+  </footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ENGINE — pure functions, also runs in Node for testing.
+   ═══════════════════════════════════════════════════════════════ */
+const Engine = (() => {
+  const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  const isNum = x => typeof x === 'number' && isFinite(x);
+  const pctS = x => Math.round(x * 100) + '%';
+  const sign = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
+
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  function seedOf(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+  function poisson(l, rnd){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=rnd()}while(p>L);return k-1}
+
+  function isUpcoming(fx){
+    if (!fx || !fx.date || !fx.kickoff) return true;
+    const dt = new Date(fx.date + 'T' + fx.kickoff);
+    if (isNaN(dt.getTime())) return true;
+    return dt > new Date();
+  }
+
+  function devig(odds){
+    const inv = odds.map(o => 1 / o), s = inv.reduce((a, b) => a + b, 0);
+    return { fair: inv.map(x => x / s), margin: s - 1 };
+  }
+  const okOdds = x => isNum(x) && x > 1;
+
+  function marketView(odds){
+    const books = (odds || []).filter(b => b && okOdds(b.home) && okOdds(b.draw) && okOdds(b.away));
+    if (!books.length) return null;
+    let h = 0, d = 0, a = 0, m = 0;
+    const best = { home: { o: 0 }, draw: { o: 0 }, away: { o: 0 }, over: { o: 0 }, under: { o: 0 } };
+    books.forEach(b => {
+      const v = devig([b.home, b.draw, b.away]);
+      h += v.fair[0]; d += v.fair[1]; a += v.fair[2]; m += v.margin;
+      [['home', b.home], ['draw', b.draw], ['away', b.away]].forEach(([k, o]) => { if (o > best[k].o) best[k] = { o, book: b.book || 'N/A' }; });
+    });
+    const n = books.length;
+    const ouBooks = (odds || []).filter(b => b && okOdds(b.over25) && okOdds(b.under25));
+    let ou = null;
+    if (ouBooks.length) {
+      let ov = 0;
+      ouBooks.forEach(b => {
+        ov += devig([b.over25, b.under25]).fair[0];
+        if (b.over25 > best.over.o) best.over = { o: b.over25, book: b.book || 'N/A' };
+        if (b.under25 > best.under.o) best.under = { o: b.under25, book: b.book || 'N/A' };
+      });
+      ou = { over: ov / ouBooks.length, under: 1 - ov / ouBooks.length };
+    }
+    return { fair: { h: h / n, d: d / n, a: a / n }, margin: m / n, best, ou, nBooks: n };
+  }
+
+  function formStats(t){
+    const f = typeof t.form === 'string' ? t.form.toUpperCase().replace(/[^WDL]/g, '').slice(-5) : '';
+    if (!f) return null;
+    let pts = 0;
+    for (const c of f) pts += c === 'W' ? 3 : c === 'D' ? 1 : 0;
+    const gd = isNum(t.gf5) && isNum(t.ga5) ? t.gf5 - t.ga5 : null;
+    const maxPts = 3 * f.length;
+    const m = clamp(((pts - maxPts / 2) / (maxPts / 2)) * 0.7 + clamp((gd || 0) / 10, -1, 1) * 0.3, -1, 1);
+    return { str: f, pts, gd, index: pts + 0.25 * (gd || 0), m };
+  }
+
+  function injuryCounts(t){
+    const list = Array.isArray(t.injuries) ? t.injuries : null;
+    if (!list) return null;
+    const c = { attack: 0, defence: 0, total: list.length };
+    list.forEach(i => { const r = i && i.role; if (r === 'attack') c.attack++; else if (r === 'defence' || r === 'gk') c.defence++; });
+    return c;
+  }
+
+  function expectedGoals(fx, fH, fA, iH, iA){
+    const H = fx.home, A = fx.away;
+    if (![H.xgFor, H.xgAgainst, A.xgFor, A.xgAgainst].every(isNum)) return null;
+    const la = fx.leagueAvg || {};
+    const lt = isNum(la.goalsPerTeam) ? la.goalsPerTeam : 1.35;
+    const avgH = isNum(la.home) ? la.home : lt * 1.11;
+    const avgA = isNum(la.away) ? la.away : lt * 0.89;
+    let h = avgH * (H.xgFor / lt) * (A.xgAgainst / lt);
+    let a = avgA * (A.xgFor / lt) * (H.xgAgainst / lt);
+    const notes = [];
+    if (fH && fA) { h *= 1 + 0.05 * fH.m; a *= 1 + 0.05 * fA.m; }
+    if (iH) { h *= 1 - 0.04 * Math.min(iH.attack, 3); a *= 1 + 0.04 * Math.min(iH.defence, 3); }
+    if (iA) { a *= 1 - 0.04 * Math.min(iA.attack, 3); h *= 1 + 0.04 * Math.min(iA.defence, 3); }
+    return { h: clamp(h, 0.2, 4.5), a: clamp(a, 0.2, 4.5), notes };
+  }
+
+  function simulate(lam, seed, N = 10000){
+    const rnd = mulberry32(seed), l3 = 0.1;
+    const l1 = Math.max(0.01, lam.h - l3), l2 = Math.max(0.01, lam.a - l3);
+    let h = 0, d = 0, a = 0, o = 0, b = 0; const sc = {};
+    for (let i = 0; i < N; i++) {
+      const z = poisson(l3, rnd), x = poisson(l1, rnd) + z, y = poisson(l2, rnd) + z;
+      if (x > y) h++; else if (x === y) d++; else a++;
+      if (x + y > 2.5) o++;
+      if (x > 0 && y > 0) b++;
+      const k = x + '-' + y; sc[k] = (sc[k] || 0) + 1;
+    }
+    const top = Object.entries(sc).sort((p, q) => q[1] - p[1]).slice(0, 3).map(e => e[0]);
+    return { h: h / N, d: d / N, a: a / N, over: o / N, btts: b / N, top, N };
+  }
+
+  const simCache = new Map();
+  function getSim(fx, lam){
+    if (!lam) return null;
+    const id = String(fx.id || (fx.home.name + '|' + fx.away.name));
+    const key = id + '|' + lam.h.toFixed(4) + '|' + lam.a.toFixed(4);
+    let sim = simCache.get(key);
+    if (sim === undefined) {
+      sim = simulate(lam, seedOf(id));
+      if (simCache.size > 250) simCache.clear();
+      simCache.set(key, sim);
+    }
+    return sim;
+  }
+
+  const ev = (p, odds) => p * (odds - 1) - (1 - p);
+  const riskOf = o => (o < 2.2 ? 'Low' : o < 3.5 ? 'Medium' : 'High');
+  const kelly = (p, odds) => {
+    const b = odds - 1;
+    if (b <= 0) return 0;
+    return Math.max(0, (p * b - (1 - p)) / b);
+  };
+
+  function analyze(fx, opts){
+    const w = clamp(opts.marketWeight, 0, 1), minEV = opts.minEV || 0;
+    const H = fx.home, A = fx.away;
+    const fH = formStats(H), fA = formStats(A), iH = injuryCounts(H), iA = injuryCounts(A);
+    const mk = marketView(fx.odds);
+    const lam = expectedGoals(fx, fH, fA, iH, iA);
+    const sim = getSim(fx, lam);
+    const started = !isUpcoming(fx);
+
+    let p = null, over = null, source = 'N/A';
+    const norm = o => { const s = o.h + o.d + o.a; return { h: o.h / s, d: o.d / s, a: o.a / s }; };
+    if (sim && mk) { p = norm({ h: w * mk.fair.h + (1 - w) * sim.h, d: w * mk.fair.d + (1 - w) * sim.d, a: w * mk.fair.a + (1 - w) * sim.a }); source = 'model + market'; }
+    else if (sim) { p = { h: sim.h, d: sim.d, a: sim.a }; source = 'model only'; }
+    else if (mk) { p = mk.fair; source = 'market only'; }
+    if (sim && mk && mk.ou) over = w * mk.ou.over + (1 - w) * sim.over;
+    else if (sim) over = sim.over;
+    else if (mk && mk.ou) over = mk.ou.over;
+
+    const cands = [];
+    if (sim && mk && !started) {
+      cands.push({ key: 'home', sel: H.name + ' to Win', p: p.h, odds: mk.best.home.o, book: mk.best.home.book, fair: mk.fair.h });
+      cands.push({ key: 'draw', sel: 'Draw', p: p.d, odds: mk.best.draw.o, book: mk.best.draw.book, fair: mk.fair.d });
+      cands.push({ key: 'away', sel: A.name + ' to Win', p: p.a, odds: mk.best.away.o, book: mk.best.away.book, fair: mk.fair.a });
+      if (mk.ou && over != null) {
+        cands.push({ key: 'over', sel: 'Over 2.5 Goals', p: over, odds: mk.best.over.o, book: mk.best.over.book, fair: mk.ou.over });
+        cands.push({ key: 'under', sel: 'Under 2.5 Goals', p: 1 - over, odds: mk.best.under.o, book: mk.best.under.book, fair: mk.ou.under });
+      }
+      cands.forEach(c => { c.ev = ev(c.p, c.odds); c.implied = 1 / c.odds; c.kelly = kelly(c.p, c.odds); });
+    }
+    const flagged = cands.filter(c => c.ev > 0 && c.ev >= minEV).sort((x, y) => y.ev - x.ev);
+    const bet = flagged[0] || null;
+    const gap = bet ? Math.abs(bet.p - bet.fair) : 0;
+
+    let main1x2 = null;
+    if (p) {
+      const opts1x2 = [
+        { sel: H.name + ' Win', p: p.h }, { sel: 'Draw', p: p.d }, { sel: A.name + ' Win', p: p.a }
+      ];
+      main1x2 = opts1x2.sort((x, y) => y.p - x.p)[0];
+    }
+    let mainOU = null;
+    if (over != null) {
+      mainOU = over >= 0.5
+        ? { sel: 'Over 2.5 Goals', p: over }
+        : { sel: 'Under 2.5 Goals', p: 1 - over };
+    }
+
+    const reasons = [];
+    if (fH && fA) reasons.push(`Form (last 5): ${H.name} ${fH.pts} pts${fH.gd != null ? ', GD ' + (fH.gd >= 0 ? '+' : '') + fH.gd : ''}; ${A.name} ${fA.pts} pts${fA.gd != null ? ', GD ' + (fA.gd >= 0 ? '+' : '') + fA.gd : ''}.`);
+    if (lam) reasons.push(`Bivariate Poisson with 10,000 simulations expects ${lam.h.toFixed(2)} to ${lam.a.toFixed(2)} goals.`);
+    if (mk && main1x2) {
+      const f = main1x2.sel === 'Draw' ? mk.fair.d : main1x2.sel === H.name + ' Win' ? mk.fair.h : mk.fair.a;
+      if (f != null) reasons.push(`De-vigged market probability for 1X2 is ${pctS(f)} across ${mk.nBooks} bookmaker${mk.nBooks > 1 ? 's' : ''} (average margin ${(mk.margin * 100).toFixed(1)}%).`);
+    }
+    if (iH && iA && (iH.total || iA.total)) reasons.push(`Listed absences: ${H.name} ${iH.total}, ${A.name} ${iA.total}.`);
+    if (!sim) reasons.push('xG inputs are incomplete, so no model probability or bet is produced for this match.');
+    if (!mk) reasons.push('No usable odds, so there is no market comparison and no expected value.');
+    if (started) reasons.push('Kickoff has passed — no bet is suggested on this match.');
+
+    const lines = [];
+    if (started) lines.push('Kickoff has passed.');
+    if (p) lines.push(`${H.name} ${pctS(p.h)}, draw ${pctS(p.d)}, ${A.name} ${pctS(p.a)} (${source}).`);
+    else lines.push('Not enough data to estimate probabilities.');
+    if (fH && fA) lines.push(`${fH.index >= fA.index ? H.name : A.name} carries the better recent form index (${Math.max(fH.index, fA.index).toFixed(1)} vs ${Math.min(fH.index, fA.index).toFixed(1)}).`);
+    else lines.push('Recent form is N/A for at least one side.');
+    lines.push(bet ? `${bet.sel} at ${bet.odds.toFixed(2)} shows an expected value of ${sign(bet.ev)}.` : started ? 'No bet is suggested for a started match.' : sim && mk ? 'No price clears the minimum expected value.' : 'No bet is suggested.');
+
+    const json = {
+      match: `${H.name} vs ${A.name}`,
+      date: fx.date || 'N/A',
+      league: fx.league || 'N/A',
+      analysis_summary: lines.join(' '),
+      probabilities: p ? { home_win: pctS(p.h), draw: pctS(p.d), away_win: pctS(p.a) } : { home_win: 'N/A', draw: 'N/A', away_win: 'N/A' },
+      main_prediction: main1x2 ? { selection: main1x2.sel, confidence: pctS(main1x2.p), reasoning: reasons.slice(0, 4) } : { selection: 'N/A', confidence: 'N/A', reasoning: reasons },
+      over_under_prediction: mainOU ? { selection: mainOU.sel, confidence: pctS(mainOU.p) } : null,
+      scoreline_prediction: sim ? { most_likely: sim.top[0], alternatives: sim.top.slice(1) } : { most_likely: 'N/A', alternatives: [] },
+      best_bet_value: bet ? {
+        selection: bet.sel, bookmaker_odds: bet.odds, model_probability: (bet.p * 100).toFixed(1) + '%',
+        implied_probability: (bet.implied * 100).toFixed(1) + '%', expected_value: sign(bet.ev),
+        kelly_stake: (bet.kelly * 100).toFixed(1) + '%', quarter_kelly: (bet.kelly * 25).toFixed(1) + '%',
+        risk_level: riskOf(bet.odds)
+      } : null,
+      started: started
+    };
+    return { fx, json, v: { p, over, source, mk, lam, sim, fH, fA, iH, iA, bet, bookName: bet && bet.book, gap, cands, main1x2, mainOU, started } };
+  }
+
+  function normalize(input){
+    const arr = Array.isArray(input) ? input : input && Array.isArray(input.fixtures) ? input.fixtures : null;
+    if (!arr) throw new Error('Expected a list of fixtures, or an object with a "fixtures" list.');
+    if (!arr.length) throw new Error('The fixture list is empty.');
+    arr.forEach((f, i) => {
+      if (!f || !f.home || !f.away || !f.home.name || !f.away.name) throw new Error(`Fixture ${i + 1} needs home.name and away.name.`);
+      if (f.odds != null && !Array.isArray(f.odds)) throw new Error(`Fixture ${i + 1}: "odds" must be an array of bookmaker objects.`);
+    });
+    return arr;
+  }
+
+  return { devig, marketView, formStats, expectedGoals, simulate, analyze, normalize, ev, isUpcoming };
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   SAMPLE FIXTURES — invented, for demonstration only.
+   ═══════════════════════════════════════════════════════════════ */
+function sampleFixtures(){
+  const pad = n => String(n).padStart(2, '0');
+  const at = h => { const d = new Date(Date.now() + h * 3600000); return { date: `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`, kickoff: `${pad(d.getHours())}:${pad(d.getMinutes())}` }; };
+  const t1 = at(-2), t2 = at(0.5), t3 = at(2), t4 = at(4), t5 = at(6);
+  return [
+    { id: 's1', league: 'Sample League A', date: t1.date, kickoff: t1.kickoff,
+      home: { name: 'Harbourside FC', form: 'WWDWL', gf5: 9, ga5: 5, xgFor: 1.55, xgAgainst: 1.20, injuries: [{ player: 'Reserve full-back', role: 'defence' }] },
+      away: { name: 'Redbridge United', form: 'LDWLD', gf5: 5, ga5: 8, xgFor: 1.30, xgAgainst: 1.40, injuries: [{ player: 'Starting centre-forward', role: 'attack' }, { player: 'First-choice goalkeeper', role: 'gk' }] },
+      h2h: { n: 6, homeWins: 3, draws: 2, awayWins: 1 }, weather: { temp: 11, cond: 'Light rain' },
+      odds: [
+        { book: 'Book A', home: 2.05, draw: 3.55, away: 3.90, over25: 1.95, under25: 1.90 },
+        { book: 'Book B', home: 2.12, draw: 3.45, away: 3.75, over25: 2.00, under25: 1.85 },
+        { book: 'Book C', home: 2.00, draw: 3.60, away: 4.00, over25: 1.92, under25: 1.93 } ] },
+    { id: 's2', league: 'Sample League A', date: t2.date, kickoff: t2.kickoff,
+      home: { name: 'Northgate Rovers', form: 'DWDLW', gf5: 7, ga5: 6, xgFor: 1.40, xgAgainst: 1.30, injuries: [] },
+      away: { name: 'Eastvale Athletic', form: 'WDDWL', gf5: 6, ga5: 5, xgFor: 1.35, xgAgainst: 1.35, injuries: [] },
+      h2h: { n: 8, homeWins: 3, draws: 3, awayWins: 2 }, weather: { temp: 9, cond: 'Dry' },
+      odds: [
+        { book: 'Book A', home: 2.40, draw: 3.20, away: 2.85, over25: 2.05, under25: 1.78 },
+        { book: 'Book B', home: 2.45, draw: 3.25, away: 2.80, over25: 2.10, under25: 1.74 },
+        { book: 'Book C', home: 2.38, draw: 3.30, away: 2.90, over25: 2.02, under25: 1.80 } ] },
+    { id: 's3', league: 'Sample League B', date: t3.date, kickoff: t3.kickoff,
+      home: { name: 'Lakeside Wanderers', form: 'LLDWL', gf5: 4, ga5: 9, xgFor: 1.15, xgAgainst: 1.55, injuries: [{ player: 'Key midfielder', role: 'attack' }] },
+      away: { name: 'Millfield Town', form: 'WWWDW', gf5: 11, ga5: 3, xgFor: 1.80, xgAgainst: 0.95, injuries: [] },
+      h2h: null, weather: { temp: 7, cond: 'Windy' },
+      odds: [
+        { book: 'Book A', home: 4.10, draw: 3.60, away: 1.85, over25: 1.80, under25: 2.00 },
+        { book: 'Book B', home: 3.95, draw: 3.70, away: 1.88, over25: 1.84, under25: 1.96 },
+        { book: 'Book C', home: 4.20, draw: 3.55, away: 1.83, over25: 1.78, under25: 2.04 } ] },
+    { id: 's4', league: 'Sample League B', date: t4.date, kickoff: t4.kickoff,
+      home: { name: 'Stonebridge City', form: 'WLWWD', gf5: 8, ga5: 4, xgFor: 1.55, xgAgainst: 1.10, injuries: null },
+      away: { name: 'Ashford Park', form: null, gf5: null, ga5: null, xgFor: null, xgAgainst: null, injuries: null },
+      h2h: null, weather: null,
+      odds: [
+        { book: 'Book A', home: 1.70, draw: 3.90, away: 5.00 },
+        { book: 'Book B', home: 1.72, draw: 3.80, away: 4.90 } ] },
+    { id: 's5', league: 'Sample League C', date: t5.date, kickoff: t5.kickoff,
+      home: { name: 'Kingsway Albion', form: 'DDWLW', gf5: 6, ga5: 5, xgFor: 1.30, xgAgainst: 1.25, injuries: [] },
+      away: { name: 'Dunmore FC', form: 'LWDDL', gf5: 4, ga5: 6, xgFor: 1.20, xgAgainst: 1.40, injuries: [] },
+      h2h: { n: 4, homeWins: 1, draws: 2, awayWins: 1 }, weather: { temp: 13, cond: 'Dry' },
+      odds: [] }
+  ];
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI
+   ═══════════════════════════════════════════════════════════════ */
+if (typeof document !== 'undefined') (function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const NA = '<span class="na">N/A</span>';
+  const st = { fixtures: sampleFixtures(), sample: true, mw: 0.6, mev: 0.02, results: [],
+               sortBy: 'kickoff', leagueFilter: '', showStarted: false };
+
+  const pct1 = x => (x * 100).toFixed(0) + '%';
+  const sgn = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
+  const riskClass = r => r === 'Low' ? 'good' : r === 'Medium' ? 'warn' : 'bad';
+
+  try {
+    const saved = JSON.parse(localStorage.getItem('mde:settings') || '{}');
+    if (saved.mw != null) st.mw = saved.mw;
+    if (saved.mev != null) st.mev = saved.mev;
+    if (saved.sortBy) st.sortBy = saved.sortBy;
+    if (saved.showStarted != null) st.showStarted = saved.showStarted;
+  } catch (e) {}
+  const persist = () => { try { localStorage.setItem('mde:settings', JSON.stringify({ mw: st.mw, mev: st.mev, sortBy: st.sortBy, showStarted: st.showStarted })); } catch (e) {} };
+
+  function formCell(f){ return f ? `<span class="mono">${esc(f.str)}</span> · ${f.pts} pts${f.gd != null ? ', GD ' + (f.gd >= 0 ? '+' : '') + f.gd : ''}` : NA; }
+  function injCell(t, c){ return c ? (c.total ? `${c.total} out` + (Array.isArray(t.injuries) ? ': ' + t.injuries.map(i => esc(i.player || 'N/A')).join(', ') : '') : 'None listed') : NA; }
+
+  function verifyTable(r){
+    const { fx, v } = r, H = fx.home, A = fx.away, b = v.mk && v.mk.best;
+    const row = (k, a, c) => `<tr><td>${k}</td><td>${a}</td><td>${c}</td></tr>`;
+    const xg = t => isFinite(t.xgFor) && isFinite(t.xgAgainst) && t.xgFor !== null && t.xgAgainst !== null ? `${t.xgFor.toFixed(2)} / ${t.xgAgainst.toFixed(2)}` : NA;
+    const h2h = fx.h2h ? `${fx.h2h.homeWins}W ${fx.h2h.draws}D ${fx.h2h.awayWins}L from ${fx.h2h.n}` : NA;
+    const weather = fx.weather ? `${esc(fx.weather.cond || 'N/A')}${isFinite(fx.weather.temp) ? ', ' + fx.weather.temp + '°C' : ''}` : NA;
+    return `<div class="tbl-scroll"><table><thead><tr><th></th><th>${esc(H.name)}</th><th>${esc(A.name)}</th></tr></thead><tbody>
+      ${row('Form, last 5', formCell(v.fH), formCell(v.fA))}
+      ${row('Form index', v.fH ? v.fH.index.toFixed(1) : NA, v.fA ? v.fA.index.toFixed(1) : NA)}
+      ${row('xG for / against', xg(H), xg(A))}
+      ${row('Injuries', injCell(H, v.iH), injCell(A, v.iA))}
+      <tr><td>Head to head</td><td colspan="2">${h2h}${fx.h2h ? ' (' + esc(H.name) + ' view)' : ''}</td></tr>
+      <tr><td>Weather</td><td colspan="2">${weather}</td></tr>
+      ${row('Best odds H / D / A', b ? `${b.home.o.toFixed(2)} / ${b.draw.o.toFixed(2)} / ${b.away.o.toFixed(2)}` : NA, b ? `${v.mk.nBooks} books, margin ${(v.mk.margin * 100).toFixed(1)}%` : '')}
+      <tr><td>Best odds O / U 2.5</td><td colspan="2">${v.mk && v.mk.ou ? `${b.over.o.toFixed(2)} / ${b.under.o.toFixed(2)}` : NA}</td></tr>
+    </tbody></table></div>`;
+  }
+
+  function valueCard(v, json){
+    if (v.started) {
+      return `<div class="value"><p class="none"><strong>Match started.</strong> No bet is suggested on started matches.</p></div>`;
+    }
+    if (v.bet) {
+      const bj = json.best_bet_value;
+      const gapFlag = v.gap > 0.12 ? `<div class="flag"><strong>Large gap:</strong> the model sits ${(v.gap * 100).toFixed(0)} points from the market. Check the inputs before trusting this.</div>` : '';
+      return `<div class="value hit">
+        <div class="vh"><span class="sel">${esc(bj.selection)}</span><span class="pill good">${esc(bj.expected_value)} EV</span></div>
+        <dl>
+          <div><dt>Best price</dt><dd>${bj.bookmaker_odds.toFixed(2)} · ${esc(v.bookName || 'N/A')}</dd></div>
+          <div><dt>Model</dt><dd>${esc(bj.model_probability)}</dd></div>
+          <div><dt>Implied</dt><dd>${esc(bj.implied_probability)}</dd></div>
+          <div><dt>¼ Kelly</dt><dd>${esc(bj.quarter_kelly)}</dd></div>
+          <div><dt>Risk</dt><dd><span class="pill ${riskClass(bj.risk_level)}">${esc(bj.risk_level)}</span></dd></div>
+        </dl>
+        ${gapFlag}
+      </div>`;
+    }
+    if (v.cands.length) {
+      return `<div class="value"><p class="none">No price clears the ${(st.mev * 100).toFixed(1)}% minimum EV right now.</p></div>`;
+    }
+    return `<div class="value"><p class="none">${!v.sim && !v.mk ? 'No usable xG or odds, so no bet can be assessed.' : !v.sim ? 'xG is N/A for at least one team, so there is no model probability and no bet is suggested.' : 'Odds are N/A, so there is no price to compare the model against.'}</p></div>`;
+  }
+
+  function card(r, i){
+    const { fx, json, v } = r, H = fx.home, A = fx.away;
+    let bar = `<div class="empty" style="padding:8px 0">${NA}</div>`, legend = '';
+    if (v.p) {
+      const seg = (cls, x) => `<span class="${cls}" style="flex:${Math.max(x, 0.01)}">${x > 0.1 ? pct1(x) : ''}</span>`;
+      bar = `<div class="bar" role="img" aria-label="Home ${pct1(v.p.h)}, draw ${pct1(v.p.d)}, away ${pct1(v.p.a)}">${seg('h', v.p.h)}${seg('d', v.p.d)}${seg('a', v.p.a)}</div>`;
+      const mkt = v.mk ? v.mk.fair : null;
+      legend = `<div class="bar-legend"><div>Home <b>${pct1(v.p.h)}</b>${mkt ? `<span class="mk">market ${pct1(mkt.h)}</span>` : ''}</div><div>Draw <b>${pct1(v.p.d)}</b>${mkt ? `<span class="mk">market ${pct1(mkt.d)}</span>` : ''}</div><div>Away <b>${pct1(v.p.a)}</b>${mkt ? `<span class="mk">market ${pct1(mkt.a)}</span>` : ''}</div></div>`;
+    }
+
+    const m1 = v.main1x2;
+    const mOU = json.over_under_prediction;
+    const sc = json.scoreline_prediction;
+
+    const statusPill = v.started
+      ? `<span class="pill warn">Started</span>`
+      : `<span class="pill neutral">${esc(v.source)}</span>`;
+
+    const cardClass = `card${v.bet ? ' has-value' : ''}${v.started ? ' is-started' : ''}`;
+
+    const predBlock = m1
+      ? `<div><div class="k">1X2 prediction</div><div class="pick">${esc(m1.sel)} <span class="conf">${pct1(m1.p)}</span></div>
+         <div class="meter" aria-hidden="true"><i style="width:${m1.p * 100}%"></i></div></div>`
+      : `<div><div class="k">1X2 prediction</div><div class="pick">${NA}</div></div>`;
+
+    const ouBlock = mOU
+      ? `<div><div class="k">Over / Under 2.5</div><div class="pick">${esc(mOU.sel)} <span class="conf">${pct1(mOU.p)}</span></div>
+         <div class="meter" aria-hidden="true"><i style="width:${mOU.p * 100}%"></i></div></div>`
+      : `<div><div class="k">Over / Under 2.5</div><div class="pick">${NA}</div></div>`;
+
+    return `<article class="${cardClass}">
+      <div class="card-top">
+        <div class="meta">
+          <span class="eyebrow">${esc(fx.league || 'N/A')}</span>
+          <span class="kickoff">${esc(fx.kickoff || 'time N/A')}</span>
+        </div>
+        ${statusPill}
+      </div>
+      <h3>${esc(H.name)}<span class="vs">vs</span>${esc(A.name)}</h3>
+      <div>${bar}${legend}</div>
+      <div class="two">
+        ${predBlock}
+        <div><div class="k">Likely score</div><div class="score">${esc(sc.most_likely)}</div>
+          <div class="alts">${sc.alternatives.map(a => `<span class="pill neutral">${esc(a)}</span>`).join('')}</div></div>
+      </div>
+      ${ouBlock}
+      ${valueCard(v, json)}
+      <p class="sum">${esc(json.analysis_summary)}</p>
+      <ul class="reasons">${json.main_prediction.reasoning.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <details><summary>Data verification</summary>${verifyTable(r)}</details>
+      <details><summary>JSON output</summary><pre>${esc(JSON.stringify(json, null, 2))}</pre><div class="actions"><button class="btn" type="button" data-copy="${i}">Copy JSON</button></div></details>
+    </article>`;
+  }
+
+  function sortResults(results){
+    const arr = [...results];
+    if (st.sortBy === 'ev') {
+      return arr.sort((a, b) => (b.v.bet?.ev ?? -Infinity) - (a.v.bet?.ev ?? -Infinity));
+    }
+    if (st.sortBy === 'confidence') {
+      return arr.sort((a, b) => (b.v.main1x2?.p ?? -1) - (a.v.main1x2?.p ?? -1));
+    }
+    return arr.sort((a, b) => {
+      const aStart = a.v.started ? 1 : 0, bStart = b.v.started ? 1 : 0;
+      if (aStart !== bStart) return aStart - bStart;
+      const ak = (a.fx.date || '') + 'T' + (a.fx.kickoff || '');
+      const bk = (b.fx.date || '') + 'T' + (b.fx.kickoff || '');
+      return ak.localeCompare(bk);
+    });
+  }
+
+  function visibleResults(){
+    let arr = st.results;
+    if (st.leagueFilter) arr = arr.filter(r => (r.fx.league || '') === st.leagueFilter);
+    if (!st.showStarted) arr = arr.filter(r => !r.v.started);
+    return sortResults(arr);
+  }
+
+  function board(){
+    const rows = st.results.filter(r => r.v.bet && !r.v.started).sort((a, b) => b.v.bet.ev - a.v.bet.ev);
+    if (!rows.length) return `<div class="empty">No positive-EV prices at a ${(st.mev * 100).toFixed(1)}% minimum. Lower the threshold, or load fixtures with xG and odds.</div>`;
+    return `<table><thead><tr><th>Match</th><th>Bet</th><th class="r">Odds</th><th class="r">Model</th><th class="r">Implied</th><th class="r">EV</th><th class="r">¼ Kelly</th><th>Risk</th></tr></thead><tbody>` +
+      rows.map(r => { const b = r.json.best_bet_value;
+        return `<tr><td class="match-cell"><b>${esc(r.json.match)}</b><span class="na">${esc(r.json.league)} · ${esc(r.fx.kickoff || 'N/A')}</span></td><td>${esc(b.selection)}</td>
+        <td class="r num">${b.bookmaker_odds.toFixed(2)}</td><td class="r num">${esc(b.model_probability)}</td><td class="r num">${esc(b.implied_probability)}</td>
+        <td class="r"><span class="pill good">${esc(b.expected_value)}</span></td>
+        <td class="r num">${esc(b.quarter_kelly)}</td>
+        <td><span class="pill ${riskClass(b.risk_level)}">${esc(b.risk_level)}</span></td></tr>`; }).join('') + `</tbody></table>`;
+  }
+
+  function refreshLeagueOptions(){
+    const leagues = [...new Set(st.fixtures.map(f => f.league).filter(Boolean))].sort();
+    const sel = $('filter-league');
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">All leagues</option>` + leagues.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
+    if (leagues.includes(cur)) sel.value = cur; else st.leagueFilter = '';
+  }
+
+  function render(){
+    st.results = st.fixtures.map(f => Engine.analyze(f, { marketWeight: st.mw, minEV: st.mev }));
+    const allUpcoming = st.results.filter(r => !r.v.started);
+    const bets = allUpcoming.filter(r => r.v.bet);
+    const best = bets.length ? Math.max(...bets.map(r => r.v.bet.ev)) : null;
+    $('stats').innerHTML = `<div><b>${st.results.length}</b><span>matches</span></div><div><b>${allUpcoming.length}</b><span>upcoming</span></div><div><b>${bets.length}</b><span>value bets</span></div><div><b>${best != null ? sgn(best) : 'N/A'}</b><span>best EV</span></div>`;
+    $('notice').innerHTML = st.sample ? `<div class="notice"><strong>Sample data.</strong> The teams, fixtures and odds below are invented to show how the engine works. They are not real matches and must not be used for betting. Load your own feed under Data feed.</div>` : '';
+    $('board').innerHTML = board();
+    const vis = visibleResults();
+    $('cards').innerHTML = vis.length ? vis.map(card).join('') : `<div class="empty" style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);">No matches match the current filters.</div>`;
+    $('mat-sub').textContent = `${vis.length} of ${st.fixtures.length} shown${st.sample ? ' · sample feed' : ''}`;
+    refreshLeagueOptions();
+  }
+
+  function flash(el, t){ const o = el.textContent; el.textContent = t; setTimeout(() => { el.textContent = o; }, 1500); }
+  async function copyText(t, btn){
+    try { await navigator.clipboard.writeText(t); flash(btn, 'Copied'); }
+    catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); flash(btn, 'Copied'); } catch (_) { flash(btn, 'Select and copy by hand'); } ta.remove(); }
+  }
+  function say(t, cls){ const m = $('msg'); m.textContent = t; m.className = 'msg ' + (cls || ''); }
+
+  function load(data, label){
+    try { st.fixtures = Engine.normalize(data); st.sample = false; st.leagueFilter = ''; render(); say(`Loaded ${st.fixtures.length} fixture${st.fixtures.length === 1 ? '' : 's'} from ${label}.`, 'ok'); $('h-val').scrollIntoView({ behavior: 'smooth' }); }
+    catch (e) { say(e.message, 'err'); }
+  }
+
+  $('mw').value = st.mw * 100; $('mw-o').textContent = (st.mw * 100).toFixed(0) + '%';
+  $('mev').value = st.mev * 100; $('mev-o').textContent = (st.mev * 100).toFixed(1) + '%';
+  $('sort-by').value = st.sortBy;
+  $('show-started').checked = st.showStarted;
+
+  $('mw').addEventListener('input', e => { st.mw = e.target.value / 100; $('mw-o').textContent = e.target.value + '%'; persist(); render(); });
+  $('mev').addEventListener('input', e => { st.mev = e.target.value / 100; $('mev-o').textContent = Number(e.target.value).toFixed(1) + '%'; persist(); render(); });
+  $('sort-by').addEventListener('change', e => { st.sortBy = e.target.value; persist(); render(); });
+  $('filter-league').addEventListener('change', e => { st.leagueFilter = e.target.value; render(); });
+  $('show-started').addEventListener('change', e => { st.showStarted = e.target.checked; persist(); render(); });
+  $('run').addEventListener('click', () => { try { load(JSON.parse($('json-in').value), 'pasted JSON'); } catch (e) { say('That is not valid JSON: ' + e.message, 'err'); } });
+  $('reset').addEventListener('click', () => { st.fixtures = sampleFixtures(); st.sample = true; st.leagueFilter = ''; render(); say('Showing sample data again.', 'ok'); });
+  $('file-in').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { try { $('json-in').value = rd.result; load(JSON.parse(rd.result), f.name); } catch (err) { say('That file is not valid JSON: ' + err.message, 'err'); } };
+    rd.readAsText(f);
+  });
+  $('fetch').addEventListener('click', async () => {
+    const u = $('url-in').value.trim();
+    if (!/^https:\/\//i.test(u)) { say('Enter a full https:// address.', 'err'); return; }
+    say('Fetching…');
+    try { const r = await fetch(u); if (!r.ok) throw new Error('The server answered ' + r.status + '.'); load(await r.json(), 'the feed URL'); }
+    catch (e) { say('Could not load the feed. ' + e.message + ' The server must allow cross-origin requests, and hosted previews block outbound requests.', 'err'); }
+  });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-copy]'); if (!b) return;
+    copyText(JSON.stringify(st.results[+b.dataset.copy].json, null, 2), b);
+  });
+
+  $('json-in').value = JSON.stringify(sampleFixtures().slice(0, 1), null, 2);
+  $('today').textContent = 'Matchday · ' + new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  render();
+
+  /* ═══════════════════════════════════════════════════════════
+     AUTO-FETCH — kayjib data mn /api/fixtures (Railway backend)
+     ═══════════════════════════════════════════════════════════ */
+  async function autoFetch(){
+    try {
+      say('Fetching today\'s fixtures…');
+      const r = await fetch('/api/fixtures');
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.error || 'HTTP ' + r.status);
+      }
+      const data = await r.json();
+      if (!data.fixtures || !data.fixtures.length) {
+        say('Feed returned 0 fixtures. Check API limits or API key.', 'err');
+        return;
+      }
+      load(data, 'live feed');
+
+      // Ba3d 25s, reload bash forms li kayjiw f background ykono present
+      setTimeout(() => {
+        fetch('/api/fixtures').then(r => r.json()).then(d => {
+          if (d.fixtures && d.fixtures.length) load(d, 'live feed (with forms)');
+        }).catch(() => {});
+      }, 25000);
+    } catch (e) {
+      say('Could not load live feed: ' + e.message, 'err');
+      console.error('[Matchday Edge] autoFetch failed:', e);
+    }
+  }
+  autoFetch();
+})();
+</script>
+</body>
+</html>
