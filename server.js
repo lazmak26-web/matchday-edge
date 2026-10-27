@@ -10,21 +10,25 @@ const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
 const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
 
 /* ═══════════════════════════════════════════════════════════
-   CACHE & CONCURRENCY CONTROL
+   CACHE & CONCURRENCY
    ═══════════════════════════════════════════════════════════ */
-const FORM_TTL = 60 * 60 * 1000;         // Forms: ساعة
-const FIXTURES_TTL = 5 * 60 * 1000;      // Fixtures: 5 دقايق
-const ODDS_TTL = 15 * 60 * 1000;         // Odds: 15 دقيقة
+const FORM_TTL = 60 * 60 * 1000;
+const FIXTURES_TTL = 2 * 60 * 1000;
+const EVENTS_TTL = 15 * 60 * 1000;
+const ODDS_TTL = 15 * 60 * 1000;
 const CONCURRENCY = 2;
-const ODDS_CONCURRENCY = 3;              // 3 طلبات فـ نفس الوقت (البzzoiro rate limit 10/s)
+const ODDS_CONCURRENCY = 3;
 const API_DELAY = 400;
+const ODDS_DELAY = 150;
 
 const formCache = new Map();
-const fixturesCache = { data: null, ts: 0 };
+const fixturesCache = { data: null, ts: 0, stats: null };
+const eventsCache = { data: null, ts: 0 };
 const oddsCache = { data: null, ts: 0, warned: false };
 let prefetchInProgress = null;
 let oddsFetchInProgress = null;
-let fixturesFetchInProgress = null;      // ← lock جديد
+let fixturesFetchInProgress = null;
+let eventsFetchInProgress = null;
 
 /* ═══════════════════════════════════════════════════════════
    TEAM ALIASES
@@ -75,7 +79,11 @@ const TEAM_ALIASES = {
   'olympique de marseille': 'marseille',
   'olympique lyonnais': 'lyon',
   'as monaco': 'monaco',
-  'losc lille': 'lille'
+  'losc lille': 'lille',
+  'us sassuolo calcio': 'sassuolo',
+  'torino fc': 'torino',
+  'como 1907': 'como',
+  'cagliari calcio': 'cagliari'
 };
 
 function normalizeTeamKey(home, away) {
@@ -88,6 +96,18 @@ function normalizeTeamKey(home, away) {
     return TEAM_ALIASES[t] || t;
   };
   return `${clean(home)}|${clean(away)}`;
+}
+
+function teamsFuzzyMatch(a, b) {
+  if (!a || !b) return false;
+  const clean = s => String(s).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\b(fc|ac|as|us|ss|cf|sc|afc|cd|club|calcio|sporting|sport|city|united|town|the|de|la|le|1907|calcio)\b/g, ' ')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+  const ca = clean(a), cb = clean(b);
+  if (!ca || !cb) return false;
+  return ca === cb || ca.includes(cb) || cb.includes(ca);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -104,9 +124,6 @@ async function apiGet(endpoint) {
   return r.json();
 }
 
-/* ═══════════════════════════════════════════════════════════
-   FORMS
-   ═══════════════════════════════════════════════════════════ */
 async function fetchTeamForm(teamId) {
   try {
     const data = await apiGet(`/teams/${teamId}/matches?status=FINISHED&limit=5`);
@@ -165,6 +182,7 @@ async function ensureForms(teams) {
     try {
       await prefetchForms(needed);
       console.log(`✅ Prefetch done in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+      fixturesCache.data = null;
     } catch (e) {
       console.error('Prefetch error:', e.message);
     } finally {
@@ -185,39 +203,58 @@ function todayStr() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   BZZOIRO ODDS PARSING
-   ─────────────────────────────────────────────────────────
-   الهيكل الحقيقي من Bzzoiro (شوفناه فـ الـ logs):
-   {
-     "event_id": 602465,
-     "odds": {
-       "home_win": 2.5,
-       "draw": 3.1,
-       "away_win": 2.75,
-       "over_25_goals": 1.89,
-       "under_25_goals": 1.87,
-       "btts_yes": 1.83,
-       "btts_no": 1.87
-     }
-   }
+   BZZOIRO
    ═══════════════════════════════════════════════════════════ */
+async function fetchBzzoiroEvents() {
+  if (!BZZOIRO_API_KEY) return [];
+
+  const now = Date.now();
+  if (eventsCache.data && now - eventsCache.ts < EVENTS_TTL) {
+    return eventsCache.data;
+  }
+  if (eventsFetchInProgress) return eventsFetchInProgress;
+
+  eventsFetchInProgress = (async () => {
+    try {
+      const today = todayStr();
+      const url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${today}&date_to=${today}`;
+      const r = await fetch(url, {
+        headers: {
+          'Authorization': `Token ${BZZOIRO_API_KEY}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (!r.ok) {
+        const text = await r.text().catch(() => '');
+        throw new Error(`Events HTTP ${r.status}: ${text.slice(0, 200)}`);
+      }
+      const data = await r.json();
+      const events = data.results || data.data || (Array.isArray(data) ? data : []);
+      eventsCache.data = events;
+      eventsCache.ts = Date.now();
+      return events;
+    } catch (e) {
+      console.error('❌ Bzzoiro events error:', e.message);
+      return eventsCache.data || [];
+    } finally {
+      eventsFetchInProgress = null;
+    }
+  })();
+
+  return eventsFetchInProgress;
+}
+
 function parseBzzoiroOdds(oddsObj) {
   if (!oddsObj || typeof oddsObj !== 'object') return null;
-
   const h = parseFloat(oddsObj.home_win);
   const d = parseFloat(oddsObj.draw);
   const a = parseFloat(oddsObj.away_win);
-
   if (!(h > 1 && d > 1 && a > 1)) return null;
-
   const over = parseFloat(oddsObj.over_25_goals);
   const under = parseFloat(oddsObj.under_25_goals);
-
   return {
     book: 'Bzzoiro',
-    home: h,
-    draw: d,
-    away: a,
+    home: h, draw: d, away: a,
     over25: over > 1 ? over : null,
     under25: under > 1 ? under : null
   };
@@ -257,75 +294,48 @@ async function fetchOdds() {
   oddsFetchInProgress = (async () => {
     const start = Date.now();
     console.log('📊 Fetching odds from Bzzoiro...');
-    const today = todayStr();
     const oddsMap = new Map();
 
     try {
-      const eventsUrl = `${BZZOIRO_API_BASE}/v2/events/?date_from=${today}&date_to=${today}`;
-      const r = await fetch(eventsUrl, {
-        headers: {
-          'Authorization': `Token ${BZZOIRO_API_KEY}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!r.ok) {
-        const text = await r.text().catch(() => '');
-        throw new Error(`Events HTTP ${r.status}: ${text.slice(0, 200)}`);
-      }
-
-      const data = await r.json();
-      const events = data.results || data.data || (Array.isArray(data) ? data : []);
-      console.log(`  · Got ${events.length} events`);
-
-      // فلتر الـ events اللي عندهم أسماء فرق صحيحة
+      const events = await fetchBzzoiroEvents();
       const validEvents = events.filter(ev => {
-        const h = ev.home_team;
-        const a = ev.away_team;
-        return typeof h === 'string' && typeof a === 'string' && h && a;
+        const h = typeof ev.home_team === 'string' ? ev.home_team : ev.home_team?.name;
+        const a = typeof ev.away_team === 'string' ? ev.away_team : ev.away_team?.name;
+        return h && a;
       });
-      console.log(`  · ${validEvents.length} events with valid teams`);
+      console.log(`  · ${events.length} events (${validEvents.length} valid)`);
 
-      // نجيبو الـ odds بالتوازي (concurrency 3)
       const queue = [...validEvents];
       let withOdds = 0;
-      let probed = 0;
 
       const workers = Array.from({ length: ODDS_CONCURRENCY }, async () => {
         while (queue.length) {
           const ev = queue.shift();
           if (!ev) continue;
-
           const oddsObj = await fetchEventOdds(ev.id);
-
-          if (probed < 2 && process.env.DEBUG) {
-            probed++;
-            console.log(`  · Sample event ${ev.id} (${ev.home_team} vs ${ev.away_team}):`,
-              JSON.stringify(oddsObj).slice(0, 300));
-          }
-
           const parsed = parseBzzoiroOdds(oddsObj);
           if (parsed) {
-            const key = normalizeTeamKey(ev.home_team, ev.away_team);
-            oddsMap.set(key, parsed);
+            const h = typeof ev.home_team === 'string' ? ev.home_team : ev.home_team?.name;
+            const a = typeof ev.away_team === 'string' ? ev.away_team : ev.away_team?.name;
+            oddsMap.set(normalizeTeamKey(h, a), parsed);
             withOdds++;
           }
+          await new Promise(r => setTimeout(r, ODDS_DELAY));
         }
       });
 
       await Promise.all(workers);
-      console.log(`  · Matched ${withOdds}/${validEvents.length} events with complete odds`);
+      console.log(`  · ${withOdds} events with odds`);
     } catch (e) {
-      console.error('❌ Odds fetch error:', e.message);
+      console.error('❌ Odds error:', e.message);
       oddsFetchInProgress = null;
       return oddsCache.data || new Map();
     }
 
-    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-    console.log(`✅ Odds ready: ${oddsMap.size} matches in ${elapsed}s`);
-
+    console.log(`✅ Odds ready: ${oddsMap.size} matches in ${((Date.now() - start) / 1000).toFixed(1)}s`);
     oddsCache.data = oddsMap;
-    oddsCache.ts = now;
+    oddsCache.ts = Date.now();
+    fixturesCache.data = null;
     oddsFetchInProgress = null;
     return oddsMap;
   })();
@@ -334,8 +344,81 @@ async function fetchOdds() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   FIXTURES — مع lock و parallel fetch
+   xG ESTIMATION — 4-level fallback chain
    ═══════════════════════════════════════════════════════════ */
+function estimateXGForFixture(fixture) {
+  const H = fixture.home, A = fixture.away;
+
+  // Level 1: Direct xG (highest quality)
+  if (H.xgFor != null && H.xgAgainst != null &&
+      A.xgFor != null && A.xgAgainst != null) {
+    fixture.xgSource = 'direct';
+    fixture.dataQuality = 'high';
+    return;
+  }
+
+  // Level 2: From forms (last 5 matches)
+  if (H.gf5 != null && H.ga5 != null && A.gf5 != null && A.ga5 != null) {
+    H.xgFor = H.gf5 / 5;
+    H.xgAgainst = H.ga5 / 5;
+    A.xgFor = A.gf5 / 5;
+    A.xgAgainst = A.ga5 / 5;
+    fixture.xgSource = 'forms';
+    fixture.dataQuality = fixture.odds && fixture.odds.length ? 'medium' : 'low';
+    return;
+  }
+
+  // Level 3: From H2H
+  if (fixture.h2h && fixture.h2h.total_matches > 0) {
+    const n = fixture.h2h.total_matches;
+    const hg = (fixture.h2h.home_goals ?? 0) / n;
+    const ag = (fixture.h2h.away_goals ?? 0) / n;
+    H.xgFor = hg;
+    H.xgAgainst = ag;
+    A.xgFor = ag;
+    A.xgAgainst = hg;
+    fixture.xgSource = 'h2h';
+    fixture.dataQuality = fixture.odds && fixture.odds.length ? 'low' : 'very-low';
+    return;
+  }
+
+  // Level 4: League average (last resort — always produces something)
+  H.xgFor = 1.4;
+  H.xgAgainst = 1.2;
+  A.xgFor = 1.2;
+  A.xgAgainst = 1.4;
+  fixture.xgSource = 'league-avg';
+  fixture.dataQuality = 'very-low';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MERGE FIXTURES — combine both sources
+   ═══════════════════════════════════════════════════════════ */
+function dedupeFixtures(fixtures) {
+  const seen = new Map();
+  const result = [];
+  for (const f of fixtures) {
+    const dateKey = f.date + '|' + (f.kickoff || '');
+    const homeKey = normalizeTeamKey(f.home.name, '').split('|')[0];
+    const awayKey = normalizeTeamKey(f.away.name, '').split('|')[0];
+    const key = `${dateKey}|${homeKey}|${awayKey}`;
+    if (!seen.has(key)) {
+      seen.set(key, f);
+      result.push(f);
+    } else {
+      const existing = seen.get(key);
+      const existingScore = (existing.odds?.length || 0) * 2 + (existing.form != null ? 1 : 0);
+      const newScore = (f.odds?.length || 0) * 2 + (f.form != null ? 1 : 0);
+      if (newScore > existingScore) {
+        const idx = result.indexOf(existing);
+        result[idx] = f;
+        seen.set(key, f);
+      }
+    }
+  }
+  return result;
+}
+
 async function getFixtures() {
   const now = Date.now();
   if (fixturesCache.data && now - fixturesCache.ts < FIXTURES_TTL) {
@@ -345,85 +428,150 @@ async function getFixtures() {
 
   fixturesFetchInProgress = (async () => {
     try {
-      if (!API_KEY) {
-        console.warn('⚠️  FOOTBALL_API_KEY not set — skipping fixtures (no matches to match odds against)');
-        fixturesCache.data = [];
-        fixturesCache.ts = Date.now();
-        return [];
+      const today = todayStr();
+
+      const [bzzEvents, fdMatches, oddsMap] = await Promise.all([
+        fetchBzzoiroEvents().catch(e => { console.error('Bzz:', e.message); return []; }),
+        API_KEY
+          ? apiGet(`/matches?date=${today}`).then(d => d.matches || []).catch(e => { console.error('FD:', e.message); return []; })
+          : Promise.resolve([]),
+        fetchOdds().catch(e => { console.error('Odds:', e.message); return new Map(); })
+      ]);
+
+      console.log(`📡 Sources → Bzzoiro: ${bzzEvents.length} | FD: ${fdMatches.length} | Odds: ${oddsMap.size}`);
+
+      const fixtures = [];
+      const usedFdIds = new Set();
+
+      // ─── PHASE 1: Bzzoiro events (with optional FD enrichment) ───
+      for (const ev of bzzEvents) {
+        if (ev.status === 'finished' || ev.status === 'canceled' || ev.status === 'postponed') continue;
+
+        const homeName = typeof ev.home_team === 'string' ? ev.home_team : ev.home_team?.name;
+        const awayName = typeof ev.away_team === 'string' ? ev.away_team : ev.away_team?.name;
+        if (!homeName || !awayName) continue;
+
+        const kickoff = new Date(ev.event_date);
+        if (isNaN(kickoff.getTime())) continue;
+
+        // Match to FD
+        let fdMatch = null;
+        for (const m of fdMatches) {
+          if (usedFdIds.has(m.id)) continue;
+          if (teamsFuzzyMatch(homeName, m.homeTeam.name) && teamsFuzzyMatch(awayName, m.awayTeam.name)) {
+            fdMatch = m;
+            usedFdIds.add(m.id);
+            break;
+          }
+        }
+
+        const key = normalizeTeamKey(homeName, awayName);
+        const odds = oddsMap.get(key);
+        const hf = fdMatch ? formCache.get(fdMatch.homeTeam.id)?.data : null;
+        const af = fdMatch ? formCache.get(fdMatch.awayTeam.id)?.data : null;
+
+        const fixture = {
+          id: `bzz_${ev.id}`,
+          league: fdMatch?.competition?.name || (ev.league_id ? `League #${ev.league_id}` : 'Football'),
+          date: kickoff.toISOString().slice(0, 10),
+          kickoff: kickoff.toISOString().slice(11, 16),
+          home: {
+            id: fdMatch?.homeTeam.id || null,
+            name: homeName,
+            form: hf?.form || null,
+            gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null,
+            xgFor: null, xgAgainst: null, injuries: null
+          },
+          away: {
+            id: fdMatch?.awayTeam.id || null,
+            name: awayName,
+            form: af?.form || null,
+            gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null,
+            xgFor: null, xgAgainst: null, injuries: null
+          },
+          odds: odds ? [odds] : [],
+          h2h: ev.head_to_head || null,
+          weather: ev.weather || null,
+          sources: fdMatch ? ['bzz', 'fd'] : ['bzz'],
+          status: ev.status || 'notstarted'
+        };
+
+        estimateXGForFixture(fixture);
+        fixtures.push(fixture);
       }
 
-      const today = todayStr();
-      console.log(`📡 Fetching fixtures + odds for ${today}`);
+      // ─── PHASE 2: Football-data matches NOT found in Bzzoiro ───
+      for (const m of fdMatches) {
+        if (usedFdIds.has(m.id)) continue;
 
-      // نجيبو fixtures و odds بالتوازي
-      const fixturesPromise = apiGet(`/matches?date=${today}`)
-        .catch(e => {
-          console.error('❌ Football API error:', e.message);
-          return { matches: [] };
-        });
-
-      const oddsPromise = fetchOdds();
-
-      const [raw, oddsMap] = await Promise.all([fixturesPromise, oddsPromise]);
-
-      const matches = raw.matches || [];
-      console.log(`📦 Got ${matches.length} raw matches`);
-
-      let matchedOdds = 0;
-      const fixtures = matches.map(m => {
         const kickoff = new Date(m.utcDate);
-        const dateStr = kickoff.toISOString().slice(0, 10);
-        const timeStr = kickoff.toISOString().slice(11, 16);
         const hf = formCache.get(m.homeTeam.id)?.data;
         const af = formCache.get(m.awayTeam.id)?.data;
 
         const key = normalizeTeamKey(m.homeTeam.name, m.awayTeam.name);
-        const odds = oddsMap.get(key);
-        if (odds) matchedOdds++;
+        let odds = oddsMap.get(key);
 
-        return {
+        // Fuzzy fallback
+        if (!odds) {
+          for (const [k, o] of oddsMap.entries()) {
+            const [kh, ka] = k.split('|');
+            if (teamsFuzzyMatch(m.homeTeam.name, kh) && teamsFuzzyMatch(m.awayTeam.name, ka)) {
+              odds = o;
+              break;
+            }
+          }
+        }
+
+        const fixture = {
           id: String(m.id),
           league: m.competition?.name || 'N/A',
-          date: dateStr,
-          kickoff: timeStr,
+          date: kickoff.toISOString().slice(0, 10),
+          kickoff: kickoff.toISOString().slice(11, 16),
           home: {
             id: m.homeTeam.id,
             name: m.homeTeam.name,
             form: hf?.form || null,
-            gf5: hf?.gf5 ?? null,
-            ga5: hf?.ga5 ?? null,
+            gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null,
             xgFor: null, xgAgainst: null, injuries: null
           },
           away: {
             id: m.awayTeam.id,
             name: m.awayTeam.name,
             form: af?.form || null,
-            gf5: af?.gf5 ?? null,
-            ga5: af?.ga5 ?? null,
+            gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null,
             xgFor: null, xgAgainst: null, injuries: null
           },
-          odds: odds ? [odds] : []
+          odds: odds ? [odds] : [],
+          h2h: null, weather: null,
+          sources: odds ? ['fd', 'bzz'] : ['fd'],
+          status: m.status || 'SCHEDULED'
         };
-      });
 
-      console.log(`🎯 Matched odds for ${matchedOdds}/${matches.length} fixtures`);
-
-      // إلا كان DEBUG، وري الماتشات اللي ما تطابقوش (باش تزيد aliases)
-      if (process.env.DEBUG && matchedOdds < matches.length) {
-        const unmatched = matches
-          .filter(m => !oddsMap.has(normalizeTeamKey(m.homeTeam.name, m.awayTeam.name)))
-          .slice(0, 5)
-          .map(m => `${m.homeTeam.name} vs ${m.awayTeam.name}`);
-        if (unmatched.length) {
-          console.log(`  · Unmatched fixtures (first 5):`, unmatched);
-          console.log(`  · Available odds keys (first 10):`,
-            Array.from(oddsMap.keys()).slice(0, 10));
-        }
+        estimateXGForFixture(fixture);
+        fixtures.push(fixture);
       }
 
-      fixturesCache.data = fixtures;
+      const deduped = dedupeFixtures(fixtures);
+
+      // Stats
+      const stats = {
+        total: deduped.length,
+        withOdds: deduped.filter(f => f.odds.length > 0).length,
+        high: deduped.filter(f => f.dataQuality === 'high').length,
+        medium: deduped.filter(f => f.dataQuality === 'medium').length,
+        low: deduped.filter(f => f.dataQuality === 'low').length,
+        veryLow: deduped.filter(f => f.dataQuality === 'very-low').length,
+        fromBzz: deduped.filter(f => f.sources.includes('bzz')).length,
+        fromFd: deduped.filter(f => f.sources.includes('fd')).length,
+        both: deduped.filter(f => f.sources.length === 2).length
+      };
+
+      console.log(`🎯 Total: ${stats.total} | Odds: ${stats.withOdds} | Quality H/M/L/VL: ${stats.high}/${stats.medium}/${stats.low}/${stats.veryLow}`);
+
+      fixturesCache.data = deduped;
       fixturesCache.ts = Date.now();
-      return fixtures;
+      fixturesCache.stats = stats;
+      return deduped;
     } finally {
       fixturesFetchInProgress = null;
     }
@@ -440,25 +588,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/fixtures', async (req, res) => {
   try {
     const fixtures = await getFixtures();
-    const teams = fixtures.flatMap(f => [f.home, f.away]);
+    const teams = fixtures.flatMap(f => [f.home, f.away]).filter(t => t.id);
 
     res.json({
       fixtures,
       meta: {
+        stats: fixturesCache.stats,
         formsComplete: fixtures.every(f =>
-          formCache.has(f.home.id) && formCache.has(f.away.id)
+          (!f.home.id || formCache.has(f.home.id)) &&
+          (!f.away.id || formCache.has(f.away.id))
         ),
-        oddsEnabled: !!BZZOIRO_API_KEY,
-        oddsCached: oddsCache.data ? oddsCache.data.size : 0,
-        oddsAge: oddsCache.data
-          ? Math.round((Date.now() - oddsCache.ts) / 1000) + 's'
-          : null,
-        footballApiEnabled: !!API_KEY,
         timestamp: Date.now()
       }
     });
 
-    if (fixtures.length && !prefetchInProgress) {
+    if (teams.length && !prefetchInProgress) {
       ensureForms(teams).catch(e => console.error('BG prefetch:', e.message));
     }
   } catch (e) {
@@ -470,93 +614,43 @@ app.get('/api/fixtures', async (req, res) => {
 app.get('/health', (req, res) => {
   res.json({
     ok: true,
-    keys: {
-      football: !!API_KEY,
-      bzzoiro: !!BZZOIRO_API_KEY
-    },
-    forms: {
-      cached: formCache.size,
-      prefetchRunning: !!prefetchInProgress
+    keys: { football: !!API_KEY, bzzoiro: !!BZZOIRO_API_KEY },
+    forms: { cached: formCache.size, prefetchRunning: !!prefetchInProgress },
+    events: {
+      cached: eventsCache.data?.length ?? 0,
+      age: eventsCache.data ? Math.round((Date.now() - eventsCache.ts) / 1000) + 's' : null
     },
     fixtures: {
-      cached: !!fixturesCache.data,
       count: fixturesCache.data?.length ?? 0,
-      age: fixturesCache.data
-        ? Math.round((Date.now() - fixturesCache.ts) / 1000) + 's'
-        : null,
-      fetching: !!fixturesFetchInProgress
+      stats: fixturesCache.stats,
+      age: fixturesCache.data ? Math.round((Date.now() - fixturesCache.ts) / 1000) + 's' : null
     },
     odds: {
-      enabled: !!BZZOIRO_API_KEY,
       cached: oddsCache.data ? oddsCache.data.size : 0,
-      age: oddsCache.data
-        ? Math.round((Date.now() - oddsCache.ts) / 1000) + 's'
-        : null,
-      fetching: !!oddsFetchInProgress
+      age: oddsCache.data ? Math.round((Date.now() - oddsCache.ts) / 1000) + 's' : null
     }
   });
 });
 
-/* ═══════════════════════════════════════════════════════════
-   DEBUG — كيعرض شكل الـ events و odds
-   افتح: GET /api/debug/bzzoiro
-   ═══════════════════════════════════════════════════════════ */
 app.get('/api/debug/bzzoiro', async (req, res) => {
-  if (!BZZOIRO_API_KEY) {
-    return res.status(400).json({ error: 'BZZOIRO_API_KEY not set' });
-  }
-
+  if (!BZZOIRO_API_KEY) return res.status(400).json({ error: 'BZZOIRO_API_KEY not set' });
   try {
     const today = todayStr();
-    const eventsUrl = `${BZZOIRO_API_BASE}/v2/events/?date_from=${today}&date_to=${today}`;
-    const r = await fetch(eventsUrl, {
-      headers: {
-        'Authorization': `Token ${BZZOIRO_API_KEY}`,
-        'Accept': 'application/json'
-      }
+    const r = await fetch(`${BZZOIRO_API_BASE}/v2/events/?date_from=${today}&date_to=${today}`, {
+      headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }
     });
-
     const data = await r.json();
     const events = data.results || [];
-    const sample = events.slice(0, 3);
-
-    // نجيبو odds لأول 3 events
-    const sampleOdds = [];
-    for (const ev of sample) {
-      if (!ev.id) continue;
-      try {
-        const ores = await fetch(`${BZZOIRO_API_BASE}/v2/events/${ev.id}/odds/`, {
-          headers: {
-            'Authorization': `Token ${BZZOIRO_API_KEY}`,
-            'Accept': 'application/json'
-          }
-        });
-        const odata = await ores.json();
-        sampleOdds.push({
-          event_id: ev.id,
-          home_team: ev.home_team,
-          away_team: ev.away_team,
-          raw_odds_response: odata,
-          parsed: parseBzzoiroOdds(odata.odds || odata)
-        });
-      } catch (e) {
-        sampleOdds.push({ event_id: ev.id, error: e.message });
-      }
-    }
-
     res.json({
-      events_url: eventsUrl,
-      events_status: r.status,
       events_count: events.length,
-      sample_events: sample.map(ev => ({
+      sample_events: events.slice(0, 5).map(ev => ({
         id: ev.id,
         home_team: ev.home_team,
         away_team: ev.away_team,
-        league_id: ev.league_id,
         event_date: ev.event_date,
-        status: ev.status
-      })),
-      sample_odds: sampleOdds
+        status: ev.status,
+        league_id: ev.league_id
+      }))
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -568,8 +662,6 @@ app.get('/api/debug/bzzoiro', async (req, res) => {
    ═══════════════════════════════════════════════════════════ */
 app.listen(PORT, () => {
   console.log(`✅ Matchday Edge on port ${PORT}`);
-  console.log(`   Football API key: ${API_KEY ? 'SET ✓' : 'MISSING ✗'}`);
-  console.log(`   Bzzoiro API key:  ${BZZOIRO_API_KEY ? 'SET ✓' : 'MISSING ✗ (odds disabled)'}`);
-  if (!API_KEY) console.error('   ⚠️  FOOTBALL_API_KEY missing → no fixtures will be loaded');
-  if (!BZZOIRO_API_KEY) console.warn('   ⚠️  BZZOIRO_API_KEY missing → no odds will be loaded');
+  console.log(`   Football API key: ${API_KEY ? 'SET ✓' : 'MISSING ✗ (optional)'}`);
+  console.log(`   Bzzoiro API key:  ${BZZOIRO_API_KEY ? 'SET ✓' : 'MISSING ✗ (required)'}`);
 });
