@@ -6,8 +6,11 @@ const PORT = process.env.PORT || 8080;
 const API_KEY = process.env.FOOTBALL_API_KEY;
 const API_BASE = 'https://api.football-data.org/v4';
 
-const ODDS_API_KEY = process.env.ODDS_API_KEY;
-const ODDS_BASE = 'https://api.the-odds-api.com/v4';
+/* ═══════════════════════════════════════════════════════════
+   BZZOIRO — المصدر ديال الـ odds (real decimal odds)
+   ═══════════════════════════════════════════════════════════ */
+const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
+const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
 
 /* ═══════════════════════════════════════════════════════════
    CACHE & CONCURRENCY CONTROL
@@ -20,12 +23,12 @@ const API_DELAY = 400;
 
 const formCache = new Map();              // teamId → { data, ts }
 const fixturesCache = { data: null, ts: 0 };
-const oddsCache = { data: null, ts: 0 };  // Map: "home|away" → odds
+const oddsCache = { data: null, ts: 0 };
 let prefetchInProgress = null;
 let oddsFetchInProgress = null;
 
 /* ═══════════════════════════════════════════════════════════
-   ALIASES — نطابقو الأسماء بين football-data.org و The Odds API
+   TEAM ALIASES — نطابقو الأسماء بين football-data.org و Bzzoiro
    ═══════════════════════════════════════════════════════════ */
 const TEAM_ALIASES = {
   // England
@@ -52,10 +55,8 @@ const TEAM_ALIASES = {
   // Spain
   'real madrid cf': 'real madrid',
   'fc barcelona': 'barcelona',
-  'atlético de madrid': 'atletico madrid',
   'atletico de madrid': 'atletico madrid',
   'sevilla fc': 'sevilla',
-  'real betis balompié': 'real betis',
   'real betis balompie': 'real betis',
   'valencia cf': 'valencia',
   'villarreal cf': 'villarreal',
@@ -70,7 +71,6 @@ const TEAM_ALIASES = {
   'atalanta bc': 'atalanta',
   'acf fiorentina': 'fiorentina',
   // Germany
-  'fc bayern münchen': 'bayern munich',
   'fc bayern munchen': 'bayern munich',
   'borussia dortmund': 'borussia dortmund',
   'rb leipzig': 'rb leipzig',
@@ -78,18 +78,16 @@ const TEAM_ALIASES = {
   'eintracht frankfurt': 'eintracht frankfurt',
   // France
   'paris saint-germain fc': 'paris saint germain',
-  'paris saint-germain': 'paris saint germain',
   'olympique de marseille': 'marseille',
   'olympique lyonnais': 'lyon',
   'as monaco': 'monaco',
-  'losc lille': 'lille',
-  'los angeles': 'los angeles'  // placeholder
+  'losc lille': 'lille'
 };
 
 function normalizeTeamKey(home, away) {
   const clean = s => {
     let t = String(s || '').toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // حيّد الـ accents
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9 ]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
@@ -99,7 +97,24 @@ function normalizeTeamKey(home, away) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   API HELPERS
+   HELPER — extract nested fields safely
+   ═══════════════════════════════════════════════════════════ */
+function extractField(obj, paths) {
+  if (!obj) return null;
+  for (const path of paths) {
+    const parts = path.split('.');
+    let v = obj;
+    for (const p of parts) {
+      if (v == null) break;
+      v = v[p];
+    }
+    if (v != null) return v;
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FOOTBALL-DATA.ORG
    ═══════════════════════════════════════════════════════════ */
 async function apiGet(endpoint) {
   const r = await fetch(`${API_BASE}${endpoint}`, {
@@ -113,7 +128,7 @@ async function apiGet(endpoint) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   FORMS — parallel fetch, cached, deduped
+   FORMS
    ═══════════════════════════════════════════════════════════ */
 async function fetchTeamForm(teamId) {
   try {
@@ -184,125 +199,165 @@ async function ensureForms(teams) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ODDS — من The Odds API (cached 15 دقيقة)
+   TODAY
+   ═══════════════════════════════════════════════════════════ */
+function todayStr() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ODDS — من Bzzoiro Sports Data
+   ─────────────────────────────────────────────────────────
+   ملاحظة: هاد الدالة كتحاول تقرا الهيكل المحتمل ديال Bzzoiro.
+   إلا واجهتك مشكلة، شوف logs ديال Railway، ولا دخل لـ:
+       GET /api/debug/bzzoiro
+   باش تشوف الـ response الخام و تعدل الـ parsing إلا احتاج.
    ═══════════════════════════════════════════════════════════ */
 async function fetchOdds() {
-  if (!ODDS_API_KEY) {
+  if (!BZZOIRO_API_KEY) {
     if (!oddsCache.warned) {
-      console.warn('⚠️  ODDS_API_KEY not set — odds disabled');
+      console.warn('⚠️  BZZOIRO_API_KEY not set — odds disabled');
       oddsCache.warned = true;
     }
     return new Map();
   }
 
-  // ─── Cache hit ───
   const now = Date.now();
   if (oddsCache.data && now - oddsCache.ts < ODDS_TTL) {
     return oddsCache.data;
   }
-
-  // ─── Lock: ما نديروش fetch متوازي ───
   if (oddsFetchInProgress) return oddsFetchInProgress;
 
   oddsFetchInProgress = (async () => {
     const start = Date.now();
-    console.log('📊 Fetching odds from The Odds API...');
+    console.log('📊 Fetching odds from Bzzoiro...');
 
-    const sports = [
-      'soccer_epl',
-      'soccer_spain_la_liga',
-      'soccer_italy_serie_a',
-      'soccer_germany_bundesliga',
-      'soccer_france_ligue_one',
-      'soccer_uefa_champs_league'
-    ];
-
+    const today = todayStr();
     const oddsMap = new Map();
-    let totalEvents = 0;
-    let quotaRemaining = null;
 
-    for (const sport of sports) {
-      try {
-        const url = `${ODDS_BASE}/sports/${sport}/odds` +
-          `?apiKey=${ODDS_API_KEY}` +
-          `&regions=eu` +
-          `&markets=h2h,totals` +
-          `&oddsFormat=decimal`;
+    try {
+      // نجيبو events ديال اليوم من Bzzoiro
+      const url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${today}&date_to=${today}`;
+      console.log(`  → GET ${url}`);
 
-        const r = await fetch(url);
-        if (!r.ok) {
-          const errText = await r.text().catch(() => '');
-          console.warn(`  ✗ ${sport}: HTTP ${r.status} ${errText.slice(0, 100)}`);
-          continue;
+      const r = await fetch(url, {
+        headers: {
+          'Authorization': `Token ${BZZOIRO_API_KEY}`,
+          'Accept': 'application/json'
         }
+      });
 
-        // راقب الـ quota
-        const rem = r.headers.get('x-requests-remaining');
-        if (rem) quotaRemaining = rem;
+      if (!r.ok) {
+        const text = await r.text().catch(() => '');
+        throw new Error(`HTTP ${r.status}: ${text.slice(0, 200)}`);
+      }
 
-        const events = await r.json();
-        if (!Array.isArray(events) || !events.length) {
-          console.log(`  · ${sport}: 0 events`);
-          continue;
-        }
+      const data = await r.json();
 
-        console.log(`  · ${sport}: ${events.length} events`);
-        totalEvents += events.length;
+      // Log للـ debug
+      console.log(`  · Response keys: ${Object.keys(data).join(', ')}`);
 
-        for (const ev of events) {
-          const key = normalizeTeamKey(ev.home_team, ev.away_team);
+      const events = data.results || data.data || (Array.isArray(data) ? data : []);
+      console.log(`  · Got ${events.length} events`);
 
-          // نجيبو أفضل odds من كل bookmaker
-          let best = {
-            home: { price: 0, book: 'N/A' },
-            draw: { price: 0, book: 'N/A' },
-            away: { price: 0, book: 'N/A' },
-            over25: { price: 0, book: 'N/A' },
-            under25: { price: 0, book: 'N/A' }
-          };
+      if (events.length > 0 && process.env.DEBUG) {
+        console.log('  · First event keys:', Object.keys(events[0]).join(', '));
+        console.log('  · First event sample:', JSON.stringify(events[0]).slice(0, 500));
+      }
 
-          for (const book of ev.bookmakers || []) {
-            for (const market of book.markets || []) {
-              if (market.key === 'h2h') {
-                const h = market.outcomes.find(o => o.name === ev.home_team);
-                const d = market.outcomes.find(o => o.name === 'Draw');
-                const a = market.outcomes.find(o => o.name === ev.away_team);
-                if (h && h.price > best.home.price) best.home = { price: h.price, book: book.title };
-                if (d && d.price > best.draw.price) best.draw = { price: d.price, book: book.title };
-                if (a && a.price > best.away.price) best.away = { price: a.price, book: book.title };
+      let withOdds = 0;
+
+      for (const ev of events) {
+        // نلقاو أسماء الفرق
+        const homeName = extractField(ev, ['home_team.name', 'home.name', 'homeTeam.name', 'home']);
+        const awayName = extractField(ev, ['away_team.name', 'away.name', 'awayTeam.name', 'away']);
+
+        if (!homeName || !awayName || typeof homeName !== 'string') continue;
+
+        const key = normalizeTeamKey(homeName, awayName);
+
+        // نلقاو الـ bookmakers
+        const bookmakers = extractField(ev, ['odds.bookmakers', 'bookmakers', 'odds', 'markets']) || [];
+        if (!Array.isArray(bookmakers) || !bookmakers.length) continue;
+
+        const best = {
+          home: { price: 0, book: 'N/A' },
+          draw: { price: 0, book: 'N/A' },
+          away: { price: 0, book: 'N/A' },
+          over25: { price: 0, book: 'N/A' },
+          under25: { price: 0, book: 'N/A' }
+        };
+
+        for (const book of bookmakers) {
+          const bookName = extractField(book, ['name', 'title', 'book']) || 'N/A';
+          const markets = extractField(book, ['markets', 'odds']) || (Array.isArray(book) ? book : []);
+          if (!Array.isArray(markets)) continue;
+
+          for (const market of markets) {
+            const mkey = String(extractField(market, ['key', 'name', 'type']) || '');
+            const outcomes = market.outcomes || market.selections || [];
+            if (!Array.isArray(outcomes)) continue;
+
+            // 1X2 (Match Result)
+            if (/1x2|match.winner|h2h|result/i.test(mkey)) {
+              for (const o of outcomes) {
+                const oname = String(o.name || o.label || '').toLowerCase();
+                const price = parseFloat(o.price || o.odds || o.value);
+                if (!price || price < 1) continue;
+
+                if (oname === '1' || oname === 'home' || oname === homeName.toLowerCase()) {
+                  if (price > best.home.price) best.home = { price, book: bookName };
+                } else if (oname === 'x' || oname === 'draw') {
+                  if (price > best.draw.price) best.draw = { price, book: bookName };
+                } else if (oname === '2' || oname === 'away' || oname === awayName.toLowerCase()) {
+                  if (price > best.away.price) best.away = { price, book: bookName };
+                }
               }
-              if (market.key === 'totals') {
-                const o = market.outcomes.find(x => x.name === 'Over' && x.point === 2.5);
-                const u = market.outcomes.find(x => x.name === 'Under' && x.point === 2.5);
-                if (o && o.price > best.over25.price) best.over25 = { price: o.price, book: book.title };
-                if (u && u.price > best.under25.price) best.under25 = { price: u.price, book: book.title };
+            }
+
+            // Over/Under 2.5
+            if (/over.under|totals|total/i.test(mkey)) {
+              for (const o of outcomes) {
+                const oname = String(o.name || o.label || '').toLowerCase();
+                const point = parseFloat(o.point || o.handicap || 0);
+                const price = parseFloat(o.price || o.odds || o.value);
+                if (!price || price < 1) continue;
+                if (point !== 2.5) continue;
+
+                if (oname.startsWith('over') || oname === 'o') {
+                  if (price > best.over25.price) best.over25 = { price, book: bookName };
+                } else if (oname.startsWith('under') || oname === 'u') {
+                  if (price > best.under25.price) best.under25 = { price, book: bookName };
+                }
               }
             }
           }
-
-          if (best.home.price && best.draw.price && best.away.price) {
-            oddsMap.set(key, {
-              book: best.home.book,
-              home: best.home.price,
-              draw: best.draw.price,
-              away: best.away.price,
-              over25: best.over25.price || null,
-              under25: best.under25.price || null
-            });
-          }
         }
 
-        await new Promise(r => setTimeout(r, 200));
-      } catch (e) {
-        console.warn(`  ✗ ${sport}: ${e.message}`);
+        if (best.home.price && best.draw.price && best.away.price) {
+          oddsMap.set(key, {
+            book: best.home.book,
+            home: best.home.price,
+            draw: best.draw.price,
+            away: best.away.price,
+            over25: best.over25.price || null,
+            under25: best.under25.price || null
+          });
+          withOdds++;
+        }
       }
+
+      console.log(`  · Matched ${withOdds}/${events.length} events with complete odds`);
+    } catch (e) {
+      console.error('❌ Odds fetch error:', e.message);
+      oddsFetchInProgress = null;
+      return oddsCache.data || new Map();
     }
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-    console.log(`✅ Odds ready: ${oddsMap.size} matches from ${totalEvents} events in ${elapsed}s`);
-    if (quotaRemaining !== null) {
-      console.log(`   📉 API quota remaining: ${quotaRemaining}`);
-    }
+    console.log(`✅ Odds ready: ${oddsMap.size} matches in ${elapsed}s`);
 
     oddsCache.data = oddsMap;
     oddsCache.ts = now;
@@ -316,12 +371,6 @@ async function fetchOdds() {
 /* ═══════════════════════════════════════════════════════════
    FIXTURES — مع دمج الـ odds
    ═══════════════════════════════════════════════════════════ */
-function todayStr() {
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
-}
-
 async function getFixtures() {
   const now = Date.now();
   if (fixturesCache.data && now - fixturesCache.ts < FIXTURES_TTL) {
@@ -345,7 +394,6 @@ async function getFixtures() {
     const hf = formCache.get(m.homeTeam.id)?.data;
     const af = formCache.get(m.awayTeam.id)?.data;
 
-    // نحاولو نلقاو الـ odds ديال هاد الماتش
     const key = normalizeTeamKey(m.homeTeam.name, m.awayTeam.name);
     const odds = oddsMap.get(key);
     if (odds) matchedOdds++;
@@ -392,14 +440,13 @@ app.get('/api/fixtures', async (req, res) => {
     const fixtures = await getFixtures();
     const teams = fixtures.flatMap(f => [f.home, f.away]);
 
-    // رجع دغيا (بلا ما تتسنى forms)
     res.json({
       fixtures,
       meta: {
         formsComplete: fixtures.every(f =>
           formCache.has(f.home.id) && formCache.has(f.away.id)
         ),
-        oddsEnabled: !!ODDS_API_KEY,
+        oddsEnabled: !!BZZOIRO_API_KEY,
         oddsCached: oddsCache.data ? oddsCache.data.size : 0,
         oddsAge: oddsCache.data
           ? Math.round((Date.now() - oddsCache.ts) / 1000) + 's'
@@ -408,7 +455,6 @@ app.get('/api/fixtures', async (req, res) => {
       }
     });
 
-    // فـ background: كمّل forms الناقصة
     if (!prefetchInProgress) {
       ensureForms(teams).catch(e => console.error('BG prefetch:', e.message));
     }
@@ -432,7 +478,7 @@ app.get('/health', (req, res) => {
         : null
     },
     odds: {
-      enabled: !!ODDS_API_KEY,
+      enabled: !!BZZOIRO_API_KEY,
       cached: oddsCache.data ? oddsCache.data.size : 0,
       age: oddsCache.data
         ? Math.round((Date.now() - oddsCache.ts) / 1000) + 's'
@@ -443,12 +489,49 @@ app.get('/health', (req, res) => {
 });
 
 /* ═══════════════════════════════════════════════════════════
+   DEBUG — شوف الـ response الخام ديال Bzzoiro
+   افتح: GET /api/debug/bzzoiro
+   ═══════════════════════════════════════════════════════════ */
+app.get('/api/debug/bzzoiro', async (req, res) => {
+  if (!BZZOIRO_API_KEY) {
+    return res.status(400).json({ error: 'BZZOIRO_API_KEY not set' });
+  }
+
+  try {
+    const today = todayStr();
+    const url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${today}&date_to=${today}`;
+
+    const r = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${BZZOIRO_API_KEY}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    const text = await r.text();
+    let parsed = null;
+    try { parsed = JSON.parse(text); } catch (e) {}
+
+    res.json({
+      url,
+      status: r.status,
+      contentType: r.headers.get('content-type'),
+      preview: text.slice(0, 5000),
+      parsedKeys: parsed && typeof parsed === 'object' ? Object.keys(parsed) : null,
+      resultCount: parsed?.results?.length ?? parsed?.data?.length ?? (Array.isArray(parsed) ? parsed.length : null)
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
    BOOT
    ═══════════════════════════════════════════════════════════ */
 app.listen(PORT, () => {
   console.log(`✅ Matchday Edge on port ${PORT}`);
   console.log(`   Football API key: ${API_KEY ? 'SET ✓' : 'MISSING ✗'}`);
-  console.log(`   Odds API key:     ${ODDS_API_KEY ? 'SET ✓' : 'MISSING ✗ (odds disabled)'}`);
+  console.log(`   Bzzoiro API key:  ${BZZOIRO_API_KEY ? 'SET ✓' : 'MISSING ✗ (odds disabled)'}`);
   if (!API_KEY) console.error('   ⚠️  Set FOOTBALL_API_KEY env var');
-  if (!ODDS_API_KEY) console.warn('   ⚠️  Set ODDS_API_KEY env var for odds support');
+  if (!BZZOIRO_API_KEY) console.warn('   ⚠️  Set BZZOIRO_API_KEY env var for odds support');
 });
