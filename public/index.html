@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matchday Edge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400..700&display=swap">
+<style>
+/* [KOPI L'CSS KAMEL MN L'FICHIER LI 3NDEK — ma bdelch walou] */
+</style>
+</head>
+<body>
+<!-- [KOPI L'HTML KAMEL MN L'FICHIER LI 3NDEK — ma bdelch walou] -->
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   CONFIG — BDEL HAD L'URL 3LA 7SAB L'HOSTING DYALEK
+   ═══════════════════════════════════════════════════════════════ */
+const FEED_URL = '/api/fixtures';
+// Ila Cloudflare Worker: 'https://matchday-edge.YOUR-NAME.workers.dev'
+// Ila Railway: '/api/fixtures' (nafs l'domaine) wla 'https://your-app.up.railway.app/api/fixtures'
+
+/* [KOPI L'ENGINE KAMEL MN L'FICHIER LI 3NDEK — ma bdelch walou] */
+/* [KOPI SAMPLE FIXTURES KAMEL — ma bdelch walou] */
+/* [KOPI L'UI KAMEL — ma bdelch walou, ghir zed l'auto-fetch f l'akhir] */
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTO-FETCH — kayjib data mn l'backend f l'bidaya
+   ═══════════════════════════════════════════════════════════════ */
+async function autoFetch() {
+  if (!FEED_URL) return;
+  try {
+    say('Fetching today\'s fixtures…');
+    const r = await fetch(FEED_URL);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    load(data, 'live feed');
+  } catch (e) {
+    say('Could not load live feed: ' + e.message + ' — showing sample data.', 'err');
+    // kaybqa 3la sample data ila fetch fail
+  }
+}
+
+// Kaybda auto-fetch mn ba3d ma l'UI tkoun jahza
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', autoFetch);
+} else {
+  autoFetch();
+}
+</script>
+</body>
+</html>
