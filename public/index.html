@@ -1357,12 +1357,19 @@ const logoOf = t => {
   return typeof u === 'string' ? u.trim().replace(/^http:\/\//i, 'https://') : '';
 };
 
+// Runs when a logo fails to load: show initials as plain text (no inline HTML from API data).
+window.crestFail = function(img) {
+  const p = img.parentNode; if (!p) return;
+  p.classList.remove('has-logo');
+  p.textContent = img.dataset.ini || '?';
+};
+
 const crestHTML = t => {
   const ini = esc(initials(t.name));
   const url = logoOf(t);
   if (!url) return `<span class="crest">${ini}</span>`;
   return `<span class="crest has-logo">
-    <img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.parentNode.innerHTML='${ini}'; this.parentNode.classList.remove('has-logo');">
+    <img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-ini="${ini}" onerror="crestFail(this)">
   </span>`;
 };
 
