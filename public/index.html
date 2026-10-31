@@ -948,7 +948,7 @@ body.is-free #openFilterBtn, body.is-free #toggleBoardBtn { display:none; }
   <div class="modal-box">
     <h2 data-i18n="login_title">🔐 Login</h2>
     <p data-i18n="login_sub">Log in with your email, or create a free account.</p>
-    <input type="text" class="auth-input" id="loginUser" placeholder="Username" data-i18n-ph="ph_user" autocomplete="username">
+    <input type="text" class="auth-input" id="loginUser" placeholder="Email" data-i18n-ph="ph_user" inputmode="email" autocapitalize="none" autocomplete="email">
     <input type="password" class="auth-input" id="loginPass" placeholder="Password" data-i18n-ph="ph_pass" autocomplete="current-password">
     <button class="auth-btn" id="loginSubmitBtn" data-i18n="login_btn">Login</button>
     <button class="auth-btn auth-secondary" id="registerBtn" type="button" data-i18n="reg_btn">Create free account</button>
@@ -984,6 +984,8 @@ body.is-free #openFilterBtn, body.is-free #toggleBoardBtn { display:none; }
         <input type="range" id="mev" min="0" max="10" step="0.5" value="4.5">
         <span class="control-hint" data-i18n="mev_hint">Only prices with expected value above this threshold are flagged.</span>
       </div>
+
+      <div id="fpreview" class="control-hint" style="background:var(--soft); padding:12px 14px; border-radius:14px; line-height:1.5;"></div>
 
       <div class="quality-legend">
         <span class="ql-item"><span class="ql-dot" style="background:var(--bad)"></span><span data-i18n="q_high">High — direct xG + odds</span></span>
@@ -1087,7 +1089,7 @@ const translations = {
     plan_get: "Get access on Telegram", plan_renew: "Renew on Telegram", plan_active: "Pro active",
     plan_note: "After payment, send us your account email ({email}) on Telegram and we will activate your plan.", reg_btn: "Create free account",
     done: "Done",
-    hero_badge:"🔥 Live Odds · +EV Scanner", tick_1:"⚽ Live Odds", tick_2:"🎯 +EV Value Bets", tick_3:"📊 Poisson Model", tick_4:"🏆 Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. Bet responsibly.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Email or username", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
+    hero_badge:"🔥 Live Odds · +EV Scanner", tick_1:"⚽ Live Odds", tick_2:"🎯 +EV Value Bets", tick_3:"📊 Poisson Model", tick_4:"🏆 Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. Bet responsibly.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Email", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
   },
   fr: {
     pro_analytics: "Analytique Pro",
@@ -1127,7 +1129,7 @@ const translations = {
     plan_get: "Obtenir l'accès sur Telegram", plan_renew: "Renouveler sur Telegram", plan_active: "Pro actif",
     plan_note: "Après le paiement, envoyez-nous l'email de votre compte ({email}) sur Telegram et nous activerons votre offre.", reg_btn: "Créer un compte gratuit",
     done: "Terminé",
-    hero_badge:"🔥 Cotes en direct · Scanner +EV", tick_1:"⚽ Cotes en direct", tick_2:"🎯 Value Bets +EV", tick_3:"📊 Modèle de Poisson", tick_4:"🏆 Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques, aucun pronostic n'est garanti. Jouez responsablement.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Email ou nom d'utilisateur", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
+    hero_badge:"🔥 Cotes en direct · Scanner +EV", tick_1:"⚽ Cotes en direct", tick_2:"🎯 Value Bets +EV", tick_3:"📊 Modèle de Poisson", tick_4:"🏆 Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques, aucun pronostic n'est garanti. Jouez responsablement.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Email", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
   },
   ar: {
     pro_analytics: "تحليلات احترافية",
@@ -1167,7 +1169,7 @@ const translations = {
     plan_get: "احصل على الوصول عبر تيليجرام", plan_renew: "جدد عبر تيليجرام", plan_active: "الباقة مفعلة",
     plan_note: "بعد الدفع أرسل لنا بريد حسابك ({email}) على تيليجرام وسنفعّل باقتك.", reg_btn: "إنشاء حساب مجاني",
     done: "تم",
-    hero_badge:"🔥 أسعار مباشرة · ماسح +EV", tick_1:"⚽ أسعار مباشرة", tick_2:"🎯 رهانات +EV", tick_3:"📊 نموذج بواسون", tick_4:"🏆 توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. راهن بمسؤولية.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"البريد الإلكتروني أو اسم المستخدم", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
+    hero_badge:"🔥 أسعار مباشرة · ماسح +EV", tick_1:"⚽ أسعار مباشرة", tick_2:"🎯 رهانات +EV", tick_3:"📊 نموذج بواسون", tick_4:"🏆 توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. راهن بمسؤولية.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"البريد الإلكتروني", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
   }
 };
 
@@ -1902,6 +1904,20 @@ function renderAll() {
   renderHistory();
   
   if (authState.loggedIn) updateChart(parseInt($('chartRange').value) || 7, 'app');
+  updateFilterPreview();
+}
+
+// Live feedback inside the filter modal (the cards behind the overlay are hidden while sliding).
+function updateFilterPreview() {
+  const el = $('fpreview'); if (!el) return;
+  const up = (st.results || []).filter(r => !r.v.started);
+  const withOdds = up.filter(r => r.fx.odds && r.fx.odds.length > 0).length;
+  const bets = up.filter(r => r.v.bet);
+  const best = bets.length ? Math.max(...bets.map(r => r.v.bet.ev)) : null;
+  if (!up.length) { el.textContent = '—'; return; }
+  el.innerHTML = withOdds
+    ? `<b>${bets.length}</b> value bets · ${withOdds}/${up.length} matches with odds · best EV ${best != null ? sgn(best) : '—'}`
+    : `0/${up.length} matches have odds yet, so these sliders have nothing to change right now.`;
 }
 
 $('mw').value = st.mw * 100; $('mw-o').textContent = (st.mw * 100).toFixed(0) + '%';
