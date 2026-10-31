@@ -912,6 +912,93 @@ app.post('/api/admin/plan', loginLimiter, (req, res) => {
   res.json({ ok: true, email: u.email, plan: u.plan, planUntil: u.planUntil });
 });
 
+/* ═══════════════════════════════════════════════════════════
+   LICENSE KEYS  (owner generates keys, the customer redeems them to activate Pro on their own account)
+   Only SHA-256 hashes are stored; the plain key is shown once, when generated.
+   Stored in LICENSES_FILE (persistent disk, like USERS_FILE).
+   ═══════════════════════════════════════════════════════════ */
+const LICENSES_FILE = process.env.LICENSES_FILE || path.join(path.dirname(HISTORY_FILE), 'licenses.json');
+const licenses = new Map(); // sha256(key) -> { hash, days, createdAt, note, usedBy, usedAt }
+let licensesTimer = null;
+try {
+  if (fs.existsSync(LICENSES_FILE)) {
+    const arr = JSON.parse(fs.readFileSync(LICENSES_FILE, 'utf8'));
+    if (Array.isArray(arr)) for (const l of arr) if (l && l.hash) licenses.set(l.hash, l);
+    console.log(`🔑 Loaded ${licenses.size} licenses`);
+  }
+} catch (e) { console.error('Licenses load error:', e.message); }
+function saveLicensesSoon() {
+  if (licensesTimer) return;
+  licensesTimer = setTimeout(() => {
+    licensesTimer = null;
+    try {
+      fs.mkdirSync(path.dirname(LICENSES_FILE), { recursive: true });
+      const tmp = LICENSES_FILE + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify([...licenses.values()]), { mode: 0o600 });
+      fs.renameSync(tmp, LICENSES_FILE);
+    } catch (e) { console.error('Licenses save error:', e.message); }
+  }, 500);
+}
+const licHash = key => crypto.createHash('sha256').update(String(key).toUpperCase().replace(/[^A-Z0-9]/g, '')).digest('hex');
+const B32 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
+function newLicenseKey() {
+  const b = crypto.randomBytes(16);
+  let raw = ''; for (let i = 0; i < 16; i++) raw += B32[b[i] % 32];
+  return 'LB-' + raw.match(/.{4}/g).join('-');
+}
+function adminOk(req) {
+  const tok = process.env.ADMIN_TOKEN;
+  if (!tok) return null;
+  const a = Buffer.from(String(req.headers['x-admin-token'] || '')), b = Buffer.from(tok);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// Owner-only: generate license keys.  POST {days:30, count:5, note:"..."}  (days 0 = lifetime)
+app.post('/api/admin/license', loginLimiter, (req, res) => {
+  const ok = adminOk(req);
+  if (ok === null) return res.status(404).end();
+  if (!ok) return res.status(403).json({ error: 'Forbidden' });
+  const days = Math.max(0, Math.min(3650, Math.floor(Number((req.body || {}).days) || 30)));
+  const count = Math.max(1, Math.min(50, Math.floor(Number((req.body || {}).count) || 1)));
+  const note = String((req.body || {}).note || '').slice(0, 80);
+  const keys = [];
+  for (let i = 0; i < count; i++) {
+    const key = newLicenseKey(), hash = licHash(key);
+    licenses.set(hash, { hash, days, createdAt: Date.now(), note, usedBy: null, usedAt: null });
+    keys.push(key);
+  }
+  saveLicensesSoon();
+  res.json({ ok: true, days, keys });
+});
+
+// Customer: redeem a key on the logged-in email account.
+app.post('/api/license/activate', loginLimiter, authMiddleware, (req, res) => {
+  const sess = sessions.get(req.authToken);
+  if (!sess || sess.kind !== 'local') return res.status(400).json({ error: 'This login is already Premium.' });
+  const u = users.get(sess.username);
+  if (!u) return res.status(404).json({ error: 'Account not found' });
+  const fKey = 'lic:' + sess.username;
+  const f = userFails.get(fKey);
+  if (f && f.n >= 8 && Date.now() - f.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
+  const key = (req.body || {}).key;
+  if (typeof key !== 'string' || key.length > 64) return res.status(400).json({ error: 'Invalid license key.' });
+  const lic = licenses.get(licHash(key));
+  if (!lic || lic.usedBy) {
+    const e = userFails.get(fKey) || { n: 0, t: Date.now() };
+    e.n++; e.t = Date.now(); userFails.set(fKey, e);
+    return res.status(400).json({ error: lic ? 'This license key was already used.' : 'Invalid license key.' });
+  }
+  userFails.delete(fKey);
+  lic.usedBy = u.email; lic.usedAt = Date.now();
+  const now = Date.now();
+  const active = u.plan === 'pro' && (!u.planUntil || u.planUntil > now);
+  if (active && !u.planUntil) { /* already lifetime: keep it */ }
+  else if (lic.days === 0) { u.plan = 'pro'; u.planUntil = null; }
+  else { u.plan = 'pro'; u.planUntil = (active ? u.planUntil : now) + lic.days * 86400000; }
+  saveUsersSoon(); saveLicensesSoon();
+  res.json({ ok: true, profile: profileOf(sess) });
+});
+
 // Per-username lockout (the per-IP limiter alone can be dodged by rotating IPs).
 const userFails = new Map();
 setInterval(() => { const n = Date.now(); for (const [k, v] of userFails) if (n - v.t > 10 * 60 * 1000) userFails.delete(k); }, 10 * 60 * 1000).unref();
