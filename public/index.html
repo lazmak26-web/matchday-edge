@@ -331,6 +331,14 @@ section { margin-top:30px; }
 .m-mid { display:flex; flex-direction:column; align-items:center; gap:4px; }
 .m-time { font-weight:800; font-size:17px; letter-spacing:-0.01em; background:var(--soft); color:var(--ink); padding:6px 12px; border-radius:12px; border: 1px solid var(--line); }
 .m-vs { font-size:10px; font-weight:800; color:var(--ink-3); letter-spacing:.15em; }
+.m-live-score { font-weight:800; font-size:22px; letter-spacing:.02em; background:var(--soft); color:var(--ink); padding:6px 14px; border-radius:12px; border:1px solid var(--info); white-space:nowrap; }
+.m-live-tag { font-size:10px; font-weight:800; letter-spacing:.12em; color:var(--good); }
+.m-top-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.bell-btn { width:30px; height:30px; border-radius:50%; background:var(--soft); border:1px solid var(--line); color:var(--ink-3); display:grid; place-items:center; cursor:pointer; transition:.2s; padding:0; }
+.bell-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.bell-btn:hover { border-color:var(--brand); color:var(--brand); }
+.bell-btn.on { background:var(--brand-dim); border-color:var(--brand); color:var(--brand); }
+.bell-btn.on svg { fill:currentColor; }
 
 .tiles { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
 .tile { background:var(--soft); border-radius:16px; padding:10px 6px; text-align:center; display:flex; flex-direction:column; gap:3px; border: 1px solid rgba(255,255,255,0.03); }
@@ -1399,6 +1407,59 @@ function getFinishedMatches() {
   return results.filter(r => r.fx.status === 'finished' && r.v.main1x2);
 }
 
+/* ═══════════ MATCH START NOTIFICATIONS (bell) ═══════════ */
+const BELL_KEY = 'mde:bells';
+function getBells() { try { return JSON.parse(localStorage.getItem(BELL_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function saveBells(b) { try { localStorage.setItem(BELL_KEY, JSON.stringify(b)); } catch (e) {} }
+
+function bellHTML(id) {
+  const on = !!getBells()[String(id)];
+  return `<button class="bell-btn ${on ? 'on' : ''}" data-bell="${esc(id)}" onclick="toggleBell(this.dataset.bell)" title="Notify me when the match starts" aria-label="Notify me when the match starts">
+    <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+  </button>`;
+}
+
+window.toggleBell = async function(id) {
+  id = String(id);
+  const bells = getBells();
+  if (bells[id]) {
+    delete bells[id]; saveBells(bells); renderSignals(); return;
+  }
+  if (!('Notification' in window)) { alert('Your browser does not support notifications.'); return; }
+  let perm = Notification.permission;
+  if (perm === 'default') { try { perm = await Notification.requestPermission(); } catch (e) {} }
+  if (perm !== 'granted') { alert('Please allow notifications in your browser to use the bell.'); return; }
+  bells[id] = Date.now();
+  saveBells(bells);
+  renderSignals();
+};
+
+function checkMatchStarts(fixtures) {
+  const bells = getBells();
+  const ids = Object.keys(bells);
+  if (!ids.length) return;
+  let changed = false;
+  for (const fx of fixtures) {
+    const id = String(fx.id);
+    if (!bells[id]) continue;
+    if (fx.status === 'notstarted') continue;
+    delete bells[id]; changed = true;
+    if (fx.status === 'canceled') continue;
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('⚽ Match started', {
+          body: `${fx.home.name} vs ${fx.away.name} has just kicked off!`,
+          icon: 'logo.png',
+          tag: 'mde-' + id
+        });
+      }
+    } catch (e) {}
+  }
+  // drop stale entries (older than 1 day) so storage never grows forever
+  for (const id of Object.keys(bells)) if (Date.now() - bells[id] > 24 * 60 * 60 * 1000) { delete bells[id]; changed = true; }
+  if (changed) saveBells(bells);
+}
+
 function renderSignals() {
   const upcoming = st.results.filter(r => !r.v.started);
   const bets = upcoming.filter(r => r.v.bet);
@@ -1440,10 +1501,8 @@ function renderSignals() {
   $('cards').innerHTML = cardList.length ? cardList.map(r => {
     const { fx, json, v } = r, H = fx.home, A = fx.away;
 
-    let scoreHTML = `<b class="kv-score">${esc(json.scoreline_prediction.most_likely)}</b>`;
-    if (fx.status === 'inplay' || fx.status === 'started' || fx.status === 'finished') {
-      scoreHTML = `<b class="kv-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</b><span class="kv-live">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span>`;
-    }
+    // Predicted score always stays here; the live score is shown between the team logos.
+    const scoreHTML = `<b class="kv-score">${esc(json.scoreline_prediction.most_likely)}</b>`;
 
     const mx = v.p ? Math.max(v.p.h, v.p.d, v.p.a) : null;
     const tile = (cls, label, val) => `<div class="tile ${cls} ${v.p && val === mx ? 'top' : ''}"><i>${label}</i><b>${v.p ? pct1(val) : '-'}</b></div>`;
@@ -1452,11 +1511,16 @@ function renderSignals() {
     return `<article class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''}">
       <div class="m-top">
         <div class="m-league">${esc(fx.league)}</div>
-        <span class="mh-quality ${fx.dataQuality || 'very-low'}">${(fx.dataQuality || 'EST').toUpperCase()}</span>
+        <div class="m-top-right">
+          <span class="mh-quality ${fx.dataQuality || 'very-low'}">${(fx.dataQuality || 'EST').toUpperCase()}</span>
+          ${v.started ? '' : bellHTML(fx.id)}
+        </div>
       </div>
       <div class="m-teams">
         <div class="team home">${crestHTML(H)}<div class="t-name">${esc(H.name)}</div></div>
-        <div class="m-mid"><span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-vs">VS</span></div>
+        <div class="m-mid">${v.started
+          ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span>`
+          : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-vs">VS</span>`}</div>
         <div class="team away">${crestHTML(A)}<div class="t-name">${esc(A.name)}</div></div>
       </div>
       ${probHTML}
@@ -1670,6 +1734,8 @@ async function pollFeed() {
     if (!r.ok) return;
     const data = await r.json();
     if (!data.fixtures) return;
+
+    checkMatchStarts(data.fixtures);
 
     const newHash = JSON.stringify(data.fixtures.map(f => ({ id: f.id, status: f.status, h: f.homeScore, a: f.awayScore, hl: f.home && f.home.logo, al: f.away && f.away.logo, o: f.odds && f.odds[0] ? [f.odds[0].home, f.odds[0].draw, f.odds[0].away].join() : '', hf: f.home && f.home.form, af: f.away && f.away.form })));
     if (newHash !== lastHash) {
