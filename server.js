@@ -14,10 +14,14 @@ const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
 /* ═══════════════════════════════════════════════════════════
    KEYAUTH CONFIG
    ═══════════════════════════════════════════════════════════ */
-const KEYAUTH_NAME    = process.env.KEYAUTH_NAME    || "Lazmak26's Application";
-const KEYAUTH_OWNERID = process.env.KEYAUTH_OWNERID || "pHNY47TKT0";
-const KEYAUTH_SECRET  = process.env.KEYAUTH_SECRET  || "224780ffea2a6df27e3cb18c7332e0356adfee48c2cd1662004332919376fac0";
+// No hardcoded fallbacks: secrets must come from environment variables (never from source code).
+const KEYAUTH_NAME    = process.env.KEYAUTH_NAME;
+const KEYAUTH_OWNERID = process.env.KEYAUTH_OWNERID;
+const KEYAUTH_SECRET  = process.env.KEYAUTH_SECRET;
 const KEYAUTH_VERSION = process.env.KEYAUTH_VERSION || "1.0";
+const AUTH_CONFIGURED = !!(KEYAUTH_NAME && KEYAUTH_OWNERID && KEYAUTH_SECRET);
+if (!AUTH_CONFIGURED) console.error('❌ KEYAUTH_NAME / KEYAUTH_OWNERID / KEYAUTH_SECRET are not set: login is disabled until they are.');
+const MAX_SESSIONS_PER_USER = 2; // stops one key being shared by many people at once
 const KEYAUTH_BASE    = 'https://keyauth.win/api/1.3/';
 
 const SESSION_TTL = 24 * 60 * 60 * 1000;
@@ -663,7 +667,30 @@ function authMiddleware(req, res, next) {
   next();
 }
 
-app.use(express.json());
+app.disable('x-powered-by');
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src https://fonts.gstatic.com",
+  "img-src 'self' data: https:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'"
+].join('; ');
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', CSP);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.set('trust proxy', 1);
@@ -678,9 +705,20 @@ function loginLimiter(req, res, next) {
   next();
 }
 
+// Per-username lockout (the per-IP limiter alone can be dodged by rotating IPs).
+const userFails = new Map();
+setInterval(() => { const n = Date.now(); for (const [k, v] of userFails) if (n - v.t > 10 * 60 * 1000) userFails.delete(k); }, 10 * 60 * 1000).unref();
+
 app.post('/api/auth/login', loginLimiter, async (req, res) => {
+  if (!AUTH_CONFIGURED) return res.status(503).json({ error: 'Login is temporarily unavailable.' });
   const { username, password, hwid } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (typeof username !== 'string' || typeof password !== 'string' || username.length > 100 || password.length > 200 || (hwid != null && (typeof hwid !== 'string' || hwid.length > 200))) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+  const uKey = username.toLowerCase();
+  const uf = userFails.get(uKey);
+  if (uf && uf.n >= 8 && Date.now() - uf.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
   try {
     const init = await keyauthInit();
     if (!init.success) throw new Error(init.message || 'Init failed');
@@ -691,8 +729,16 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
 
     const token = crypto.randomBytes(32).toString('hex');
     sessions.set(token, { keyauthSessionId: sessionid, username, createdAt: Date.now() });
+    userFails.delete(uKey);
+    // Keep only the newest sessions for this user.
+    const mine = [...sessions.entries()].filter(([, v]) => v.username === username).sort((a, b) => b[1].createdAt - a[1].createdAt);
+    for (const [k] of mine.slice(MAX_SESSIONS_PER_USER)) sessions.delete(k);
     res.json({ token, username, expiresIn: SESSION_TTL });
-  } catch (e) { res.status(401).json({ error: e.message }); }
+  } catch (e) {
+    const f = userFails.get(uKey) || { n: 0, t: Date.now() };
+    f.n++; f.t = Date.now(); userFails.set(uKey, f);
+    res.status(401).json({ error: e.message });
+  }
 });
 
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
@@ -735,7 +781,7 @@ app.get('/api/fixtures', authMiddleware, async (req, res) => {
     if (teams.length && !prefetchInProgress) ensureForms(teams).catch(e => console.error(e.message));
     const logoP = ensureLogos(fixtures.flatMap(f => [f.home, f.away]));
     if (logoP) logoP.catch(e => console.error('Logo fetch error:', e.message));
-  } catch (e) { res.status(500).json({ error: e.message, fixtures: [] }); }
+  } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
 });
 
 // History = saved snapshots (pre-match odds/form frozen) + final scores.
@@ -748,7 +794,7 @@ app.get('/api/history', async (req, res) => {
       .sort((a, b) => (b.date + b.kickoff).localeCompare(a.date + a.kickoff));
     res.json({ fixtures });
   } catch (e) {
-    res.status(500).json({ error: e.message, fixtures: [] });
+    res.status(500).json({ error: 'Server error', fixtures: [] });
   }
 });
 
