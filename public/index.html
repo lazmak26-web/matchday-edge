@@ -129,6 +129,15 @@ body {
 }
 
 .hidden { display: none !important; }
+.side-overlay { position:fixed; inset:0; background:rgba(8,7,20,.6); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); z-index:1000; }
+.side-menu { position:fixed; top:0; bottom:0; left:0; width:min(300px,84vw); background:var(--card); border-right:1px solid var(--line); z-index:1001; transform:translateX(-102%); transition:transform .25s ease; display:flex; flex-direction:column; gap:6px; padding:16px 12px; overflow-y:auto; }
+.side-menu.open { transform:none; }
+.side-head { display:flex; align-items:center; justify-content:space-between; padding:4px 8px 14px; font-size:18px; color:var(--ink); }
+.side-item { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; background:transparent; border:0; color:var(--ink-2); font:inherit; font-size:15px; font-weight:800; text-align:left; text-decoration:none; cursor:pointer; width:100%; }
+.side-item svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+.side-item:hover { background:var(--brand-dim); color:var(--ink); }
+.side-accent { color:var(--brand); background:var(--brand-dim); }
+#menuBtn { flex:none; }
 
 .wrap { max-width:640px; margin:0 auto; padding:10px 14px 140px; }
 h1,h2,h3 { margin:0; }
@@ -711,6 +720,7 @@ body.is-free #openFilterBtn, body.is-free #toggleBoardBtn { display:none; }
   <!-- ✅ HEADER: Logo and name left, icons right -->
   <header class="app-header">
     <div class="brand">
+      <button class="icon-btn hidden" id="menuBtn" type="button" aria-label="Menu" onclick="openMenu()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="brand-mark">
         <img src="logo.png" alt="Logo">
       </div>
@@ -1031,12 +1041,31 @@ body.is-free #openFilterBtn, body.is-free #toggleBoardBtn { display:none; }
   </div>
 </div>
 
+<div id="menuOverlay" class="side-overlay hidden" onclick="closeMenu()"></div>
+<aside id="sideMenu" class="side-menu" aria-hidden="true">
+  <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" onclick="closeMenu()">✕</button></div>
+  <button class="side-item" type="button" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
+  <button class="side-item" type="button" onclick="menuGo('unlock')"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
+  <button class="side-item side-accent" type="button" onclick="menuDo(openLicenseModal)"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L21 2M16 7l3 3M14 9l2 2"/></svg><span data-i18n="lic_menu">Activate Premium</span></button>
+  <button class="side-item" type="button" onclick="menuDo(openSettingsModal)"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span data-i18n="nav_settings">Settings</span></button>
+  <a class="side-item" href="https://t.me/l1uci7er" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="nav_support">Support</span></a>
+</aside>
+
+<div id="licenseModal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width: 420px;">
+    <h2 data-i18n="lic_title">🔑 Activate Premium</h2>
+    <p data-i18n="lic_sub">Enter your license key to activate Pro on your account.</p>
+    <input type="text" class="auth-input" id="licKey" placeholder="LB-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button class="auth-btn" id="licBtn" type="button" onclick="activateLicense()" data-i18n="lic_btn">Activate</button>
+    <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" onclick="closeLicenseModal()" data-i18n="cancel">Cancel</button>
+    <div class="auth-error" id="licMsg"></div>
+  </div>
+</div>
+
 <nav class="bottom-nav hidden" id="bottomNav">
   <button class="nav-item active" onclick="switchTab('signals')" id="nav-signals"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/></svg><span data-i18n="nav_signals">Signals</span></button>
   <button class="nav-item" onclick="switchTab('history')" id="nav-history"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span data-i18n="nav_history">History</span></button>
   <button class="nav-item" onclick="switchTab('performance')" id="nav-performance"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
-  <button class="nav-item" onclick="switchTab('weekly')" id="nav-weekly"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
-  <button class="nav-item" onclick="switchTab('unlock')" id="nav-unlock"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
   <span class="nav-spacer desk-only"></span>
   <a class="nav-item desk-only" id="nav-support" href="https://t.me/l1uci7er" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="nav_support">Support</span></a>
   <button class="nav-item desk-only" id="nav-settings" onclick="openSettingsModal()"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span data-i18n="nav_settings">Settings</span></button>
@@ -1173,6 +1202,10 @@ const translations = {
   }
 };
 
+Object.assign(translations.en, { menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "🔑 Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again." });
+Object.assign(translations.fr, { menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "🔑 Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous." });
+Object.assign(translations.ar, { menu_title: "القائمة", lic_menu: "تفعيل بريميوم", lic_title: "🔑 تفعيل بريميوم", lic_sub: "أدخل مفتاح الترخيص لتفعيل Pro على حسابك.", lic_btn: "تفعيل", lic_have: "لدي مفتاح ترخيص", lic_ok: "تم تفعيل بريميوم ✓", lic_fail: "فشل التفعيل.", lic_login: "انتهت الجلسة. سجل الدخول مجددًا." });
+
 let boardHidden = false;
 
 function updateToggleBtnText() {
@@ -1258,6 +1291,8 @@ function localDateStr(d) {
 function updateAuthUI() {
   document.getElementById('loginBtn').classList.toggle('hidden', authState.loggedIn);
   document.getElementById('profileBtn').classList.toggle('hidden', !authState.loggedIn);
+  document.getElementById('menuBtn').classList.toggle('hidden', !authState.loggedIn);
+  if (!authState.loggedIn) closeMenu();
   document.body.classList.toggle('has-side', authState.loggedIn);
   if (!authState.loggedIn) document.getElementById('profileMenu').classList.add('hidden');
   renderProfile(); applyPlanGate();
@@ -1283,6 +1318,42 @@ function openSettingsModal() { document.getElementById('settingsModal').classLis
 function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
 function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); }
 function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); }
+
+function openMenu() { document.getElementById('sideMenu').classList.add('open'); document.getElementById('menuOverlay').classList.remove('hidden'); }
+function closeMenu() { document.getElementById('sideMenu').classList.remove('open'); document.getElementById('menuOverlay').classList.add('hidden'); }
+function menuGo(tab) { closeMenu(); switchTab(tab); }
+function menuDo(fn) { closeMenu(); fn(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+function openLicenseModal() { document.getElementById('licMsg').textContent = ''; document.getElementById('licenseModal').classList.remove('hidden'); setTimeout(() => document.getElementById('licKey').focus(), 50); }
+function closeLicenseModal() { document.getElementById('licenseModal').classList.add('hidden'); }
+document.getElementById('licKey').addEventListener('keydown', e => { if (e.key === 'Enter') activateLicense(); });
+async function activateLicense() {
+  const key = document.getElementById('licKey').value.trim();
+  const msg = document.getElementById('licMsg'), btn = document.getElementById('licBtn');
+  const t = tNow();
+  msg.style.color = ''; msg.textContent = '';
+  if (!key) return;
+  if (!authState.token) { msg.textContent = t.lic_login; return; }
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/license/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token },
+      body: JSON.stringify({ key })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 401) throw new Error(t.lic_login);
+    if (!r.ok) throw new Error(data.error || t.lic_fail);
+    authState.profile = data.profile;
+    document.getElementById('licKey').value = '';
+    msg.style.color = 'var(--good)'; msg.textContent = t.lic_ok;
+    lastHash = null; applyPlanGate(); renderProfile(); pollFeed();
+    setTimeout(() => { closeLicenseModal(); switchTab('signals'); }, 1200);
+  } catch (e) {
+    msg.textContent = e.message;
+  } finally { btn.disabled = false; }
+}
 
 document.getElementById('loginBtn').onclick = openAuthModal;
 document.getElementById('settingsBtn').onclick = openSettingsModal;
@@ -1584,7 +1655,7 @@ window.switchTab = function(tab) {
   document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('view-' + tab).classList.add('active');
-  document.getElementById('nav-' + tab).classList.add('active');
+  const navEl = document.getElementById('nav-' + tab); if (navEl) navEl.classList.add('active');
   window.scrollTo({ top: 0 });
   document.getElementById('tgFab').classList.toggle('tab-off', tab !== 'signals');
   if (tab === 'weekly') renderWeekly();
@@ -2037,6 +2108,7 @@ function renderUnlock() {
   $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div>
     <ul class="plan-feats">${[t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5].map(f => `<li>${esc(f)}</li>`).join('')}</ul>
     <a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${isPro() ? t.plan_renew : t.plan_get}</span></a>
+    <button class="btn-main" type="button" style="margin-top:10px" onclick="openLicenseModal()">🔑 ${t.lic_have}</button>
     <p class="plan-note">${t.plan_note.replace('{email}', esc(p.username || ''))}</p></div>`;
 }
 
