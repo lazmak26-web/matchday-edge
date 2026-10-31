@@ -971,8 +971,12 @@ app.post('/api/admin/license', loginLimiter, (req, res) => {
   res.json({ ok: true, days, keys });
 });
 
-// Customer: redeem a key on the logged-in email account.
-app.post('/api/license/activate', loginLimiter, authMiddleware, (req, res) => {
+// Customer: redeem a license key on the logged-in email account.
+// Keys come from KeyAuth (validated live, bound to ONE email account here) or from /api/admin/license.
+async function keyauthLicense(key, sessionid, hwid) {
+  return keyauthRequest({ type: 'license', key, hwid, sessionid, name: KEYAUTH_NAME, ownerid: KEYAUTH_OWNERID, secret: KEYAUTH_SECRET });
+}
+app.post('/api/license/activate', loginLimiter, authMiddleware, async (req, res) => {
   const sess = sessions.get(req.authToken);
   if (!sess || sess.kind !== 'local') return res.status(400).json({ error: 'This login is already Premium.' });
   const u = users.get(sess.username);
@@ -980,21 +984,54 @@ app.post('/api/license/activate', loginLimiter, authMiddleware, (req, res) => {
   const fKey = 'lic:' + sess.username;
   const f = userFails.get(fKey);
   if (f && f.n >= 8 && Date.now() - f.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
-  const key = (req.body || {}).key;
-  if (typeof key !== 'string' || key.length > 64) return res.status(400).json({ error: 'Invalid license key.' });
-  const lic = licenses.get(licHash(key));
-  if (!lic || lic.usedBy) {
+  const rawKey = (req.body || {}).key;
+  if (typeof rawKey !== 'string' || rawKey.trim().length < 6 || rawKey.length > 64) return res.status(400).json({ error: 'Invalid license key.' });
+  const key = rawKey.trim();
+  const h = licHash(key);
+  const fail = msg => {
     const e = userFails.get(fKey) || { n: 0, t: Date.now() };
     e.n++; e.t = Date.now(); userFails.set(fKey, e);
-    return res.status(400).json({ error: lic ? 'This license key was already used.' : 'Invalid license key.' });
-  }
-  userFails.delete(fKey);
-  lic.usedBy = u.email; lic.usedAt = Date.now();
+    return res.status(400).json({ error: msg });
+  };
   const now = Date.now();
+  let until = null;          // absolute end of the plan (ms); null = lifetime
+  let extendDays = null;     // owner-generated keys add days on top of the current plan
+  const own = licenses.get(h);
+
+  if (own && own.source !== 'keyauth') {
+    if (own.usedBy) return fail('This license key was already used.');
+    own.usedBy = u.email; own.usedAt = now;
+    extendDays = own.days;
+  } else {
+    if (own && own.usedBy && own.usedBy !== u.email) return fail('This license key was already used by another account.');
+    if (!AUTH_CONFIGURED) return res.status(503).json({ error: 'Activation is temporarily unavailable.' });
+    let r;
+    try {
+      const init = await keyauthInit();
+      if (!init.success) throw new Error(init.message || 'Init failed');
+      r = await keyauthLicense(key, init.sessionid, 'web-' + h.slice(0, 24));
+    } catch (e) { return res.status(502).json({ error: 'Could not reach the license server. Try again.' }); }
+    if (!r || !r.success) return fail((r && r.message) || 'Invalid license key.');
+    const subs = (r.info && r.info.subscriptions) || [];
+    const exp = Math.max(0, ...subs.map(x => Number(x.expiry) || 0));
+    if (exp <= 0) return fail('This license has no active subscription.');
+    if (exp * 1000 <= now) return fail('This license has expired.');
+    const cur = licenses.get(h); // re-check after the await: another request may have bound it meanwhile
+    if (cur && cur.usedBy && cur.usedBy !== u.email) return fail('This license key was already used by another account.');
+    until = exp * 1000 > Date.UTC(2090, 0, 1) ? null : exp * 1000;
+    licenses.set(h, { hash: h, source: 'keyauth', usedBy: u.email, usedAt: now, expiry: until });
+  }
+
+  userFails.delete(fKey);
   const active = u.plan === 'pro' && (!u.planUntil || u.planUntil > now);
   if (active && !u.planUntil) { /* already lifetime: keep it */ }
-  else if (lic.days === 0) { u.plan = 'pro'; u.planUntil = null; }
-  else { u.plan = 'pro'; u.planUntil = (active ? u.planUntil : now) + lic.days * 86400000; }
+  else if (extendDays !== null) {
+    u.plan = 'pro';
+    u.planUntil = extendDays === 0 ? null : (active ? u.planUntil : now) + extendDays * 86400000;
+  } else {
+    u.plan = 'pro';
+    u.planUntil = until === null ? null : Math.max(until, active ? u.planUntil : 0);
+  }
   saveUsersSoon(); saveLicensesSoon();
   res.json({ ok: true, profile: profileOf(sess) });
 });
