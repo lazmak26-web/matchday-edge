@@ -831,6 +831,60 @@ loadUsers();
 const scryptAsync = (pw, salt) => new Promise((ok, no) => crypto.scrypt(pw, salt, 64, (e, k) => (e ? no(e) : ok(k))));
 const DUMMY_SALT = crypto.randomBytes(16);
 
+/* ═══════════════════════════════════════════════════════════
+   EMAIL OTP  (6-digit code sent by email before a login session starts)
+   Needs RESEND_API_KEY (https://resend.com) + MAIL_FROM on a verified domain.
+   Without RESEND_API_KEY the OTP step is skipped (a warning is logged at startup).
+   ═══════════════════════════════════════════════════════════ */
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const MAIL_FROM = process.env.MAIL_FROM || 'LuciBet <onboarding@resend.dev>';
+const OTP_ENABLED = !!RESEND_API_KEY;
+if (!OTP_ENABLED) console.error('⚠️ RESEND_API_KEY is not set: email OTP is OFF, so email logins skip the code check.');
+const OTP_TTL = 10 * 60 * 1000, OTP_RESEND_GAP = 45 * 1000, OTP_MAX_TRIES = 5, OTP_MAX_SENDS_PER_HOUR = 6;
+const OTP_SECRET = crypto.randomBytes(32);
+const otps = new Map();      // email -> { hash, exp, tries, sentAt }
+const otpSends = new Map();  // email -> { n, t }  (sends per hour)
+setInterval(() => {
+  const n = Date.now();
+  for (const [k, v] of otps) if (n > v.exp + 3600000) otps.delete(k);
+  for (const [k, v] of otpSends) if (n - v.t > 3600000) otpSends.delete(k);
+}, 10 * 60 * 1000).unref();
+const otpHash = (email, code) => crypto.createHmac('sha256', OTP_SECRET).update(email + ':' + code).digest('hex');
+
+async function sendMail(to, subject, text, html) {
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: MAIL_FROM, to: [to], subject, text, html }),
+    signal: AbortSignal.timeout(10000)
+  });
+  if (!r.ok) throw new Error(`Mail API HTTP ${r.status}: ${(await r.text().catch(() => '')).slice(0, 200)}`);
+}
+
+// Creates and emails a fresh code. If a still-valid code was sent less than 45s ago it is kept (reused: true).
+async function sendOtp(email) {
+  const now = Date.now();
+  const prev = otps.get(email);
+  if (prev && now < prev.exp && now - prev.sentAt < OTP_RESEND_GAP) {
+    return { ok: true, reused: true, resendIn: Math.ceil((OTP_RESEND_GAP - (now - prev.sentAt)) / 1000) };
+  }
+  const cap = otpSends.get(email) || { n: 0, t: now };
+  if (now - cap.t > 3600000) { cap.n = 0; cap.t = now; }
+  if (cap.n >= OTP_MAX_SENDS_PER_HOUR) return { error: 'Too many codes requested. Try again later.', status: 429 };
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  try {
+    await sendMail(email, 'Your LuciBet login code',
+      `Your LuciBet verification code is ${code}. It expires in 10 minutes. If you did not request it, you can ignore this email.`,
+      `<div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:24px"><h2 style="margin:0 0 12px">LuciBet</h2><p>Your verification code is:</p><p style="font-size:32px;letter-spacing:6px;font-weight:800;margin:12px 0">${code}</p><p style="color:#666">It expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`);
+  } catch (e) {
+    console.error('OTP mail error:', e.message);
+    return { error: 'Could not send the code. Please try again.', status: 502 };
+  }
+  otps.set(email, { hash: otpHash(email, code), exp: now + OTP_TTL, tries: 0, sentAt: now });
+  cap.n++; otpSends.set(email, cap);
+  return { ok: true, resendIn: OTP_RESEND_GAP / 1000 };
+}
+
 function planOf(sess) {
   if (!sess) return 'free';
   if (sess.kind === 'keyauth') return 'pro';
@@ -844,7 +898,8 @@ function profileOf(sess) {
     name: String(sess.username).split('@')[0],
     uid: u ? 'USR' + String(u.seq).padStart(6, '0') : 'KEY-' + String(sess.username).slice(0, 8).toUpperCase(),
     plan: planOf(sess),
-    planUntil: u ? u.planUntil || null : null,
+    planUntil: u ? u.planUntil || null : (sess.expiry || null),
+    lifetime: u ? (u.plan === 'pro' && !u.planUntil) : sess.lifetime === true,
     since: u ? u.createdAt : sess.createdAt,
     kind: sess.kind || 'keyauth'
   };
@@ -875,7 +930,10 @@ async function localLogin(res, email, password, uKey) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
   userFails.delete(uKey);
-  startSession(res, { kind: 'local', username: email });
+  if (!OTP_ENABLED) return startSession(res, { kind: 'local', username: email });
+  const o = await sendOtp(email);
+  if (!o.ok) return res.status(o.status).json({ error: o.error });
+  res.json({ otpRequired: true, email, resendIn: o.resendIn });
 }
 
 app.post('/api/auth/register', loginLimiter, async (req, res) => {
@@ -885,16 +943,48 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
   if (!EMAIL_RE.test(email) || email.length > 120) return res.status(400).json({ error: 'Please enter a valid email address.' });
   if (typeof password !== 'string' || password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Password must be 8 to 128 characters.' });
   if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
-  if (users.has(email)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
+  const taken = u => u && u.verified !== false; // an unverified signup never proved it owns the email, so it can be re-claimed
+  if (taken(users.get(email))) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
   try {
     const salt = crypto.randomBytes(16);
     const hash = await scryptAsync(password, salt);
-    if (users.has(email)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
-    const seq = [...users.values()].reduce((m, u) => Math.max(m, u.seq || 0), 0) + 1;
-    users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), plan: 'free', planUntil: null, createdAt: Date.now(), seq });
+    const cur = users.get(email);
+    if (taken(cur)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
+    if (cur) { cur.salt = salt.toString('hex'); cur.hash = hash.toString('hex'); }
+    else {
+      const seq = [...users.values()].reduce((m, u) => Math.max(m, u.seq || 0), 0) + 1;
+      users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: !OTP_ENABLED });
+    }
     saveUsersSoon();
-    startSession(res, { kind: 'local', username: email });
+    if (!OTP_ENABLED) return startSession(res, { kind: 'local', username: email });
+    const o = await sendOtp(email);
+    if (!o.ok) return res.status(o.status).json({ error: o.error });
+    res.json({ otpRequired: true, email, resendIn: o.resendIn });
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.post('/api/auth/verify-otp', loginLimiter, (req, res) => {
+  const body = req.body || {};
+  const email = String(body.email || '').trim().toLowerCase();
+  const code = String(body.code || '').replace(/\D/g, '');
+  const u = users.get(email), rec = otps.get(email);
+  if (!u || !rec || Date.now() > rec.exp) return res.status(400).json({ error: 'Code expired. Please request a new one.' });
+  if (rec.tries >= OTP_MAX_TRIES) { otps.delete(email); return res.status(429).json({ error: 'Too many wrong attempts. Please request a new code.' }); }
+  rec.tries++;
+  const ok = code.length === 6 && crypto.timingSafeEqual(Buffer.from(otpHash(email, code), 'hex'), Buffer.from(rec.hash, 'hex'));
+  if (!ok) return res.status(400).json({ error: 'Wrong code.', triesLeft: OTP_MAX_TRIES - rec.tries });
+  otps.delete(email);
+  if (u.verified === false) { u.verified = true; saveUsersSoon(); }
+  startSession(res, { kind: 'local', username: email });
+});
+
+app.post('/api/auth/resend-otp', loginLimiter, async (req, res) => {
+  const email = String((req.body || {}).email || '').trim().toLowerCase();
+  if (!OTP_ENABLED || !users.has(email) || !otps.has(email)) return res.status(400).json({ error: 'Please log in again to get a new code.' });
+  const o = await sendOtp(email);
+  if (!o.ok) return res.status(o.status).json({ error: o.error });
+  if (o.reused) return res.status(429).json({ error: `Please wait ${o.resendIn}s before requesting a new code.`, resendIn: o.resendIn });
+  res.json({ ok: true, resendIn: o.resendIn });
 });
 
 // Owner-only: grant/revoke the Pro plan after a payment (needs ADMIN_TOKEN env var).
@@ -1060,7 +1150,11 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     if (!login.success) throw new Error(login.message || 'Invalid username or password');
 
     userFails.delete(uKey);
-    startSession(res, { kind: 'keyauth', keyauthSessionId: sessionid, username });
+    const subs = (login.info && login.info.subscriptions) || [];
+    const exp = Math.max(0, ...subs.map(x => Number(x.expiry) || 0));
+    const sx = { kind: 'keyauth', keyauthSessionId: sessionid, username };
+    if (exp > 0) { if (exp * 1000 > Date.UTC(2090, 0, 1)) sx.lifetime = true; else sx.expiry = exp * 1000; }
+    startSession(res, sx);
   } catch (e) {
     const f = userFails.get(uKey) || { n: 0, t: Date.now() };
     f.n++; f.t = Date.now(); userFails.set(uKey, f);
