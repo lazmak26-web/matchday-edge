@@ -654,6 +654,55 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 .lp-unlock { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); white-space:nowrap; border:0; cursor:pointer; font-family:var(--font); font-weight:800; font-size:13px; color:#fff; background:var(--grad); padding:10px 18px; border-radius:999px; box-shadow:0 10px 24px -8px rgba(91,71,245,.7); transition:transform .2s; }
 .lp-lock:hover .lp-unlock { transform:translate(-50%,-50%) scale(1.06); }
 @media (min-width:960px) { .lp-matches { grid-column:1 / -1; order:0; margin-top:56px; } }
+
+/* Nav: bottom bar on phones, sidebar on desktop */
+.nav-item { padding:8px 2px; gap:5px; text-decoration:none; min-width:0; }
+.bottom-nav { gap:2px; padding:6px; }
+.nav-item span { font-size:10px; line-height:1.15; text-align:center; white-space:normal; max-width:100%; }
+#nav-signals{order:1} #nav-history{order:3} #nav-performance{order:4} #nav-weekly{order:5} #nav-unlock{order:6}
+.desk-only { display:none; }
+.tg-fab.tab-off { display:none; }
+body.is-free #openFilterBtn, body.is-free #toggleBoardBtn { display:none; }
+@media (min-width:960px) {
+  .bottom-nav { top:0; bottom:0; left:0; transform:none; width:236px; border-radius:0; border:0; border-right:1px solid var(--line); flex-direction:column; justify-content:flex-start; gap:6px; padding:28px 12px 20px; margin:0; background:var(--card); -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:none; }
+  .nav-item { flex:none; flex-direction:row; justify-content:flex-start; gap:14px; padding:13px 16px; border-radius:14px; }
+  .nav-item span { font-size:14px; text-align:left; white-space:nowrap; }
+  #nav-unlock{order:2}
+  .nav-item.desk-only { display:flex; }
+  .nav-spacer.desk-only { display:block; flex:1; order:7; }
+  #nav-support{order:8} #nav-settings{order:9}
+  body.has-side .wrap { padding-left:calc(236px + clamp(32px,3vw,64px)); }
+}
+
+/* Profile menu */
+.profile-wrap { position:relative; }
+.profile-menu { position:absolute; right:0; top:calc(100% + 10px); width:min(340px, calc(100vw - 28px)); background:var(--card); color:var(--ink); border:1px solid var(--line-2); border-radius:24px; padding:16px; z-index:300; box-shadow:0 24px 60px -16px rgba(0,0,0,.6); text-align:left; animation:modalIn .2s ease; }
+.pm-head { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.pm-avatar { width:56px; height:56px; border-radius:50%; border:2px solid var(--line-2); background:var(--soft); display:grid; place-items:center; flex-shrink:0; color:var(--ink-3); overflow:hidden; }
+.pm-avatar svg { width:34px; height:34px; margin-top:6px; }
+.pm-name { font-weight:800; font-size:18px; line-height:1.2; word-break:break-all; }
+.pm-uid { font-size:12px; color:var(--ink-3); font-weight:700; letter-spacing:.06em; display:flex; align-items:center; gap:8px; margin-top:2px; }
+.pm-copy { background:none; border:0; color:var(--ink-3); font:inherit; font-weight:700; cursor:pointer; padding:0; letter-spacing:0; }
+.pm-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; background:var(--soft); border-radius:16px; padding:12px; margin-bottom:12px; }
+.pm-stats span { display:block; font-size:11px; color:var(--ink-3); font-weight:700; }
+.pm-stats b { font-size:15px; font-weight:800; }
+.pm-langs { display:flex; gap:4px; background:var(--soft); border-radius:14px; padding:4px; margin-bottom:12px; }
+.pm-langs button { flex:1; background:none; border:0; color:var(--ink-3); font:700 12px var(--font); padding:9px 4px; border-radius:10px; cursor:pointer; white-space:nowrap; }
+.pm-langs button.on { background:var(--card); color:var(--ink); box-shadow:var(--shadow); }
+.pm-settings { width:100%; padding:13px; border-radius:14px; border:0; background:var(--ink); color:var(--card); font:800 14px var(--font); cursor:pointer; }
+.pm-logout { width:100%; margin-top:6px; padding:12px; border:0; background:none; color:var(--bad); font:800 14px var(--font); cursor:pointer; }
+.auth-secondary { background:transparent; color:var(--brand); border:1px solid var(--line-2); box-shadow:none; margin-top:10px; }
+
+/* Plan card */
+.plan-card { max-width:460px; margin:0 auto; text-align:center; padding:28px 24px; border-radius:26px; border:1.5px solid transparent; color:var(--ink);
+  background:linear-gradient(var(--card),var(--card)) padding-box, linear-gradient(135deg,var(--brand),transparent 55%,var(--good)) border-box; box-shadow:0 24px 60px -24px rgba(91,71,245,.55); }
+.plan-name { font-size:14px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--brand); }
+.plan-price { margin:8px 0 18px; }
+.plan-price b { font-size:52px; font-weight:800; letter-spacing:-.03em; }
+.plan-feats { list-style:none; padding:0; margin:0 0 22px; text-align:left; display:flex; flex-direction:column; gap:10px; }
+.plan-feats li { padding-left:28px; position:relative; font-weight:600; font-size:14px; }
+.plan-feats li::before { content:"✓"; position:absolute; left:0; color:var(--good); font-weight:800; }
+.plan-note { font-size:12px; color:var(--ink-3); margin:14px 0 0; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -676,8 +725,27 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
         <span class="dot"></span><span id="live-text">LIVE</span>
       </div>
       <button class="icon-btn" id="loginBtn" title="Login">🔐</button>
-      <button class="icon-btn hidden" id="settingsBtn" title="Settings">⚙️</button>
-      <button class="icon-btn hidden" id="logoutBtn" title="Logout">🚪</button>
+      <div class="profile-wrap">
+        <button class="icon-btn hidden" id="profileBtn" title="Profile" aria-label="Profile"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></button>
+        <div class="profile-menu hidden" id="profileMenu">
+          <div class="pm-head">
+            <div class="pm-avatar"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4.5"/><path d="M3 22c0-5 4-8 9-8s9 3 9 8z"/></svg></div>
+            <div><div class="pm-name" id="pmName">—</div><div class="pm-uid"><span id="pmUid">—</span><button class="pm-copy" id="pmCopy" type="button" data-i18n="copy">Copy</button></div></div>
+          </div>
+          <div class="pm-stats">
+            <div><span data-i18n="plan_lbl">Plan</span><b id="pmPlan">Free</b></div>
+            <div><span data-i18n="signals_lbl">Signals</span><b id="pmSignals">0</b></div>
+            <div><span data-i18n="since_lbl">Since</span><b id="pmSince">—</b></div>
+          </div>
+          <div class="pm-langs">
+            <button type="button" data-lang="en">🇬🇧 English</button>
+            <button type="button" data-lang="ar">🇸🇦 العربية</button>
+            <button type="button" data-lang="fr">🇫🇷 Français</button>
+          </div>
+          <button class="pm-settings" id="settingsBtn" type="button">⚙️ <span data-i18n="nav_settings">Settings</span></button>
+          <button class="pm-logout" id="logoutBtn" type="button">🚪 <span data-i18n="logout_lbl">Log out</span></button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -747,7 +815,7 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 
       <div class="cta-box">
         <div class="cta-title" data-i18n="get_started">Get Started Now</div>
-        <div class="cta-desc" data-i18n="cta_desc">Login with your KeyAuth credentials to unlock the full dashboard and daily value bets.</div>
+        <div class="cta-desc" data-i18n="cta_desc">Create a free account or log in to open the dashboard and daily value bets.</div>
         <button class="btn-main" onclick="openAuthModal()" data-i18n="login_dash">Login to Dashboard</button>
         <a href="https://t.me/l1uci7er" target="_blank" class="btn-tg">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4.873 8.034c-.156.77-.866 4.128-1.226 5.497-.153.593-.335.792-.512.81-.358.036-.63-.236-.976-.464-1.658-1.087-2.467-1.636-2.978-1.956-1.328-.84-1.36-1.288-.74-1.75.137-.1.878-.8 1.44-1.31 1.022-.926 1.248-1.135 1.59-1.135.252 0 .486.12.627.34.19.296.36.835.49 1.338.128.5.19.748.326.748.137 0 .26-.135.47-.396.282-.35.742-.927.938-1.244.197-.317.395-.236.594-.236.2 0 .42.135.614.372.195.237.324.558.435.88.11.323.21.66.296.955.086.297.156.555.266.79.11.236.21.34.36.34z"/></svg>
@@ -856,6 +924,21 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
       </section>
     </div>
 
+    <div id="view-weekly" class="tab-view">
+      <section style="margin-top:24px;">
+        <div class="section-head"><div><div class="section-label">📅 <span data-i18n="nav_weekly">Weekly Stats</span></div><h2 data-i18n="weekly_h">Last 7 days</h2></div></div>
+        <div class="perf-grid" id="weeklyTop"></div>
+        <div class="history-grid" id="weeklyDays" style="margin-top:16px;"></div>
+      </section>
+    </div>
+
+    <div id="view-unlock" class="tab-view">
+      <section style="margin-top:24px;">
+        <div class="section-head"><div><div class="section-label">💎 <span data-i18n="nav_unlock">Unlock Access</span></div><h2 data-i18n="unlock_h">Get full access to the signals</h2></div></div>
+        <div id="planBox"></div>
+      </section>
+    </div>
+
   </div>
   <p class="disclaimer" data-i18n="disclaimer">18+ only. Gambling involves risk and predictions are never guaranteed. Bet responsibly.</p>
 </div>
@@ -864,10 +947,11 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 <div id="authModal" class="modal-overlay hidden">
   <div class="modal-box">
     <h2 data-i18n="login_title">🔐 Login</h2>
-    <p data-i18n="login_sub">Enter your KeyAuth credentials.</p>
+    <p data-i18n="login_sub">Log in with your email, or create a free account.</p>
     <input type="text" class="auth-input" id="loginUser" placeholder="Username" data-i18n-ph="ph_user" autocomplete="username">
     <input type="password" class="auth-input" id="loginPass" placeholder="Password" data-i18n-ph="ph_pass" autocomplete="current-password">
     <button class="auth-btn" id="loginSubmitBtn" data-i18n="login_btn">Login</button>
+    <button class="auth-btn auth-secondary" id="registerBtn" type="button" data-i18n="reg_btn">Create free account</button>
     <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" onclick="closeAuthModal()" data-i18n="cancel">Cancel</button>
     <div class="auth-error" id="authError"></div>
   </div>
@@ -946,18 +1030,14 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 </div>
 
 <nav class="bottom-nav hidden" id="bottomNav">
-  <button class="nav-item active" onclick="switchTab('signals')" id="nav-signals">
-    <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/></svg>
-    <span data-i18n="nav_signals">Signals</span>
-  </button>
-  <button class="nav-item" onclick="switchTab('history')" id="nav-history">
-    <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-    <span data-i18n="nav_history">History</span>
-  </button>
-  <button class="nav-item" onclick="switchTab('performance')" id="nav-performance">
-    <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-    <span data-i18n="nav_perf">Performance</span>
-  </button>
+  <button class="nav-item active" onclick="switchTab('signals')" id="nav-signals"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/></svg><span data-i18n="nav_signals">Signals</span></button>
+  <button class="nav-item" onclick="switchTab('history')" id="nav-history"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span data-i18n="nav_history">History</span></button>
+  <button class="nav-item" onclick="switchTab('performance')" id="nav-performance"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
+  <button class="nav-item" onclick="switchTab('weekly')" id="nav-weekly"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
+  <button class="nav-item" onclick="switchTab('unlock')" id="nav-unlock"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
+  <span class="nav-spacer desk-only"></span>
+  <a class="nav-item desk-only" id="nav-support" href="https://t.me/l1uci7er" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="nav_support">Support</span></a>
+  <button class="nav-item desk-only" id="nav-settings" onclick="openSettingsModal()"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span data-i18n="nav_settings">Settings</span></button>
 </nav>
 
 <a class="tg-fab hidden" id="tgFab" href="https://t.me/l1uci7er" target="_blank" rel="noopener noreferrer" aria-label="Chat on Telegram">
@@ -980,7 +1060,7 @@ const translations = {
     last_7: "Last 7 Days", last_30: "Last 30 Days",
     wins: "Wins", losses: "Losses", with_odds: "With odds", value_bets: "Value bets",
     get_started: "Get Started Now",
-    cta_desc: "Login with your KeyAuth credentials to unlock the full dashboard and daily value bets.",
+    cta_desc: "Create a free account or log in to open the dashboard and daily value bets.",
     login_dash: "Login to Dashboard",
     get_key: "Get your Key from Telegram",
     value_board: "Value Board", best_ev: "Best positive-EV prices",
@@ -990,7 +1070,7 @@ const translations = {
     win_rate: "Overall Win Rate", total_picks: "Total Picks",
     perf_history: "Performance History",
     period_wins: "Period Wins", period_losses: "Period Losses",
-    login_title: "🔐 Login", login_sub: "Enter your KeyAuth credentials.",
+    login_title: "🔐 Login", login_sub: "Log in with your email, or create a free account.",
     login_btn: "Login", cancel: "Cancel",
     settings_title: "⚙️ Settings", filters_title: "🎛️ Model Filters", filters_sub: "Adjust how the bot calculates Value Bets.",
     lang_label: "Language", theme_label: "Theme",
@@ -1000,8 +1080,14 @@ const translations = {
     q_high: "High — direct xG + odds", q_med: "Medium — forms-derived xG", q_low: "Low — H2H estimate", q_est: "Est. — league average",
     hide: "Hide", show: "Show",
     lp_today: "Today's Matches", lp_show: "🔒 Show predictions",
+    nav_unlock: "Unlock Access", nav_weekly: "Weekly Stats", nav_support: "Support", nav_settings: "Settings",
+    plan_lbl: "Plan", signals_lbl: "Signals", since_lbl: "Since", logout_lbl: "Log out", copy: "Copy",
+    weekly_h: "Last 7 days", unlock_h: "Get full access to the signals", free_board: "Value bets are available on the Pro plan.",
+    pf_1: "Daily +EV value bets", pf_2: "Win probabilities for every match", pf_3: "Over/Under and scoreline predictions", pf_4: "Match-start notifications", pf_5: "Live scores",
+    plan_get: "Get access on Telegram", plan_renew: "Renew on Telegram", plan_active: "Pro active",
+    plan_note: "After payment, send us your account email ({email}) on Telegram and we will activate your plan.", reg_btn: "Create free account",
     done: "Done",
-    hero_badge:"🔥 Live Odds · +EV Scanner", tick_1:"⚽ Live Odds", tick_2:"🎯 +EV Value Bets", tick_3:"📊 Poisson Model", tick_4:"🏆 Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. Bet responsibly.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Username", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
+    hero_badge:"🔥 Live Odds · +EV Scanner", tick_1:"⚽ Live Odds", tick_2:"🎯 +EV Value Bets", tick_3:"📊 Poisson Model", tick_4:"🏆 Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. Bet responsibly.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Email or username", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
   },
   fr: {
     pro_analytics: "Analytique Pro",
@@ -1014,7 +1100,7 @@ const translations = {
     last_7: "7 Derniers Jours", last_30: "30 Derniers Jours",
     wins: "Victoires", losses: "Défaites", with_odds: "Avec cotes", value_bets: "Value Bets",
     get_started: "Commencer Maintenant",
-    cta_desc: "Connectez-vous avec vos identifiants KeyAuth pour déverrouiller le tableau de bord.",
+    cta_desc: "Créez un compte gratuit ou connectez-vous pour ouvrir le tableau de bord.",
     login_dash: "Se connecter au tableau de bord",
     get_key: "Obtenez votre clé sur Telegram",
     value_board: "Tableau des Valeurs", best_ev: "Meilleurs prix +EV",
@@ -1024,7 +1110,7 @@ const translations = {
     win_rate: "Taux de Réussite Global", total_picks: "Total des Paris",
     perf_history: "Historique des Performances",
     period_wins: "Victoires Période", period_losses: "Défaites Période",
-    login_title: "🔐 Connexion", login_sub: "Entrez vos identifiants KeyAuth.",
+    login_title: "🔐 Connexion", login_sub: "Connectez-vous avec votre email ou créez un compte gratuit.",
     login_btn: "Connexion", cancel: "Annuler",
     settings_title: "⚙️ Paramètres", filters_title: "🎛️ Filtres du Modèle", filters_sub: "Ajustez le calcul des Value Bets.",
     lang_label: "Langue", theme_label: "Thème",
@@ -1034,8 +1120,14 @@ const translations = {
     q_high: "Haute — xG direct + cotes", q_med: "Moyenne — xG dérivé des formes", q_low: "Basse — estimation H2H", q_est: "Est. — moyenne de la ligue",
     hide: "Cacher", show: "Afficher",
     lp_today: "Matchs du jour", lp_show: "🔒 Afficher les pronostics",
+    nav_unlock: "Débloquer l'accès", nav_weekly: "Stats hebdo", nav_support: "Support", nav_settings: "Paramètres",
+    plan_lbl: "Offre", signals_lbl: "Signaux", since_lbl: "Depuis", logout_lbl: "Déconnexion", copy: "Copier",
+    weekly_h: "7 derniers jours", unlock_h: "Accédez à tous les signaux", free_board: "Les value bets sont réservés à l'offre Pro.",
+    pf_1: "Value bets +EV quotidiens", pf_2: "Probabilités de victoire pour chaque match", pf_3: "Pronostics Plus/Moins et score exact", pf_4: "Notifications de début de match", pf_5: "Scores en direct",
+    plan_get: "Obtenir l'accès sur Telegram", plan_renew: "Renouveler sur Telegram", plan_active: "Pro actif",
+    plan_note: "Après le paiement, envoyez-nous l'email de votre compte ({email}) sur Telegram et nous activerons votre offre.", reg_btn: "Créer un compte gratuit",
     done: "Terminé",
-    hero_badge:"🔥 Cotes en direct · Scanner +EV", tick_1:"⚽ Cotes en direct", tick_2:"🎯 Value Bets +EV", tick_3:"📊 Modèle de Poisson", tick_4:"🏆 Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques, aucun pronostic n'est garanti. Jouez responsablement.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Nom d'utilisateur", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
+    hero_badge:"🔥 Cotes en direct · Scanner +EV", tick_1:"⚽ Cotes en direct", tick_2:"🎯 Value Bets +EV", tick_3:"📊 Modèle de Poisson", tick_4:"🏆 Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques, aucun pronostic n'est garanti. Jouez responsablement.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Email ou nom d'utilisateur", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
   },
   ar: {
     pro_analytics: "تحليلات احترافية",
@@ -1048,7 +1140,7 @@ const translations = {
     last_7: "آخر 7 أيام", last_30: "آخر 30 يوم",
     wins: "أرباح", losses: "خسائر", with_odds: "مع أسعار", value_bets: "رهانات قيمة",
     get_started: "ابدأ الآن",
-    cta_desc: "سجل الدخول ببيانات KeyAuth لفتح لوحة التحكم والرهانات اليومية.",
+    cta_desc: "أنشئ حسابًا مجانيًا أو سجل الدخول لفتح لوحة التحكم والرهانات اليومية.",
     login_dash: "تسجيل الدخول للوحة التحكم",
     get_key: "احصل على مفتاحك من تيليجرام",
     value_board: "لوحة القيمة", best_ev: "أفضل الأسعار الإيجابية",
@@ -1058,7 +1150,7 @@ const translations = {
     win_rate: "معدل الفوز العام", total_picks: "إجمالي التوقعات",
     perf_history: "سجل الأداء",
     period_wins: "أرباح الفترة", period_losses: "خسائر الفترة",
-    login_title: "🔐 تسجيل الدخول", login_sub: "أدخل بيانات KeyAuth الخاصة بك.",
+    login_title: "🔐 تسجيل الدخول", login_sub: "سجل الدخول ببريدك الإلكتروني أو أنشئ حسابًا مجانيًا.",
     login_btn: "دخول", cancel: "إلغاء",
     settings_title: "⚙️ الإعدادات", filters_title: "🎛️ فلاتر النموذج", filters_sub: "اضبط كيفية حساب أفضل الرهانات.",
     lang_label: "اللغة", theme_label: "المظهر",
@@ -1068,8 +1160,14 @@ const translations = {
     q_high: "عالي — xG مباشر + أسعار", q_med: "متوسط — xG مشتق من الأشكال", q_low: "منخفض — تقدير المواجهات", q_est: "تقديري — متوسط الدوري",
     hide: "إخفاء", show: "إظهار",
     lp_today: "مباريات اليوم", lp_show: "🔒 إظهار التوقعات",
+    nav_unlock: "فتح الوصول", nav_weekly: "إحصائيات الأسبوع", nav_support: "الدعم", nav_settings: "الإعدادات",
+    plan_lbl: "الباقة", signals_lbl: "الإشارات", since_lbl: "منذ", logout_lbl: "تسجيل الخروج", copy: "نسخ",
+    weekly_h: "آخر 7 أيام", unlock_h: "احصل على وصول كامل للإشارات", free_board: "رهانات القيمة متاحة في الباقة المدفوعة.",
+    pf_1: "رهانات +EV يومية", pf_2: "احتمالات الفوز لكل مباراة", pf_3: "توقعات أكثر/أقل والنتيجة", pf_4: "إشعارات بداية المباراة", pf_5: "نتائج مباشرة",
+    plan_get: "احصل على الوصول عبر تيليجرام", plan_renew: "جدد عبر تيليجرام", plan_active: "الباقة مفعلة",
+    plan_note: "بعد الدفع أرسل لنا بريد حسابك ({email}) على تيليجرام وسنفعّل باقتك.", reg_btn: "إنشاء حساب مجاني",
     done: "تم",
-    hero_badge:"🔥 أسعار مباشرة · ماسح +EV", tick_1:"⚽ أسعار مباشرة", tick_2:"🎯 رهانات +EV", tick_3:"📊 نموذج بواسون", tick_4:"🏆 توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. راهن بمسؤولية.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"اسم المستخدم", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
+    hero_badge:"🔥 أسعار مباشرة · ماسح +EV", tick_1:"⚽ أسعار مباشرة", tick_2:"🎯 رهانات +EV", tick_3:"📊 نموذج بواسون", tick_4:"🏆 توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. راهن بمسؤولية.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"البريد الإلكتروني أو اسم المستخدم", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
   }
 };
 
@@ -1138,7 +1236,7 @@ document.getElementById('themeSelect').addEventListener('change', (e) => {
   refreshCharts();
 });
 
-const authState = { token: localStorage.getItem('mde:token') || null, loggedIn: false };
+const authState = { token: localStorage.getItem('mde:token') || null, loggedIn: false, profile: null };
 let chartInstanceApp = null;
 let chartInstanceLanding = null;
 let historyFixtures = [];
@@ -1157,8 +1255,10 @@ function localDateStr(d) {
 
 function updateAuthUI() {
   document.getElementById('loginBtn').classList.toggle('hidden', authState.loggedIn);
-  document.getElementById('settingsBtn').classList.toggle('hidden', !authState.loggedIn);
-  document.getElementById('logoutBtn').classList.toggle('hidden', !authState.loggedIn);
+  document.getElementById('profileBtn').classList.toggle('hidden', !authState.loggedIn);
+  document.body.classList.toggle('has-side', authState.loggedIn);
+  if (!authState.loggedIn) document.getElementById('profileMenu').classList.add('hidden');
+  renderProfile(); applyPlanGate();
   document.getElementById('live-status').classList.toggle('hidden', !authState.loggedIn);
 
   document.getElementById('landingPage').classList.toggle('hidden', authState.loggedIn);
@@ -1196,8 +1296,10 @@ document.getElementById('logoutBtn').onclick = async () => {
   try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token } }); } catch(e) {}
   authState.token = null;
   authState.loggedIn = false;
+  authState.profile = null;
   localStorage.removeItem('mde:token');
   updateAuthUI();
+  switchTab('signals');
   st.fixtures = [];
   renderAll();
   lastHash = null;
@@ -1221,7 +1323,7 @@ async function getDeviceHWID() {
 
 ['loginUser', 'loginPass'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click(); }));
 
-document.getElementById('loginSubmitBtn').onclick = async () => {
+async function authSubmit(authUrl) {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
   if (!u || !p) return;
@@ -1235,7 +1337,7 @@ document.getElementById('loginSubmitBtn').onclick = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const r = await fetch('/api/auth/login', {
+    const r = await fetch(authUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: u, password: p, hwid: hwid }),
       signal: controller.signal
@@ -1253,6 +1355,7 @@ document.getElementById('loginSubmitBtn').onclick = async () => {
     if (!r.ok) throw new Error(data.error || 'Invalid username or password');
 
     authState.token = data.token;
+    authState.profile = data.profile || null;
     authState.loggedIn = true;
     localStorage.setItem('mde:token', data.token);
     closeAuthModal();
@@ -1271,13 +1374,16 @@ document.getElementById('loginSubmitBtn').onclick = async () => {
     btn.textContent = (translations[localStorage.getItem('mde:lang') || 'en'] || translations.en).login_btn;
     btn.disabled = false;
   }
-};
+}
+document.getElementById('loginSubmitBtn').onclick = () => authSubmit('/api/auth/login');
+document.getElementById('registerBtn').onclick = () => authSubmit('/api/auth/register');
 
 async function checkAuth() {
   if (!authState.token) { updateAuthUI(); return; }
   try {
     const r = await fetch('/api/auth/verify', { headers: { 'Authorization': 'Bearer ' + authState.token } });
     if (r.ok) {
+      try { authState.profile = await r.json(); } catch (e) {}
       authState.loggedIn = true;
       updateAuthUI();
       pollFeed();
@@ -1478,6 +1584,9 @@ window.switchTab = function(tab) {
   document.getElementById('view-' + tab).classList.add('active');
   document.getElementById('nav-' + tab).classList.add('active');
   window.scrollTo({ top: 0 });
+  document.getElementById('tgFab').classList.toggle('tab-off', tab !== 'signals');
+  if (tab === 'weekly') renderWeekly();
+  if (tab === 'unlock') renderUnlock();
 
   if (tab === 'performance') {
     setTimeout(() => {
@@ -1554,6 +1663,8 @@ function checkMatchStarts(fixtures) {
 }
 
 function renderSignals() {
+  renderProfile();
+  if (!isPro()) { renderFreeSignals(); return; }
   const upcoming = st.results.filter(r => !r.v.started);
   const bets = upcoming.filter(r => r.v.bet);
   const withOdds = st.results.filter(r => r.fx.odds && r.fx.odds.length > 0).length;
@@ -1810,6 +1921,7 @@ $('today').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'shor
 let lastHash = null;
 async function pollFeed() {
   if (document.hidden || !authState.loggedIn) return;
+  if (!isPro()) { loadPublicFixtures('app'); return; }
   try {
     const r = await fetch('/api/fixtures?t=' + Date.now(), {
       cache: 'no-store',
@@ -1824,6 +1936,7 @@ async function pollFeed() {
       return;
     }
 
+    if (r.status === 403) { if (authState.profile) authState.profile.plan = 'free'; applyPlanGate(); return; }
     if (!r.ok) return;
     const data = await r.json();
     if (!data.fixtures) return;
@@ -1847,11 +1960,95 @@ async function pollFeed() {
 // Lets :active (press-to-zoom on cards) work on iOS Safari
 document.addEventListener('touchstart', function(){}, { passive: true });
 
-/* ═══════════ LANDING: public matches preview (predictions locked) ═══════════ */
-let lpHash = null;
-function renderLanding(list) {
-  const t = translations[localStorage.getItem('mde:lang') || 'en'] || translations.en;
-  const el = $('lpCards'); if (!el) return;
+/* ═══════════ PLAN / PROFILE ═══════════ */
+const TG_LINK = 'https://t.me/l1uci7er';
+const TG_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+const isPro = () => !!(authState.profile && authState.profile.plan === 'pro');
+const tNow = () => translations[localStorage.getItem('mde:lang') || 'en'] || translations.en;
+
+function renderProfile() {
+  const lang = localStorage.getItem('mde:lang') || 'en';
+  document.querySelectorAll('.pm-langs button').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+  const p = authState.profile; if (!p) return;
+  $('pmName').textContent = p.name || p.username || '—';
+  $('pmUid').textContent = p.uid || '—';
+  $('pmPlan').textContent = isPro() ? 'Pro' : 'Free';
+  $('pmSignals').textContent = isPro() ? (st.results || []).filter(r => !r.v.started && r.v.bet).length : 0;
+  $('pmSince').textContent = p.since ? new Date(p.since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
+}
+
+function applyPlanGate() {
+  document.body.classList.toggle('is-free', authState.loggedIn && !isPro());
+  if (authState.loggedIn && !isPro()) renderFreeSignals();
+}
+
+function renderFreeSignals() {
+  const t = tNow();
+  $('stats').innerHTML = '';
+  $('board').innerHTML = `<div class="empty-state">🔒 ${t.free_board}<button class="btn-main" style="margin:14px auto 0;max-width:260px" onclick="switchTab('unlock')">${t.nav_unlock}</button></div>`;
+  if (lpAppList) renderLanding(lpAppList, 'cards', "switchTab('unlock')");
+  else { $('cards').innerHTML = ''; loadPublicFixtures('app'); }
+}
+
+function pickWon(r) {
+  const hs = r.fx.homeScore ?? 0, as = r.fx.awayScore ?? 0, k = r.v.main1x2.key;
+  return (k === 'home' && hs > as) || (k === 'away' && as > hs) || (k === 'draw' && hs === as);
+}
+
+function renderWeekly() {
+  const t = tNow(), fin = getFinishedMatches(), now = new Date(), days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    days.push({ key: localDateStr(d), label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), w: 0, l: 0 });
+  }
+  const map = Object.fromEntries(days.map(d => [d.key, d]));
+  fin.forEach(r => { const d = map[fxLocalDate(r.fx)]; if (d) { if (pickWon(r)) d.w++; else d.l++; } });
+  const W = days.reduce((a, d) => a + d.w, 0), L = days.reduce((a, d) => a + d.l, 0), tot = W + L, rate = tot ? Math.round(W / tot * 100) : 0;
+  $('weeklyTop').innerHTML = `<div class="perf-card hero"><div class="perf-val" style="color:#10B981">${rate}%</div><div class="perf-lbl">${t.win_rate}</div><div class="perf-track"><div class="perf-fill" style="width:${rate}%"></div></div></div>
+    <div class="perf-card"><div class="perf-val" style="color:var(--good)">${W}</div><div class="perf-lbl">${t.wins}</div></div>
+    <div class="perf-card"><div class="perf-val" style="color:var(--bad)">${L}</div><div class="perf-lbl">${t.losses}</div></div>
+    <div class="perf-card"><div class="perf-val" style="color:var(--ink-2)">${tot}</div><div class="perf-lbl">${t.total_picks}</div></div>`;
+  $('weeklyDays').innerHTML = days.map(d => {
+    const n = d.w + d.l, pc = n ? Math.round(d.w / n * 100) : 0;
+    return `<div class="hc-card"><div class="hc-header"><span>${esc(d.label)}</span><span>${n} ${t.total_picks}</span></div>
+      <div class="hc-footer"><span><strong>${d.w}</strong> ${t.wins} · <strong>${d.l}</strong> ${t.losses}</span>${n ? `<span class="${pc >= 50 ? 'badge-win' : 'badge-loss'}">${pc}%</span>` : '<span>—</span>'}</div></div>`;
+  }).join('');
+}
+
+function renderUnlock() {
+  const t = tNow(), p = authState.profile || {};
+  const status = isPro() ? `<div class="pill good" style="display:inline-block;margin-bottom:12px">✓ ${t.plan_active}${p.planUntil ? ' · ' + new Date(p.planUntil).toLocaleDateString('en-GB') : ''}</div>` : '';
+  $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div>
+    <ul class="plan-feats">${[t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5].map(f => `<li>${esc(f)}</li>`).join('')}</ul>
+    <a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${isPro() ? t.plan_renew : t.plan_get}</span></a>
+    <p class="plan-note">${t.plan_note.replace('{email}', esc(p.username || ''))}</p></div>`;
+}
+
+function setLang(l) {
+  applyLanguage(l);
+  if (authState.loggedIn) renderAll();
+  refreshCharts(); renderProfile();
+  lpHash = null; lpAppHash = null;
+  if (!authState.loggedIn) loadPublicFixtures();
+  const act = document.querySelector('.tab-view.active');
+  if (act && act.id === 'view-unlock') renderUnlock();
+  if (act && act.id === 'view-weekly') renderWeekly();
+}
+
+$('profileBtn').onclick = e => { e.stopPropagation(); $('profileMenu').classList.toggle('hidden'); renderProfile(); };
+document.addEventListener('click', e => { const m = $('profileMenu'); if (!m.classList.contains('hidden') && !m.contains(e.target)) m.classList.add('hidden'); });
+$('profileMenu').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.lang) { setLang(b.dataset.lang); return; }
+  if (b.id === 'pmCopy') { try { navigator.clipboard.writeText($('pmUid').textContent); } catch (x) {} b.textContent = '✓'; setTimeout(() => { b.textContent = tNow().copy; }, 1200); return; }
+  $('profileMenu').classList.add('hidden');
+});
+
+/* ═══════════ PUBLIC MATCHES PREVIEW (predictions locked): landing + free accounts ═══════════ */
+let lpHash = null, lpAppHash = null, lpAppList = null, lpAppTs = 0;
+function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
+  const t = tNow();
+  const el = $(elId); if (!el) return;
   if (!list.length) { el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
   el.innerHTML = list.map(fx => {
     const live = fx.status === 'started';
@@ -1865,7 +2062,7 @@ function renderLanding(list) {
         <div class="m-mid">${mid}</div>
         <div class="team away">${crestHTML(fx.away)}<div class="t-name">${esc(fx.away.name)}</div></div>
       </div>
-      <div class="lp-lock" onclick="openAuthModal()" role="button" tabindex="0" aria-label="${esc(t.lp_show)}">
+      <div class="lp-lock" onclick="${unlockCall}" role="button" tabindex="0" aria-label="${esc(t.lp_show)}">
         <div class="tiles"><div class="tile"><i>${t.home}</i><b>??%</b></div><div class="tile"><i>${t.draw}</i><b>??%</b></div><div class="tile"><i>${t.away}</i><b>??%</b></div></div>
         <button class="lp-unlock" type="button">${t.lp_show}</button>
       </div>
@@ -1873,15 +2070,19 @@ function renderLanding(list) {
   }).join('');
 }
 
-async function loadPublicFixtures() {
-  if (authState.loggedIn || document.hidden) return;
+async function loadPublicFixtures(mode) {
+  const app = mode === 'app';
+  if (document.hidden) return;
+  if (app ? (!authState.loggedIn || isPro()) : authState.loggedIn) return;
+  if (app) { if (Date.now() - lpAppTs < 30000) return; lpAppTs = Date.now(); }
   try {
     const r = await fetch('/api/public/fixtures');
     if (!r.ok) return;
     const data = await r.json();
     const list = (data.fixtures || []).sort((a, b) => fxDateTime(a) - fxDateTime(b));
     const h = JSON.stringify(list.map(f => [f.id, f.status, f.homeScore, f.awayScore, f.home.logo, f.away.logo]));
-    if (h !== lpHash) { lpHash = h; renderLanding(list); }
+    if (app) { lpAppList = list; if (h !== lpAppHash) { lpAppHash = h; renderLanding(list, 'cards', "switchTab('unlock')"); } }
+    else if (h !== lpHash) { lpHash = h; renderLanding(list); }
   } catch (e) { /* silent */ }
 }
 

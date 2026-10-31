@@ -800,12 +800,123 @@ function loginLimiter(req, res, next) {
   next();
 }
 
+/* ═══════════════════════════════════════════════════════════
+   EMAIL ACCOUNTS  (free by default; "pro" is granted by the owner after payment)
+   Stored in USERS_FILE (put it on a persistent disk, like HISTORY_FILE).
+   ═══════════════════════════════════════════════════════════ */
+const USERS_FILE = process.env.USERS_FILE || path.join(path.dirname(HISTORY_FILE), 'users.json');
+const users = new Map(); // email -> { email, salt, hash, plan, planUntil, createdAt, seq }
+let usersTimer = null;
+function loadUsers() {
+  try {
+    if (!fs.existsSync(USERS_FILE)) return;
+    const arr = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    if (Array.isArray(arr)) for (const u of arr) if (u && u.email && u.salt && u.hash) users.set(u.email, u);
+    console.log(`👤 Loaded ${users.size} accounts`);
+  } catch (e) { console.error('Users load error:', e.message); }
+}
+function saveUsersSoon() {
+  if (usersTimer) return;
+  usersTimer = setTimeout(() => {
+    usersTimer = null;
+    try {
+      fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
+      const tmp = USERS_FILE + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify([...users.values()]), { mode: 0o600 });
+      fs.renameSync(tmp, USERS_FILE);
+    } catch (e) { console.error('Users save error:', e.message); }
+  }, 1000);
+}
+loadUsers();
+const scryptAsync = (pw, salt) => new Promise((ok, no) => crypto.scrypt(pw, salt, 64, (e, k) => (e ? no(e) : ok(k))));
+const DUMMY_SALT = crypto.randomBytes(16);
+
+function planOf(sess) {
+  if (!sess) return 'free';
+  if (sess.kind === 'keyauth') return 'pro';
+  const u = users.get(sess.username);
+  return u && u.plan === 'pro' && (!u.planUntil || u.planUntil > Date.now()) ? 'pro' : 'free';
+}
+function profileOf(sess) {
+  const u = sess.kind === 'keyauth' ? null : users.get(sess.username);
+  return {
+    username: sess.username,
+    name: String(sess.username).split('@')[0],
+    uid: u ? 'USR' + String(u.seq).padStart(6, '0') : 'KEY-' + String(sess.username).slice(0, 8).toUpperCase(),
+    plan: planOf(sess),
+    planUntil: u ? u.planUntil || null : null,
+    since: u ? u.createdAt : sess.createdAt,
+    kind: sess.kind || 'keyauth'
+  };
+}
+function requirePro(req, res, next) {
+  if (planOf(sessions.get(req.authToken)) === 'pro') return next();
+  res.status(403).json({ error: 'Pro plan required', fixtures: [] });
+}
+function startSession(res, sess) {
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, { ...sess, createdAt: Date.now() });
+  const mine = [...sessions.entries()].filter(([, v]) => v.username === sess.username).sort((a, b) => b[1].createdAt - a[1].createdAt);
+  for (const [k] of mine.slice(MAX_SESSIONS_PER_USER)) sessions.delete(k);
+  res.json({ token, username: sess.username, expiresIn: SESSION_TTL, profile: profileOf(sessions.get(token)) });
+}
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
+
+async function localLogin(res, email, password, uKey) {
+  const u = users.get(email);
+  let ok = false;
+  try {
+    const dk = await scryptAsync(password, u ? Buffer.from(u.salt, 'hex') : DUMMY_SALT);
+    ok = !!u && crypto.timingSafeEqual(dk, Buffer.from(u.hash, 'hex'));
+  } catch (e) { ok = false; }
+  if (!ok) {
+    const f = userFails.get(uKey) || { n: 0, t: Date.now() };
+    f.n++; f.t = Date.now(); userFails.set(uKey, f);
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+  userFails.delete(uKey);
+  startSession(res, { kind: 'local', username: email });
+}
+
+app.post('/api/auth/register', loginLimiter, async (req, res) => {
+  const body = req.body || {};
+  const email = String(body.email || body.username || '').trim().toLowerCase();
+  const password = body.password;
+  if (!EMAIL_RE.test(email) || email.length > 120) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Password must be 8 to 128 characters.' });
+  if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
+  if (users.has(email)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
+  try {
+    const salt = crypto.randomBytes(16);
+    const hash = await scryptAsync(password, salt);
+    if (users.has(email)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
+    const seq = [...users.values()].reduce((m, u) => Math.max(m, u.seq || 0), 0) + 1;
+    users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), plan: 'free', planUntil: null, createdAt: Date.now(), seq });
+    saveUsersSoon();
+    startSession(res, { kind: 'local', username: email });
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// Owner-only: grant/revoke the Pro plan after a payment (needs ADMIN_TOKEN env var).
+app.post('/api/admin/plan', loginLimiter, (req, res) => {
+  const tok = process.env.ADMIN_TOKEN;
+  if (!tok) return res.status(404).end();
+  const a = Buffer.from(String(req.headers['x-admin-token'] || '')), b = Buffer.from(tok);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(403).json({ error: 'Forbidden' });
+  const { email, plan, days } = req.body || {};
+  const u = users.get(String(email || '').trim().toLowerCase());
+  if (!u) return res.status(404).json({ error: 'No such account' });
+  if (plan === 'pro') { u.plan = 'pro'; u.planUntil = Number(days) > 0 ? Date.now() + Number(days) * 86400000 : null; }
+  else { u.plan = 'free'; u.planUntil = null; }
+  saveUsersSoon();
+  res.json({ ok: true, email: u.email, plan: u.plan, planUntil: u.planUntil });
+});
+
 // Per-username lockout (the per-IP limiter alone can be dodged by rotating IPs).
 const userFails = new Map();
 setInterval(() => { const n = Date.now(); for (const [k, v] of userFails) if (n - v.t > 10 * 60 * 1000) userFails.delete(k); }, 10 * 60 * 1000).unref();
 
 app.post('/api/auth/login', loginLimiter, async (req, res) => {
-  if (!AUTH_CONFIGURED) return res.status(503).json({ error: 'Login is temporarily unavailable.' });
   const { username, password, hwid } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
   if (typeof username !== 'string' || typeof password !== 'string' || username.length > 100 || password.length > 200 || (hwid != null && (typeof hwid !== 'string' || hwid.length > 200))) {
@@ -814,6 +925,8 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const uKey = username.toLowerCase();
   const uf = userFails.get(uKey);
   if (uf && uf.n >= 8 && Date.now() - uf.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
+  if (username.includes('@')) return localLogin(res, username.trim().toLowerCase(), password, uKey);
+  if (!AUTH_CONFIGURED) return res.status(503).json({ error: 'Login is temporarily unavailable.' });
   try {
     const init = await keyauthInit();
     if (!init.success) throw new Error(init.message || 'Init failed');
@@ -822,13 +935,8 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     const login = await keyauthLogin(username, password, sessionid, hwid);
     if (!login.success) throw new Error(login.message || 'Invalid username or password');
 
-    const token = crypto.randomBytes(32).toString('hex');
-    sessions.set(token, { keyauthSessionId: sessionid, username, createdAt: Date.now() });
     userFails.delete(uKey);
-    // Keep only the newest sessions for this user.
-    const mine = [...sessions.entries()].filter(([, v]) => v.username === username).sort((a, b) => b[1].createdAt - a[1].createdAt);
-    for (const [k] of mine.slice(MAX_SESSIONS_PER_USER)) sessions.delete(k);
-    res.json({ token, username, expiresIn: SESSION_TTL });
+    startSession(res, { kind: 'keyauth', keyauthSessionId: sessionid, username });
   } catch (e) {
     const f = userFails.get(uKey) || { n: 0, t: Date.now() };
     f.n++; f.t = Date.now(); userFails.set(uKey, f);
@@ -837,7 +945,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
 });
 
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
-  res.json({ ok: true, username: sessions.get(req.authToken).username });
+  res.json({ ok: true, ...profileOf(sessions.get(req.authToken)) });
 });
 
 app.post('/api/auth/logout', authMiddleware, (req, res) => {
@@ -868,7 +976,7 @@ app.get('/api/public/fixtures', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
 });
 
-app.get('/api/fixtures', authMiddleware, async (req, res) => {
+app.get('/api/fixtures', authMiddleware, requirePro, async (req, res) => {
   try {
     const fixtures = await getFixtures();
     // Form data is only useful before kickoff (snapshots are frozen afterwards).
