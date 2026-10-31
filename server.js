@@ -36,8 +36,8 @@ setInterval(() => {
 const FORM_TTL = 60 * 60 * 1000;
 const FIXTURES_TTL = 20 * 1000;
 // API-saving TTLs: refresh fast only while a match is live / about to start, slowly otherwise.
-const EVENTS_TTL_ACTIVE = 45 * 1000;
-const EVENTS_TTL_IDLE = 5 * 60 * 1000;
+const EVENTS_TTL_ACTIVE = 60 * 1000;
+const EVENTS_TTL_IDLE = 10 * 60 * 1000;
 const FD_TTL_ACTIVE = 60 * 1000;
 const FD_TTL_IDLE = 10 * 60 * 1000;
 const ODDS_TTL = 60 * 1000;              // how often we check which odds are due
@@ -67,6 +67,24 @@ let fdInProgress = null;
 let fdBlockedUntil = 0;
 const oddsByEvent = new Map(); // eventId -> { parsed, ts }
 let lastFixtures = null;
+
+// Bzzoiro daily request budget (plan limit is 7,500/day; keep headroom for restarts & manual use).
+const BZZ_DAILY_BUDGET = parseInt(process.env.BZZ_DAILY_BUDGET, 10) || 5500;
+const bzzUsage = { day: null, n: 0 };
+function bzzRoll() { const d = new Date().toISOString().slice(0, 10); if (bzzUsage.day !== d) { bzzUsage.day = d; bzzUsage.n = 0; } }
+function bzzCount() { bzzRoll(); bzzUsage.n++; if (bzzUsage.n % 100 === 0) console.log(`📈 Bzzoiro requests today: ${bzzUsage.n}/${BZZ_DAILY_BUDGET}`); }
+function bzzBudgetOk() { bzzRoll(); return bzzUsage.n < BZZ_DAILY_BUDGET; }
+
+// How often an event's odds are worth re-fetching, by time left before kickoff.
+// Returns null = don't fetch yet (too far away).
+function oddsTtlFor(ev) {
+  const ms = new Date(ev.event_date).getTime() - Date.now();
+  if (isNaN(ms)) return ODDS_EVENT_TTL;
+  if (ms > 12 * 3600 * 1000) return null;
+  if (ms > 3 * 3600 * 1000) return 60 * 60 * 1000;
+  if (ms > 1 * 3600 * 1000) return 20 * 60 * 1000;
+  return ODDS_EVENT_TTL;
+}
 
 // Active = a match is live or kicks off within 15 min (or we have no data yet).
 function isActive() {
@@ -323,9 +341,11 @@ async function fetchBzzoiroEvents() {
   if (!BZZOIRO_API_KEY) return [];
   const eventsTtl = isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE;
   if (eventsCache.data && Date.now() - eventsCache.ts < eventsTtl) return eventsCache.data;
+  if (!bzzBudgetOk()) return eventsCache.data || [];
   if (eventsFetchInProgress) return eventsFetchInProgress;
   eventsFetchInProgress = (async () => {
     try {
+      bzzCount();
       const r = await fetch(`${BZZOIRO_API_BASE}/v2/events/?date_from=${todayStr()}&date_to=${todayStr()}`, {
         headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }
       });
@@ -356,6 +376,7 @@ function parseBzzoiroOdds(oddsObj) {
 
 async function fetchEventOdds(eventId) {
   try {
+    bzzCount();
     const r = await fetch(`${BZZOIRO_API_BASE}/v2/events/${eventId}/odds/`, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}` } });
     if (!r.ok) return null;
     const data = await r.json();
@@ -378,8 +399,11 @@ async function fetchOdds() {
       const queue = valid.filter(ev => {
         const c = oddsByEvent.get(ev.id);
         if (normalizeStatus(ev.status, ev.event_date) !== 'notstarted') return false;
+        if (!bzzBudgetOk()) return false;
+        const ttl = oddsTtlFor(ev);
+        if (ttl === null) return false;
         if (!c) return true;
-        return now - c.ts > (c.parsed ? ODDS_EVENT_TTL : ODDS_MISS_TTL);
+        return now - c.ts > (c.parsed ? ttl : ODDS_MISS_TTL);
       });
       const workers = Array.from({ length: ODDS_CONCURRENCY }, async () => {
         while (queue.length) {
@@ -645,6 +669,7 @@ function recordSnapshots(fixtures) {
 async function refreshHistoryResults() {
   if (!BZZOIRO_API_KEY) return;
   if (Date.now() - historyCache.ts < RESULTS_REFRESH_TTL) return;
+  if (!bzzBudgetOk()) return;
   if (resultsRefreshInProgress) return resultsRefreshInProgress;
 
   // Only matches whose kickoff has already passed can have a result to settle.
@@ -663,6 +688,7 @@ async function refreshHistoryResults() {
       let changed = false;
 
       for (let page = 0; url && page < 10; page++) {
+        bzzCount();
         const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' } });
         if (!r.ok) throw new Error(`Results refresh HTTP ${r.status}`);
         const data = await r.json();
