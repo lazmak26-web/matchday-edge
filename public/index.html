@@ -646,6 +646,14 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 }
 .match:active { transform:scale(1.025); z-index:3; }
 @media (prefers-reduced-motion:reduce) { .match { transition:none; } .match:hover, .match:active { transform:none; } }
+
+/* Landing: public matches preview with locked predictions */
+.lp-matches { order:7; width:100%; text-align:left; margin-top:14px; }
+.lp-lock { position:relative; cursor:pointer; border-radius:16px; }
+.lp-lock .tiles { filter:blur(7px); opacity:.75; pointer-events:none; user-select:none; -webkit-user-select:none; }
+.lp-unlock { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); white-space:nowrap; border:0; cursor:pointer; font-family:var(--font); font-weight:800; font-size:13px; color:#fff; background:var(--grad); padding:10px 18px; border-radius:999px; box-shadow:0 10px 24px -8px rgba(91,71,245,.7); transition:transform .2s; }
+.lp-lock:hover .lp-unlock { transform:translate(-50%,-50%) scale(1.06); }
+@media (min-width:960px) { .lp-matches { grid-column:1 / -1; order:0; margin-top:56px; } }
 </style>
 </head>
 <body>
@@ -747,6 +755,11 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
         </a>
       </div>
     </div>
+
+    <section class="lp-matches">
+      <div class="section-head"><div><div class="section-label">⚽ <span data-i18n="fixtures">Fixtures</span></div><h2 data-i18n="lp_today">Today's Matches</h2></div></div>
+      <div class="match-grid" id="lpCards"></div>
+    </section>
 
   </div>
 
@@ -986,6 +999,7 @@ const translations = {
     mev_title: "Minimum EV to flag a bet", mev_hint: "Only prices with expected value above this threshold are flagged.",
     q_high: "High — direct xG + odds", q_med: "Medium — forms-derived xG", q_low: "Low — H2H estimate", q_est: "Est. — league average",
     hide: "Hide", show: "Show",
+    lp_today: "Today's Matches", lp_show: "🔒 Show predictions",
     done: "Done",
     hero_badge:"🔥 Live Odds · +EV Scanner", tick_1:"⚽ Live Odds", tick_2:"🎯 +EV Value Bets", tick_3:"📊 Poisson Model", tick_4:"🏆 Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. Bet responsibly.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Username", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
   },
@@ -1019,6 +1033,7 @@ const translations = {
     mev_title: "EV minimum pour signaler un pari", mev_hint: "Seuls les prix avec une EV supérieure à ce seuil sont signalés.",
     q_high: "Haute — xG direct + cotes", q_med: "Moyenne — xG dérivé des formes", q_low: "Basse — estimation H2H", q_est: "Est. — moyenne de la ligue",
     hide: "Cacher", show: "Afficher",
+    lp_today: "Matchs du jour", lp_show: "🔒 Afficher les pronostics",
     done: "Terminé",
     hero_badge:"🔥 Cotes en direct · Scanner +EV", tick_1:"⚽ Cotes en direct", tick_2:"🎯 Value Bets +EV", tick_3:"📊 Modèle de Poisson", tick_4:"🏆 Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques, aucun pronostic n'est garanti. Jouez responsablement.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Nom d'utilisateur", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
   },
@@ -1052,6 +1067,7 @@ const translations = {
     mev_title: "الحد الأدنى للقيمة المتوقعة لتمييز الرهان", mev_hint: "يتم تمييز الأسعار التي تزيد قيمتها المتوقعة عن هذا الحد فقط.",
     q_high: "عالي — xG مباشر + أسعار", q_med: "متوسط — xG مشتق من الأشكال", q_low: "منخفض — تقدير المواجهات", q_est: "تقديري — متوسط الدوري",
     hide: "إخفاء", show: "إظهار",
+    lp_today: "مباريات اليوم", lp_show: "🔒 إظهار التوقعات",
     done: "تم",
     hero_badge:"🔥 أسعار مباشرة · ماسح +EV", tick_1:"⚽ أسعار مباشرة", tick_2:"🎯 رهانات +EV", tick_3:"📊 نموذج بواسون", tick_4:"🏆 توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. راهن بمسؤولية.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"اسم المستخدم", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
   }
@@ -1831,9 +1847,49 @@ async function pollFeed() {
 // Lets :active (press-to-zoom on cards) work on iOS Safari
 document.addEventListener('touchstart', function(){}, { passive: true });
 
+/* ═══════════ LANDING: public matches preview (predictions locked) ═══════════ */
+let lpHash = null;
+function renderLanding(list) {
+  const t = translations[localStorage.getItem('mde:lang') || 'en'] || translations.en;
+  const el = $('lpCards'); if (!el) return;
+  if (!list.length) { el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
+  el.innerHTML = list.map(fx => {
+    const live = fx.status === 'started';
+    const mid = live
+      ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">LIVE</span>`
+      : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-vs">VS</span>`;
+    return `<article class="match ${live ? 'is-live-card' : ''}">
+      <div class="m-top"><div class="m-league">${esc(fx.league)}</div></div>
+      <div class="m-teams">
+        <div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(fx.home.name)}</div></div>
+        <div class="m-mid">${mid}</div>
+        <div class="team away">${crestHTML(fx.away)}<div class="t-name">${esc(fx.away.name)}</div></div>
+      </div>
+      <div class="lp-lock" onclick="openAuthModal()" role="button" tabindex="0" aria-label="${esc(t.lp_show)}">
+        <div class="tiles"><div class="tile"><i>${t.home}</i><b>??%</b></div><div class="tile"><i>${t.draw}</i><b>??%</b></div><div class="tile"><i>${t.away}</i><b>??%</b></div></div>
+        <button class="lp-unlock" type="button">${t.lp_show}</button>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+async function loadPublicFixtures() {
+  if (authState.loggedIn || document.hidden) return;
+  try {
+    const r = await fetch('/api/public/fixtures');
+    if (!r.ok) return;
+    const data = await r.json();
+    const list = (data.fixtures || []).sort((a, b) => fxDateTime(a) - fxDateTime(b));
+    const h = JSON.stringify(list.map(f => [f.id, f.status, f.homeScore, f.awayScore, f.home.logo, f.away.logo]));
+    if (h !== lpHash) { lpHash = h; renderLanding(list); }
+  } catch (e) { /* silent */ }
+}
+
 /* BOOT */
 checkAuth();
 loadHistory(); 
+loadPublicFixtures();
+setInterval(loadPublicFixtures, 60000);
 
 setInterval(pollFeed, 5000);
 

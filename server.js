@@ -845,6 +845,29 @@ app.post('/api/auth/logout', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// Public preview for the landing page: matches only. No odds, forms, xG or predictions leave the server here.
+const pubHits = new Map();
+setInterval(() => pubHits.clear(), 60 * 1000).unref();
+app.get('/api/public/fixtures', async (req, res) => {
+  const ip = req.ip || 'unknown';
+  const n = (pubHits.get(ip) || 0) + 1; pubHits.set(ip, n);
+  if (n > 40) return res.status(429).json({ error: 'Too many requests', fixtures: [] });
+  try {
+    const fixtures = await getFixtures();
+    const out = fixtures.filter(f => f.status === 'notstarted' || f.status === 'started').slice(0, 60).map(f => ({
+      id: f.id, league: f.league, date: f.date, kickoff: f.kickoff, status: f.status,
+      homeScore: f.status === 'started' ? f.homeScore : null,
+      awayScore: f.status === 'started' ? f.awayScore : null,
+      home: { name: f.home.name, logo: f.home.logo || null },
+      away: { name: f.away.name, logo: f.away.logo || null }
+    }));
+    res.set('Cache-Control', 'public, max-age=15');
+    res.json({ fixtures: out });
+    const logoP = ensureLogos(fixtures.flatMap(f => [f.home, f.away]));
+    if (logoP) logoP.catch(() => {});
+  } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
+});
+
 app.get('/api/fixtures', authMiddleware, async (req, res) => {
   try {
     const fixtures = await getFixtures();
