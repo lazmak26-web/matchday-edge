@@ -2004,9 +2004,21 @@ function renderAll() {
   st.results = st.fixtures.map(f => Engine.analyze(f, { marketWeight: st.mw, minEV: st.mev }));
   renderSignals();
   renderHistory();
-  
-  if (authState.loggedIn) updateChart(parseInt($('chartRange').value) || 7, 'app');
+  // the chart is only worth rebuilding while the Performance tab is visible
+  const pv = document.getElementById('view-performance');
+  if (authState.loggedIn && pv && pv.classList.contains('active')) updateChart(parseInt($('chartRange').value) || 7, 'app');
   updateFilterPreview();
+}
+// Slider drags fire dozens of events: update the numbers at once (cheap), repaint the cards at most once per frame,
+// and do the heavy history/chart work only after the finger stops.
+let _sliderRaf = 0, _sliderTimer = 0;
+function onSliderMove() {
+  persist();
+  st.results = st.fixtures.map(f => Engine.analyze(f, { marketWeight: st.mw, minEV: st.mev }));
+  updateFilterPreview();
+  if (!_sliderRaf) _sliderRaf = requestAnimationFrame(() => { _sliderRaf = 0; renderSignals(); });
+  clearTimeout(_sliderTimer);
+  _sliderTimer = setTimeout(renderAll, 300);
 }
 
 // Live feedback inside the filter modal (the cards behind the overlay are hidden while sliding).
@@ -2027,15 +2039,13 @@ $('mev').value = st.mev * 100; $('mev-o').textContent = (st.mev * 100).toFixed(1
 $('mw').addEventListener('input', e => {
   st.mw = e.target.value / 100;
   $('mw-o').textContent = e.target.value + '%';
-  persist(); 
-  renderAll(); 
+  onSliderMove();
 });
 
 $('mev').addEventListener('input', e => {
   st.mev = e.target.value / 100;
   $('mev-o').textContent = Number(e.target.value).toFixed(1) + '%';
-  persist(); 
-  renderAll(); 
+  onSliderMove();
 });
 $('today').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 
