@@ -67,7 +67,8 @@
   var onlineEl = document.getElementById('globeOnline');
 
   var visible = false, booted = false, globe = null, createGlobe = null;
-  var st = { phi: 0.6, theta: 0.28, auto: reduced ? 0 : 0.0035, vel: 0, drag: false };
+  var AUTO = 0.0012;                 // slow spin (about 85 s per turn at 60 fps)
+  var st = { phi: 0.6, theta: 0.28, auto: reduced ? 0 : AUTO, vel: 0, drag: false };
   var markers = new Map();          // "lat,lng" -> { lat, lng, n, k (0..1 pop-in), ph, leaving }
   var counter = { v: 0 };
 
@@ -153,7 +154,7 @@
       canvas.classList.remove('is-dragging');
       g.to(st, { vel: 0, duration: 1.5, ease: 'power3.out' });
       g.to(st, { theta: 0.28, duration: 1.4, ease: 'power2.inOut' });
-      if (!reduced) g.to(st, { auto: 0.0035, duration: 2.2, delay: 0.4, ease: 'power1.inOut' });
+      if (!reduced) g.to(st, { auto: AUTO, duration: 2.2, delay: 0.4, ease: 'power1.inOut' });
     }
     canvas.addEventListener('pointerup', release);
     canvas.addEventListener('pointercancel', release);
@@ -165,8 +166,8 @@
     var w = size();
 
     globe = createGlobe(canvas, Object.assign({
-      width: w, height: w, devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-      phi: st.phi, theta: st.theta, mapSamples: 16000, markers: []
+      width: w, height: w, devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+      phi: st.phi, theta: st.theta, mapSamples: 24000, markers: []
     }, palette()));
     // cobe wraps the canvas in a div; pin it to the stage so the globe always fills the square
     if (canvas.parentElement && canvas.parentElement !== stage) canvas.parentElement.style.cssText = 'position:absolute;inset:0';
@@ -185,12 +186,9 @@
       globe.update({ phi: st.phi, theta: st.theta, markers: buildMarkers(time) });
     });
 
-    bindDrag();
-
     card.classList.add('is-ready');
     if (!reduced) {
-      g.from(card, { y: 26, opacity: 0, duration: 0.9, ease: 'power3.out', clearProps: 'transform,opacity' });
-      st.phi -= 2.2;
+            st.phi -= 2.2;
       g.to(st, { phi: '+=2.2', duration: 2.6, ease: 'power3.out' });
     }
   }
@@ -209,15 +207,19 @@
     if (visible && !was && booted) pull();
   }
 
-  new IntersectionObserver(function (entries) {
-    var inView = entries[entries.length - 1].isIntersecting;
-    setVisible(inView);
-    if (inView && !booted) { booted = true; boot(); }
-  }, { rootMargin: '200px' }).observe(card);
+  var lp = document.getElementById('landingPage');
+  function onLanding() { return !!lp && !lp.classList.contains('hidden'); }
+  function sync() {
+    var on = onLanding();
+    setVisible(on);
+    if (on && !booted) { booted = true; boot(); }
+  }
+  if (lp) new MutationObserver(sync).observe(lp, { attributes: true, attributeFilter: ['class'] });
+  sync();
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) visible = false;
-    else { ping(); setVisible(card.getBoundingClientRect().height > 0 && card.offsetParent !== null); }
+    else { ping(); setVisible(onLanding()); }
   });
 
   setInterval(function () { if (visible) pull(); }, 20000);
