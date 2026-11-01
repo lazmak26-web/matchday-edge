@@ -5,13 +5,14 @@ const { upsetRisk } = require('./upset');
 const DEFAULTS = { minEV: 0.045, minBooks: 2, maxOdds: 6, minProb: 0.12 };
 
 function decide(fx, pred, opts = {}) {
-  if (!fx) return { action: 'NO BET', reasons: ['no fixture'], upset: null };
+  if (!fx) return { action: 'NO BET', reasons: ['no fixture'], safety: ['no fixture'], upset: null };
   const c = Object.assign({}, DEFAULTS, opts), reasons = [];
   const v = validate(pred, fx);
-  if (!v.ok) return { action: 'NO BET', reasons: v.issues, upset: null };
+  if (!v.ok) return { action: 'NO BET', reasons: v.issues, safety: v.issues, upset: null };
   if (!/^model\+market/.test(pred.source)) reasons.push('needs both model and market inputs (source: ' + pred.source + ')');
   if (pred.marketBooks < c.minBooks) reasons.push('only ' + pred.marketBooks + ' bookmaker(s): market consensus not reliable');
   if (!opts.backtest && fx.status && fx.status !== 'notstarted') reasons.push('match already started');
+  const nSafety = reasons.length; // everything above is a data-safety block, independent of the user's EV slider
   const mk = pred.sources.market, best = {}, pick = [];
   for (const [k, key] of [['h', 'home'], ['d', 'draw'], ['a', 'away']]) {
     let o = 0, book = null; for (const b of Array.isArray(fx.odds) ? fx.odds : []) if (b[key] > o) { o = b[key]; book = b.book; }
@@ -26,7 +27,8 @@ function decide(fx, pred, opts = {}) {
     if (top.p < c.minProb) reasons.push('probability too low');
   }
   const upset = upsetRisk(fx, pred);
-  if (upset && upset.risk === 'High') reasons.push('high upset risk: ' + upset.signals.join('; '));
-  return reasons.length ? { action: 'NO BET', reasons, upset } : { action: 'BET', pick: top, reasons: [], upset };
+  const safety = reasons.slice(0, nSafety);
+  if (upset && upset.risk === 'High') { const m = 'high upset risk: ' + upset.signals.join('; '); reasons.push(m); safety.push(m); }
+  return reasons.length ? { action: 'NO BET', reasons, safety, upset } : { action: 'BET', pick: top, reasons: [], safety: [], upset };
 }
 module.exports = { decide, DEFAULTS };

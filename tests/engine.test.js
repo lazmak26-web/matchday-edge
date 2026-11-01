@@ -132,3 +132,12 @@ test('decision: backtest option lets finished fixtures be evaluated', () => {
   assert.ok(decide(f, p).reasons.includes('match already started'));
   assert.ok(!decide(f, p, { backtest: true }).reasons.includes('match already started'));
 });
+test('decision: safety blocks (single book, started) are separate from edge reasons', () => {
+  const H = team('A', 1.5, 1.2), A = team('B', 1.2, 1.4);
+  const one = fx(H, A, [book('b1', 2.0, 3.5, 4.0)]);
+  const d = decide(one, predict(one));
+  assert.ok(d.safety.some(r => /bookmaker/.test(r)));
+  const two = fx(H, A, [book('b1', 1.5, 4.5, 8), book('b2', 1.5, 4.5, 8)]); // no edge -> NO BET but NOT a safety block
+  const e = decide(two, predict(two));
+  assert.strictEqual(e.action, 'NO BET'); assert.deepStrictEqual(e.safety, []);
+});
