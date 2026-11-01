@@ -66,11 +66,29 @@
   function pause(ms) { busyUntil = performance.now() + ms; }
   window.__globePause = pause;
 
+  /* every theme gets its own globe colours; light themes get a bright globe, dark ones a tinted dark globe */
+  var LIGHT = {
+    light: [[1, 1, 1], [0.93, 0.97, 0.95]], blue: [[0.93, 0.96, 1], [0.75, 0.86, 1]], mono: [[1, 1, 1], [0.92, 0.92, 0.95]],
+    mist: [[0.93, 0.95, 0.98], [0.8, 0.86, 0.95]], sand: [[1, 0.97, 0.92], [0.93, 0.86, 0.74]], rose: [[1, 0.94, 0.96], [0.96, 0.8, 0.87]],
+    lavender: [[0.95, 0.93, 1], [0.82, 0.76, 0.96]], arctic: [[0.92, 0.97, 1], [0.7, 0.86, 0.96]], mint: [[0.93, 1, 0.96], [0.72, 0.92, 0.82]]
+  };
+  var DARK = { // [base, glow, marker]
+    aurora: [[0.3, 0.26, 0.66], [0.28, 0.22, 0.7], [0.2, 0.83, 0.6]],
+    crimson: [[0.55, 0.14, 0.2], [0.55, 0.12, 0.18], [1, 0.4, 0.45]],
+    neon: [[0.06, 0.4, 0.22], [0.05, 0.5, 0.25], [0.22, 1, 0.53]],
+    gold: [[0.5, 0.38, 0.1], [0.55, 0.42, 0.1], [0.96, 0.76, 0.26]],
+    coffee: [[0.45, 0.3, 0.2], [0.5, 0.33, 0.2], [0.83, 0.6, 0.42]],
+    ocean: [[0.08, 0.4, 0.4], [0.08, 0.45, 0.45], [0.2, 0.83, 0.75]],
+    sunset: [[0.55, 0.28, 0.14], [0.6, 0.3, 0.12], [1, 0.54, 0.3]],
+    graphite: [[0.35, 0.35, 0.35], [0.4, 0.4, 0.4], [0.93, 0.93, 0.93]],
+    forest: [[0.1, 0.4, 0.28], [0.1, 0.45, 0.3], [0.33, 0.72, 0.56]],
+    slate: [[0.28, 0.38, 0.65], [0.3, 0.4, 0.7], [0.5, 0.64, 0.96]]
+  };
   function palette() {
-    var t = document.documentElement.getAttribute('data-theme') || 'dark';
-    if (t === 'light') return { dark: 0, diffuse: 0.5, mapBrightness: 1.3, baseColor: [1, 1, 1], glowColor: [0.93, 0.97, 0.95], markerColor: [0.06, 0.72, 0.5] };
-    if (t === 'blue') return { dark: 0, diffuse: 0.5, mapBrightness: 1.3, baseColor: [0.93, 0.96, 1], glowColor: [0.75, 0.86, 1], markerColor: [0.06, 0.72, 0.5] };
-    return { dark: 1, diffuse: 1.1, mapBrightness: 6, baseColor: [0.32, 0.28, 0.62], glowColor: [0.26, 0.22, 0.62], markerColor: [0.2, 0.83, 0.6] };
+    var t = document.documentElement.getAttribute('data-theme') || 'midnight';
+    if (LIGHT[t]) return { dark: 0, diffuse: 0.5, mapBrightness: 1.3, baseColor: LIGHT[t][0], glowColor: LIGHT[t][1], markerColor: [0.06, 0.72, 0.5] };
+    var d = DARK[t] || [[0.32, 0.28, 0.62], [0.26, 0.22, 0.62], [0.2, 0.83, 0.6]];
+    return { dark: 1, diffuse: 1.1, mapBrightness: 6, baseColor: d[0], glowColor: d[1], markerColor: d[2] };
   }
 
   function frame(t) {
