@@ -1,7 +1,8 @@
 'use strict';
 // Consistency checks on a prediction. Returns { ok, issues[] }. Never "repairs" silently.
 const near = (a, b, t = 1e-6) => Math.abs(a - b) <= t;
-function validate(pred, fx) {
+function validate(pred, fx, opts = {}) {
+  const maxGap = typeof opts.maxGap === 'number' && opts.maxGap > 0 && opts.maxGap <= 1 ? opts.maxGap : 0.2;
   const issues = [];
   if (!pred) return { ok: false, issues: ['no prediction'] };
   const { p, over, lam } = pred;
@@ -11,7 +12,7 @@ function validate(pred, fx) {
   if (lam && (!(lam.h > 0) || !(lam.a > 0))) issues.push('expected goals not positive');
   if (pred.sources && pred.sources.model && pred.sources.market) {
     const gap = Math.max(Math.abs(pred.sources.model.h - pred.sources.market.h), Math.abs(pred.sources.model.d - pred.sources.market.d), Math.abs(pred.sources.model.a - pred.sources.market.a));
-    if (gap > 0.2) issues.push('model and market disagree by more than 20 points (' + (gap * 100).toFixed(0) + ')');
+    if (gap > maxGap) issues.push('model and market disagree by more than ' + Math.round(maxGap * 100) + ' points (' + (gap * 100).toFixed(0) + ')');
   }
   if (fx && Array.isArray(fx.odds)) for (const b of fx.odds) for (const k of ['home', 'draw', 'away']) if (b[k] != null && !(b[k] > 1)) { issues.push('invalid bookmaker odds (<=1) from ' + (b.book || 'unknown')); break; }
   if (pred.live && fx && Number.isInteger(fx.homeScore) && pred.live.minute > 90 + 15) issues.push('live minute out of range');
