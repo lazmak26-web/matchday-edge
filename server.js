@@ -630,14 +630,15 @@ function recordSnapshots(fixtures) {
     if (!prev) {
       // Only keep matches we saw BEFORE kickoff: that way the pick is a real prediction.
       if (f.status !== 'notstarted') continue;
-      snapshotStore.set(f.id, JSON.parse(JSON.stringify(f)));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: JSON.parse(JSON.stringify(f.odds || [])) }));
       changed = true;
       continue;
     }
 
     if (prev.status === 'notstarted' && f.status === 'notstarted') {
-      // Still before kickoff: keep the latest odds/form.
-      snapshotStore.set(f.id, JSON.parse(JSON.stringify(f)));
+      // Still before kickoff: keep the latest odds/form (= closing odds once the match starts); openOdds stays frozen.
+      const open = prev.openOdds || JSON.parse(JSON.stringify(prev.odds || []));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: open }));
       changed = true;
       continue;
     }

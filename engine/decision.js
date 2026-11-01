@@ -9,7 +9,7 @@ function decide(fx, pred, opts = {}) {
   const c = Object.assign({}, DEFAULTS, opts), reasons = [];
   const v = validate(pred, fx);
   if (!v.ok) return { action: 'NO BET', reasons: v.issues, upset: null };
-  if (pred.source !== 'model+market') reasons.push('needs both model and market inputs (source: ' + pred.source + ')');
+  if (!/^model\+market/.test(pred.source)) reasons.push('needs both model and market inputs (source: ' + pred.source + ')');
   if (pred.marketBooks < c.minBooks) reasons.push('only ' + pred.marketBooks + ' bookmaker(s): market consensus not reliable');
   if (!opts.backtest && fx.status && fx.status !== 'notstarted') reasons.push('match already started');
   const mk = pred.sources.market, best = {}, pick = [];

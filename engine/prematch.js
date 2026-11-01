@@ -41,6 +41,9 @@ function predict(fx, opts = {}) {
   let p, source;
   if (model && mk) { p = { h: w * mk.h + (1 - w) * model.h, d: w * mk.d + (1 - w) * model.d, a: w * mk.a + (1 - w) * model.a }; source = 'model+market'; }
   else if (model) { p = model; source = 'model'; } else { p = { h: mk.h, d: mk.d, a: mk.a }; source = 'market'; }
+  // Elo is blended only when explicitly asked (opts.eloWeight > 0) AND both teams have real ratings. Default 0 until evaluate proves it helps.
+  const we = isNum(opts.eloWeight) ? clamp(opts.eloWeight, 0, 0.5) : 0;
+  if (we > 0 && eloP) { p = { h: (1 - we) * p.h + we * eloP.h, d: (1 - we) * p.d + we * eloP.d, a: (1 - we) * p.a + we * eloP.a }; source += '+elo'; }
   const s = p.h + p.d + p.a; p = { h: p.h / s, d: p.d / s, a: p.a / s };
   if (over != null && mk && mk.over != null) over = w * mk.over + (1 - w) * over; else if (over == null && mk) over = mk.over;
   return { p, over, lam, top, source, sources: { model, market: mk && { h: mk.h, d: mk.d, a: mk.a }, elo: eloP }, marketBooks: mk ? mk.n : 0, rho };
