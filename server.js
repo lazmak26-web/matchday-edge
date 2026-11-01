@@ -1226,6 +1226,19 @@ app.get('/api/fixtures', authMiddleware, requirePro, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
 });
 
+// Independent engine output (additive: the legacy browser model keeps working). Pro only.
+const enginePre = require('./engine/prematch'), engineDecide = require('./engine/decision'), engineValidate = require('./engine/validate');
+app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) => {
+  try {
+    const fixtures = await getFixtures();
+    const out = fixtures.map(f => {
+      const pred = enginePre.predict(f, { marketWeight: 0.5 });
+      return { id: f.id, xgSource: f.xgSource || null, prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source }, validation: engineValidate.validate(pred, f), decision: engineDecide.decide(f, pred) };
+    });
+    res.json({ predictions: out });
+  } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
+});
+
 // History = saved snapshots (pre-match odds/form frozen) + final scores.
 app.get('/api/history', async (req, res) => {
   try {
