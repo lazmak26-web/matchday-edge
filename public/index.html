@@ -179,7 +179,6 @@ button,select,input{font:inherit;color:inherit}
 .feature-icon{width:46px;height:46px;border-radius:14px;background:var(--brand-dim);display:grid;place-items:center;font-size:22px}
 .feature-title{font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
 .feature-desc{font-size:14px;color:var(--ink-3);margin-top:4px}
-#landingPage>.landing-right .chart-card{order:6;grid-column:1/-1}
 .lp-matches{order:7;grid-column:1/-1;margin-top:40px}
 /* shared card surface + spotlight (react-bits style) */
 .feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item,.empty-state{position:relative;overflow:hidden;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow)}
@@ -442,39 +441,20 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 @media (hover:hover){.match:hover{transform:none}}
 
 /* ═══════════════════════════════════════════════════════════
-   LIVE GLOBE  (Magic UI globe + border beam, React Bits shiny text: ported to plain CSS/JS)
+   LIVE GLOBE: a huge globe that slowly turns behind the whole landing page (cobe, plain JS)
    ═══════════════════════════════════════════════════════════ */
-.globe-card { order:6; position:relative; overflow:hidden; margin:6px 0 0; padding:20px 18px 16px; border-radius:26px; text-align:left; color:var(--ink);
-  background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow); }
-.globe-head { position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-.globe-title { margin:0; font-size:20px; font-weight:800; letter-spacing:-0.02em; line-height:1.2; }
-.shiny { background:linear-gradient(110deg, var(--ink) 38%, var(--brand-2) 50%, var(--ink) 62%); background-size:250% 100%;
-  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; animation:shine 3.4s linear infinite; }
-@keyframes shine { from { background-position:150% 0; } to { background-position:-50% 0; } }
+.globe-bg { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+.globe-stage { position:absolute; left:50%; top:54%; width:min(1250px,max(115vw,92vh)); aspect-ratio:1; transform:translate(-50%,-50%); opacity:0; transition:opacity 2s ease; }
+.globe-bg.is-ready .globe-stage { opacity:.6; }
+.globe-stage::before { content:""; position:absolute; inset:6%; border-radius:50%; filter:blur(60px); opacity:.5;
+  background:radial-gradient(circle, var(--brand-dim), transparent 70%); }
+.globe-canvas { position:relative; display:block; width:100%; height:100%; contain:layout paint size; }
+.globe-bg.is-fallback { display:none; }
 .globe-online { display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap;
   color:var(--good); background:var(--good-dim); border:1px solid var(--good-line); }
 .globe-online b { font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
 .globe-online .dot { width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 1.2s infinite; }
-.globe-stage { position:relative; width:100%; max-width:460px; aspect-ratio:1; margin:-6px auto 0; touch-action:pan-y; }
-.globe-stage::before { content:""; position:absolute; inset:8%; border-radius:50%; filter:blur(36px); opacity:.55; pointer-events:none;
-  background:radial-gradient(circle, var(--brand-dim), transparent 70%); }
-.globe-canvas { display:block; width:100%; height:100%; cursor:grab; opacity:0; transition:opacity .9s ease; contain:layout paint size; }
-.globe-card.is-ready .globe-canvas { opacity:1; }
-.globe-canvas.is-dragging { cursor:grabbing; }
-.globe-note { position:relative; z-index:2; margin:6px 0 0; text-align:center; font-size:11.5px; font-weight:600; line-height:1.5; color:var(--ink-3); }
-.globe-card.is-fallback .globe-stage { display:none; }
-.globe-card.is-fallback .globe-note { margin-top:14px; }
-
-/* border beam: a short light that runs the card's edge */
-.globe-card .beam { position:absolute; inset:0; z-index:3; border-radius:inherit; border:1.5px solid transparent; pointer-events:none;
-  -webkit-mask:linear-gradient(transparent,transparent),linear-gradient(#000,#000); -webkit-mask-clip:padding-box,border-box; -webkit-mask-composite:source-in;
-  mask:linear-gradient(transparent,transparent),linear-gradient(#000,#000); mask-clip:padding-box,border-box; mask-composite:intersect; }
-.globe-card .beam i { display:none; position:absolute; width:90px; aspect-ratio:1; background:linear-gradient(to left, var(--brand-2), var(--good), transparent); }
-@supports (offset-path: rect(0 auto auto 0)) {
-  .globe-card .beam i { display:block; offset-anchor:90% 50%; offset-path:rect(0 auto auto 0 round 26px); animation:beam 7s linear infinite; }
-}
-@keyframes beam { to { offset-distance:100%; } }
-@media (prefers-reduced-motion:reduce) { .shiny, .globe-card .beam i { animation:none; } }
+.hero-badge + .globe-online, .landing-left > .globe-online { margin:0 0 14px 8px; vertical-align:middle; }
 
 /* Lenis smooth scroll (from its docs): let Lenis own the easing */
 html.lenis, html.lenis body { height:auto; }
@@ -482,9 +462,6 @@ html.lenis, html.lenis body { height:auto; }
 .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior:contain; }
 .lenis.lenis-stopped { overflow:hidden; }
 
-/* globe card inside main's landing grid: full width on phones, side by side with the chart on desktop */
-.globe-card{grid-column:1/-1; background:var(--glass,var(--card)); border-color:var(--glass-line,var(--line));}
-@media (min-width:960px){ .globe-card{grid-column:1/span 5;} #landingPage>.landing-right .chart-card{grid-column:6/-1;} }
 </style>
 </head>
 <body>
@@ -542,8 +519,13 @@ html.lenis, html.lenis body { height:auto; }
   <!-- ═══════════════ LANDING PAGE ═══════════════ -->
   <div id="landingPage">
 
+    <div class="globe-bg" id="globeCard" aria-hidden="true">
+      <div class="globe-stage" id="globeStage"><canvas class="globe-canvas" id="globeCanvas"></canvas></div>
+    </div>
+
     <div class="landing-left">
       <div class="hero-badge" data-i18n="hero_badge">🔥 Live Odds · +EV Scanner</div>
+      <div class="globe-online"><span class="dot"></span><b id="globeOnline">0</b><span data-i18n="globe_online">online</span></div>
       <h1 class="hero-title" data-i18n="hero_title">Find the Edge.<br>Bet Smarter.</h1>
       <p class="hero-subtitle" data-i18n="hero_sub">Advanced sports analytics powered by Poisson distribution and live market odds. Scan hundreds of matches to find the perfect Value Bets.</p>
 
@@ -573,46 +555,6 @@ html.lenis, html.lenis body { height:auto; }
     </div>
 
     <div class="landing-right">
-      <div class="globe-card" id="globeCard">
-        <div class="beam" aria-hidden="true"><i></i></div>
-        <div class="globe-head">
-          <div>
-            <div class="section-label">🌍 <span data-i18n="globe_kicker">Live now</span></div>
-            <h3 class="globe-title shiny" data-i18n="globe_title">Around the world</h3>
-          </div>
-          <div class="globe-online"><span class="dot"></span><b id="globeOnline">0</b><span data-i18n="globe_online">online</span></div>
-        </div>
-        <div class="globe-stage" id="globeStage">
-          <canvas class="globe-canvas" id="globeCanvas" aria-label="Globe showing where people using LuciBet are"></canvas>
-        </div>
-        <p class="globe-note" id="globeNote" data-i18n="globe_note">Approximate city-level locations of people on the site right now.</p>
-      </div>
-
-      <div class="chart-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <h3 style="font-size:16px; font-weight:800; color:var(--ink); display:flex; align-items:center; gap:6px;">🏆 <span data-i18n="site_perf">Site Performance</span></h3>
-          <select id="landingChartRange" class="settings-select" style="width:auto; margin:0; padding:4px 8px;">
-            <option value="7" data-i18n="last_7">Last 7 Days</option>
-            <option value="30" data-i18n="last_30">Last 30 Days</option>
-          </select>
-        </div>
-
-        <div style="display:flex; gap:16px; margin-bottom:16px;">
-          <div style="flex:1; background:var(--soft); padding:12px; border-radius:12px; text-align:center;">
-             <div style="font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase;" data-i18n="wins">Wins</div>
-             <div id="landingTotalWins" style="font-size:20px; font-weight:800; color:var(--good);">0</div>
-          </div>
-          <div style="flex:1; background:var(--soft); padding:12px; border-radius:12px; text-align:center;">
-             <div style="font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase;" data-i18n="losses">Losses</div>
-             <div id="landingTotalLosses" style="font-size:20px; font-weight:800; color:var(--bad);">0</div>
-          </div>
-        </div>
-
-        <div class="chart-container">
-          <canvas id="landingChart"></canvas>
-        </div>
-      </div>
-
       <div class="cta-box">
         <div class="cta-title" data-i18n="get_started">Get Started Now</div>
         <div class="cta-desc" data-i18n="cta_desc">Create a free account or log in to open the dashboard and daily value bets.</div>
@@ -1076,7 +1018,6 @@ applyLanguage(savedLang);
 applyTheme(savedTheme);
 
 function refreshCharts() {
-  updateChart(parseInt($('landingChartRange').value) || 7, 'landing');
   if (authState.loggedIn) updateChart(parseInt($('chartRange').value) || 7, 'app');
 }
 
@@ -1815,10 +1756,10 @@ async function loadHistory() {
 }
 
 document.getElementById('chartRange').onchange = (e) => updateChart(parseInt(e.target.value) || 7, 'app');
-document.getElementById('landingChartRange').onchange = (e) => updateChart(parseInt(e.target.value) || 7, 'landing');
 
 function updateChart(days, target) {
-  const isApp = target === 'app';
+  if (target !== 'app') return; // landing chart was removed
+  const isApp = true;
   const ids = isApp ? { w: 'chartTotalWins', l: 'chartTotalLosses', c: 'perfChart' } : { w: 'landingTotalWins', l: 'landingTotalLosses', c: 'landingChart' };
 
   const finished = getFinishedMatches();
