@@ -1366,6 +1366,9 @@ const FORMS_WAIT_MS = Math.max(0, parseInt(process.env.FORMS_WAIT_MS, 10) || 800
 // Engine data-safety threshold. Default 2 (unchanged). The odds feed currently gives ONE bookmaker per match, so 2 blocks every bet:
 // set ENGINE_MIN_BOOKS=1 on the host to allow single-bookmaker odds (knowingly less reliable market consensus).
 const ENGINE_MIN_BOOKS = Number.isFinite(parseInt(process.env.ENGINE_MIN_BOOKS, 10)) ? Math.max(1, parseInt(process.env.ENGINE_MIN_BOOKS, 10)) : 2;
+// Largest allowed gap (in probability points / 100) between the xG model and the bookmaker market before a match is forced to NO BET.
+// Default 0.20 (unchanged). A big gap usually means the 5-match form model is wrong, not that the market is: raise it only knowingly.
+const ENGINE_MAX_GAP = (() => { const v = parseFloat(process.env.ENGINE_MAX_GAP); return Number.isFinite(v) && v >= 0.05 && v <= 0.6 ? v : 0.2; })();
 async function getFixturesWithForms() {
   let fixtures = await getFixtures();
   const upcoming = fixtures.filter(f => f.status === 'notstarted');
@@ -1400,8 +1403,8 @@ app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) 
     const fixtures = await getFixturesWithForms();
     const out = fixtures.map(f => {
       const pred = enginePre.predict(f, { marketWeight: 0.5 });
-      const decision = engineDecide.decide(f, pred, { minBooks: ENGINE_MIN_BOOKS });
-      return { id: f.id, safety: (decision.safety || []), xgSource: f.xgSource || null, prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source }, validation: engineValidate.validate(pred, f), decision };
+      const decision = engineDecide.decide(f, pred, { minBooks: ENGINE_MIN_BOOKS, maxGap: ENGINE_MAX_GAP });
+      return { id: f.id, safety: (decision.safety || []), xgSource: f.xgSource || null, prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source }, validation: engineValidate.validate(pred, f, { maxGap: ENGINE_MAX_GAP }), decision };
     });
     const xgCounts = {}; for (const f of fixtures) { const k = f.xgSource || 'none'; xgCounts[k] = (xgCounts[k] || 0) + 1; }
     res.json({ predictions: out, meta: { minBooks: ENGINE_MIN_BOOKS, xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });

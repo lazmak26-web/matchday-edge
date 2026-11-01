@@ -2,12 +2,12 @@
 // BET / NO BET gate. Defaults to NO BET unless every condition holds. Reasons are always returned.
 const { validate } = require('./validate');
 const { upsetRisk } = require('./upset');
-const DEFAULTS = { minEV: 0.045, minBooks: 2, maxOdds: 6, minProb: 0.12 };
+const DEFAULTS = { minEV: 0.045, minBooks: 2, maxOdds: 6, minProb: 0.12, maxGap: 0.2 };
 
 function decide(fx, pred, opts = {}) {
   if (!fx) return { action: 'NO BET', reasons: ['no fixture'], safety: ['no fixture'], upset: null };
   const c = Object.assign({}, DEFAULTS, opts), reasons = [];
-  const v = validate(pred, fx);
+  const v = validate(pred, fx, { maxGap: c.maxGap });
   if (!v.ok) return { action: 'NO BET', reasons: v.issues, safety: v.issues, upset: null };
   if (!/^model\+market/.test(pred.source)) reasons.push('needs both model and market inputs (source: ' + pred.source + ')');
   if (pred.marketBooks < c.minBooks) reasons.push('only ' + pred.marketBooks + ' bookmaker(s): market consensus not reliable');

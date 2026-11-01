@@ -141,3 +141,19 @@ test('decision: safety blocks (single book, started) are separate from edge reas
   const e = decide(two, predict(two));
   assert.strictEqual(e.action, 'NO BET'); assert.deepStrictEqual(e.safety, []);
 });
+
+test('maxGap: model-vs-market disagreement gate is 20 points by default and configurable', () => {
+  // strong home model (xG) vs a market that sees a near-even match: big disagreement
+  const H = team('A', 2.2, 0.8), A = team('B', 0.9, 1.7);
+  const f = fx(H, A, [book('b1', 2.6, 3.2, 2.9), book('b2', 2.6, 3.2, 2.9)]);
+  const p = predict(f);
+  const gap = Math.max(Math.abs(p.sources.model.h - p.sources.market.h), Math.abs(p.sources.model.d - p.sources.market.d), Math.abs(p.sources.model.a - p.sources.market.a));
+  assert.ok(gap > 0.2 && gap < 0.6, 'fixture must disagree by more than 20 points, got ' + gap);
+  assert.ok(validate(p, f).issues.some(i => /more than 20 points/.test(i)), 'default stays at 20');
+  assert.ok(decide(f, p).safety.some(i => /more than 20 points/.test(i)));
+  const wide = Math.min(0.6, Math.ceil(gap * 100 + 1) / 100);
+  assert.ok(!validate(p, f, { maxGap: wide }).issues.some(i => /disagree/.test(i)), 'raised limit lets it through the validity check');
+  assert.ok(!decide(f, p, { maxGap: wide }).safety.some(i => /disagree/.test(i)));
+  assert.ok(validate(p, f, { maxGap: 0.1 }).issues.some(i => /more than 10 points/.test(i)), 'message shows the configured limit');
+  assert.ok(validate(p, f, { maxGap: 'x' }).issues.some(i => /more than 20 points/.test(i)), 'invalid value falls back to 20');
+});
