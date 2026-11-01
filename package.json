@@ -11,5 +11,8 @@
   },
   "dependencies": {
     "express": "^4.19.2"
+  },
+  "optionalDependencies": {
+    "geoip-lite": "^1.4.10"
   }
 }

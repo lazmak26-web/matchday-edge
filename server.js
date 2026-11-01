@@ -751,7 +751,7 @@ function authMiddleware(req, res, next) {
 app.disable('x-powered-by');
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src https://fonts.gstatic.com",
   "img-src 'self' data: https:",
@@ -1179,6 +1179,14 @@ app.get('/api/public/fixtures', async (req, res) => {
     if (logoP) logoP.catch(() => {});
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
 });
+
+// Live presence for the landing-page globe: approximate, city-level points only (see presence.js).
+const presence = require('./presence')({
+  lookup: (() => { try { return require('geoip-lite').lookup; } catch (e) { return null; } })(),
+  trustCfGeo: process.env.TRUST_CF_GEO === '1'
+});
+app.post('/api/presence', presence.ping);
+app.get('/api/presence', presence.snapshot);
 
 app.get('/api/fixtures', authMiddleware, requirePro, async (req, res) => {
   try {
