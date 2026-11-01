@@ -630,14 +630,15 @@ function recordSnapshots(fixtures) {
     if (!prev) {
       // Only keep matches we saw BEFORE kickoff: that way the pick is a real prediction.
       if (f.status !== 'notstarted') continue;
-      snapshotStore.set(f.id, JSON.parse(JSON.stringify(f)));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: JSON.parse(JSON.stringify(f.odds || [])) }));
       changed = true;
       continue;
     }
 
     if (prev.status === 'notstarted' && f.status === 'notstarted') {
-      // Still before kickoff: keep the latest odds/form.
-      snapshotStore.set(f.id, JSON.parse(JSON.stringify(f)));
+      // Still before kickoff: keep the latest odds/form (= closing odds once the match starts); openOdds stays frozen.
+      const open = prev.openOdds || JSON.parse(JSON.stringify(prev.odds || []));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: open }));
       changed = true;
       continue;
     }
@@ -752,8 +753,8 @@ app.disable('x-powered-by');
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
   "img-src 'self' data: https:",
   "connect-src 'self'",
   "object-src 'none'",
@@ -772,7 +773,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '10kb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 app.set('trust proxy', 1);
 const loginAttempts = new Map();
@@ -814,6 +815,7 @@ function saveUsersSoon() {
   }, 1000);
 }
 loadUsers();
+const TERMS_VERSION = '2026-11-01';
 const scryptAsync = (pw, salt) => new Promise((ok, no) => crypto.scrypt(pw, salt, 64, (e, k) => (e ? no(e) : ok(k))));
 const DUMMY_SALT = crypto.randomBytes(16);
 
@@ -860,7 +862,7 @@ async function sendOtp(email) {
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
   try {
     await sendMail(email, 'Your LuciBet login code',
-      `Your LuciBet verification code is ${code}. It expires in 10 minutes. If you did not request it, you can ignore this email.`,
+      `Your LuciBet verification code is ${code}. It expires in 10 minutes. If you did not request it, you can ignore this email. This is a one-time security message about your LuciBet account, not marketing; we do not send newsletters.`,
       `<div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:24px"><h2 style="margin:0 0 12px">LuciBet</h2><p>Your verification code is:</p><p style="font-size:32px;letter-spacing:6px;font-weight:800;margin:12px 0">${code}</p><p style="color:#666">It expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`);
   } catch (e) {
     console.error('OTP mail error:', e.message);
@@ -926,6 +928,8 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
   const body = req.body || {};
   const email = String(body.email || body.username || '').trim().toLowerCase();
   const password = body.password;
+  // Legal: explicit 18+ confirmation and acceptance of Terms/Privacy (never pre-ticked, enforced server-side too).
+  if (body.consent !== true || body.ageConfirmed !== true) return res.status(400).json({ error: 'You must confirm you are 18 or older and accept the Terms and Privacy Policy.' });
   if (!EMAIL_RE.test(email) || email.length > 120) return res.status(400).json({ error: 'Please enter a valid email address.' });
   if (typeof password !== 'string' || password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Password must be 8 to 128 characters.' });
   if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
@@ -939,7 +943,7 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
     if (cur) { cur.salt = salt.toString('hex'); cur.hash = hash.toString('hex'); }
     else {
       const seq = [...users.values()].reduce((m, u) => Math.max(m, u.seq || 0), 0) + 1;
-      users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: !OTP_ENABLED });
+      users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: !OTP_ENABLED, consentAt: Date.now(), termsVersion: TERMS_VERSION });
     }
     saveUsersSoon();
     if (!OTP_ENABLED) return startSession(res, { kind: 'local', username: email });
@@ -1157,6 +1161,29 @@ app.post('/api/auth/logout', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// Right to erasure: the user deletes their own account and everything we hold about it.
+app.delete('/api/account', loginLimiter, authMiddleware, async (req, res) => {
+  const sess = sessions.get(req.authToken);
+  if (!sess || sess.kind !== 'local') return res.status(400).json({ error: 'This login is managed through Telegram support. Message us there and we will delete it.' });
+  const email = sess.username;
+  const u = users.get(email);
+  if (!u) return res.status(404).json({ error: 'Account not found' });
+  const password = (req.body || {}).password;
+  if (typeof password !== 'string' || password.length > 200) return res.status(400).json({ error: 'Password required' });
+  const uKey = email.toLowerCase();
+  const uf = userFails.get(uKey);
+  if (uf && uf.n >= 8 && Date.now() - uf.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
+  let ok = false;
+  try { ok = crypto.timingSafeEqual(await scryptAsync(password, Buffer.from(u.salt, 'hex')), Buffer.from(u.hash, 'hex')); } catch (e) { ok = false; }
+  if (!ok) { const f = userFails.get(uKey) || { n: 0, t: Date.now() }; f.n++; f.t = Date.now(); userFails.set(uKey, f); return res.status(401).json({ error: 'Wrong password' }); }
+  users.delete(email);
+  for (const [k, v] of sessions) if (v.username === email) sessions.delete(k);
+  for (const l of licenses.values()) if (l.usedBy === email) l.usedBy = 'deleted-account'; // keep the hash so a used key cannot be reused, drop the email
+  otps.delete(email); otpSends.delete(email); userFails.delete(uKey); userFails.delete('lic:' + email);
+  saveUsersSoon(); saveLicensesSoon();
+  res.json({ ok: true });
+});
+
 // Public preview for the landing page: matches only. No odds, forms, xG or predictions leave the server here.
 const pubHits = new Map();
 setInterval(() => pubHits.clear(), 60 * 1000).unref();
@@ -1198,6 +1225,19 @@ app.get('/api/fixtures', authMiddleware, requirePro, async (req, res) => {
     const logoP = ensureLogos(fixtures.flatMap(f => [f.home, f.away]));
     if (logoP) logoP.catch(e => console.error('Logo fetch error:', e.message));
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
+});
+
+// Independent engine output (additive: the legacy browser model keeps working). Pro only.
+const enginePre = require('./engine/prematch'), engineDecide = require('./engine/decision'), engineValidate = require('./engine/validate');
+app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) => {
+  try {
+    const fixtures = await getFixtures();
+    const out = fixtures.map(f => {
+      const pred = enginePre.predict(f, { marketWeight: 0.5 });
+      return { id: f.id, xgSource: f.xgSource || null, prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source }, validation: engineValidate.validate(pred, f), decision: engineDecide.decide(f, pred) };
+    });
+    res.json({ predictions: out });
+  } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
 });
 
 // History = saved snapshots (pre-match odds/form frozen) + final scores.

@@ -1,0 +1,21 @@
+/* Shared styles for the legal pages */
+:root{color-scheme:dark;--bg:#000;--card:#111113;--ink:#F5F5F7;--ink-2:#B8B8C0;--line:#34343A;--brand:#64B5FF}
+@media (prefers-color-scheme:light){:root{color-scheme:light;--bg:#fff;--card:#F5F5F7;--ink:#1D1D1F;--ink-2:#4A4A52;--line:#D2D2D7;--brand:#0B5FC1}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Arabic",sans-serif}
+.wrap{max-width:780px;margin:0 auto;padding:24px 18px 80px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:24px}
+header.top a.brand{display:flex;align-items:center;gap:10px;color:var(--ink);font-weight:700;text-decoration:none}
+header.top img{width:32px;height:32px;border-radius:8px}
+h1{font-size:1.9rem;line-height:1.25;margin:.2em 0 .1em}
+h2{font-size:1.2rem;margin:2em 0 .4em}
+p,li{color:var(--ink-2)}
+li{margin:.3em 0}
+a{color:var(--brand)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.meta{font-size:.9rem;color:var(--ink-2)}
+.note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:16px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;color:var(--ink-2)}
+th{color:var(--ink);background:var(--card)}
+nav.legal{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:.92rem}

@@ -5,12 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>1uciBet — Pro Sports Analytics</title>
 <link rel="icon" type="image/png" href="logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>if(window.Chart)Chart.defaults.animation=false;</script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <style>
 :root, [data-theme="dark"] {
   color-scheme: dark;
@@ -20,7 +15,7 @@
   --soft: #211F37;
   --ink: #F3F2FB;
   --ink-2: #AEACC9;
-  --ink-3: #7A7896;
+  --ink-3: #8F8DAB;
   --line: #2A2843;
   --line-2: #37355A;
   --brand: #8B7BFF;
@@ -110,7 +105,7 @@
 [data-theme="sand"]{ color-scheme:light; --bg:#F4F0E8; --card:#FFFDF9; --soft:#F0EADF; --ink:#2B2926; --ink-2:#55514A; --ink-3:#85806F; --line:#E5DDCD; --line-2:#D4C9B4; --brand:#B5683A; --brand-2:#C98055; --brand-dim:rgba(181,104,58,.12); --grad:linear-gradient(135deg,#C47A4C,#B5683A); --good:#2F8F6A; --warn:#B7791F; --bad:#CC4B5B; --info:#2C7FB8; --shadow:0 6px 20px -10px rgba(60,45,25,.2); }
 
 :root{--font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Arabic',sans-serif;--on-brand:#fff}
-[data-theme="slate"],[data-theme="forest"]{--on-brand:#0A0F1C}
+[data-theme="slate"],[data-theme="forest"],[data-theme="dark"],[data-theme="midnight"]{--on-brand:#0A0F1C}
 [data-theme="mono"]{color-scheme:light;--bg:#F5F5F7;--card:#fff;--soft:#F0F0F3;--ink:#1D1D1F;--ink-2:#515154;--ink-3:#86868B;--line:#E6E6EA;--line-2:#D2D2D7;--brand:#0071E3;--brand-2:#2997FF;--brand-dim:rgba(0,113,227,.1);--grad:linear-gradient(135deg,#0071E3,#2997FF);--good:#1F9D55;--good-dim:rgba(31,157,85,.12);--good-line:rgba(31,157,85,.35);--warn:#B7791F;--warn-dim:rgba(183,121,31,.13);--bad:#D6455D;--bad-dim:rgba(214,69,93,.11);--info:#0A84FF;--info-dim:rgba(10,132,255,.12);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px -16px rgba(0,0,0,.18)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
@@ -172,7 +167,7 @@ button,select,input{font:inherit;color:inherit}
 .btn-main:active,.auth-btn:active{transform:scale(.97)}
 .btn-tg{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;background:var(--card);color:var(--ink);border:1px solid var(--line-2);font-weight:600;font-size:15px;padding:13px 22px;text-decoration:none}
 .btn-tg svg{color:#229ED9}
-.btn-tg.plan-tg{width:100%;background:#229ED9;color:#fff;border:0}
+.btn-tg.plan-tg{width:100%;background:#0F6F9E;color:#fff;border:0}
 .btn-tg.plan-tg svg{color:#fff}
 .feature-grid{order:5;grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .feature-card{display:flex;flex-direction:column;gap:14px;padding:26px}
@@ -267,6 +262,7 @@ button,select,input{font:inherit;color:inherit}
 .badge-win,.badge-loss{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
 .badge-win{background:var(--good-dim);color:var(--good)}
 .badge-loss{background:var(--bad-dim);color:var(--bad)}
+.hc-ou{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .perf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .perf-card{padding:22px}
 .perf-card.hero{grid-column:1/-1}
@@ -290,7 +286,7 @@ button,select,input{font:inherit;color:inherit}
 .nav-item{display:flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--ink-3);border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background .25s,color .25s}
 .nav-item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .nav-item.active{background:var(--ink);color:var(--card)}
-.tg-fab{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;background:#229ED9;display:grid;place-items:center;z-index:55;box-shadow:0 12px 28px -10px rgba(34,158,217,.7)}
+.tg-fab{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;background:#0F6F9E;display:grid;place-items:center;z-index:55;box-shadow:0 12px 28px -10px rgba(34,158,217,.7)}
 .tg-fab svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-left:-2px}
 .tg-fab.tab-off{display:none}
 /* modals */
@@ -388,7 +384,7 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 
 [data-theme="midnight"],[data-theme="ocean"],[data-theme="graphite"],[data-theme="sunset"]{color-scheme:dark;--good:#34D399;--warn:#FBBF24;--bad:#FB7185;--info:#38BDF8;--good-dim:rgba(52,211,153,.14);--good-line:rgba(52,211,153,.38);--warn-dim:rgba(251,191,36,.14);--bad-dim:rgba(251,113,133,.14);--info-dim:rgba(56,189,248,.14);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 6px 24px -10px rgba(0,0,0,.6)}
 [data-theme="rose"],[data-theme="lavender"]{color-scheme:light;--good:#17935F;--warn:#B7791F;--bad:#D6455D;--info:#2C7FB8;--good-dim:rgba(23,147,95,.12);--good-line:rgba(23,147,95,.35);--warn-dim:rgba(183,121,31,.13);--bad-dim:rgba(214,69,93,.11);--info-dim:rgba(44,127,184,.12);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px -16px rgba(60,30,60,.22)}
-[data-theme="midnight"]{--bg:#000;--card:#111113;--soft:#1C1C1F;--ink:#F5F5F7;--ink-2:#B0B0B8;--ink-3:#7C7C86;--line:#232327;--line-2:#34343A;--brand:#2997FF;--brand-2:#64B5FF;--brand-dim:rgba(41,151,255,.16);--grad:linear-gradient(135deg,#0A84FF,#2997FF);--on-brand:#fff}
+[data-theme="midnight"]{--bg:#000;--card:#111113;--soft:#1C1C1F;--ink:#F5F5F7;--ink-2:#B0B0B8;--ink-3:#8E8E99;--line:#232327;--line-2:#34343A;--brand:#2997FF;--brand-2:#64B5FF;--brand-dim:rgba(41,151,255,.16);--grad:linear-gradient(135deg,#0A84FF,#2997FF)}
 [data-theme="ocean"]{--bg:#061519;--card:#0C242B;--soft:#12333C;--ink:#E6F4F4;--ink-2:#9FC2C6;--ink-3:#6B9196;--line:#16363E;--line-2:#22505A;--brand:#2DD4BF;--brand-2:#5EEAD4;--brand-dim:rgba(45,212,191,.15);--grad:linear-gradient(135deg,#14B8A6,#2DD4BF);--on-brand:#04201C}
 [data-theme="graphite"]{--bg:#121212;--card:#1C1C1C;--soft:#262626;--ink:#EDEDED;--ink-2:#ABABAB;--ink-3:#777;--line:#2A2A2A;--line-2:#3A3A3A;--brand:#EDEDED;--brand-2:#fff;--brand-dim:rgba(237,237,237,.12);--grad:linear-gradient(135deg,#d4d4d4,#fff);--on-brand:#111}
 [data-theme="sunset"]{--bg:#18100E;--card:#241816;--soft:#2F201C;--ink:#F8EDE8;--ink-2:#C7A99E;--ink-3:#8F7468;--line:#3A2722;--line-2:#523630;--brand:#FF8A4C;--brand-2:#FFA877;--brand-dim:rgba(255,138,76,.15);--grad:linear-gradient(135deg,#F97316,#FF8A4C);--on-brand:#2A1204}
@@ -444,10 +440,9 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
    LIVE GLOBE: a huge globe that slowly turns behind the whole landing page (cobe, plain JS)
    ═══════════════════════════════════════════════════════════ */
 .globe-bg { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
-.globe-stage { position:absolute; left:50%; top:62%; width:max(135vw,100vh); aspect-ratio:1; transform:translate(-50%,-50%); opacity:0; transition:opacity 2s ease; }
+.globe-stage { position:absolute; left:50%; top:auto; bottom:0; width:min(max(140vw,120vh),2600px); aspect-ratio:1; transform:translate(-50%,58%); opacity:0; transition:opacity 2s ease; }
 .globe-bg.is-ready .globe-stage { opacity:.55; }
-@media (min-width:900px){ .globe-stage { left:66%; top:88%; width:max(120vw,170vh); } }
-.globe-stage::before { content:""; position:absolute; inset:6%; border-radius:50%; filter:blur(60px); opacity:.5;
+.globe-stage::before { content:none; display:none;
   background:radial-gradient(circle, var(--brand-dim), transparent 70%); }
 .globe-canvas { position:relative; display:block; width:100%; height:100%; contain:layout paint size; }
 .globe-bg.is-fallback { display:none; }
@@ -455,6 +450,28 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
   color:var(--good); background:var(--good-dim); border:1px solid var(--good-line); }
 .globe-online b { font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
 .globe-online .dot { width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 1.2s infinite; }
+.hero-badge + .globe-online, .landing-left > .globe-online { margin:0 0 14px 8px; vertical-align:middle; }
+
+/* v5: globe = site-wide bottom background; no backdrop blur over the animated canvas */
+.globe-online,.hero-badge + .globe-online,.landing-left > .globe-online{display:none!important}
+.app-header,.bottom-nav{-webkit-backdrop-filter:none;backdrop-filter:none}
+.app-header{background:color-mix(in srgb,var(--card) 88%,transparent)}
+.bottom-nav{background:color-mix(in srgb,var(--card) 92%,transparent)}
+
+/* v6: smoother tabs + stable globe layer */
+html{scroll-behavior:auto}                       /* smooth scrollTo while swapping tabs = jank / grey tiles */
+.tab-view.active{animation:viewIn .18s ease-out}
+@keyframes viewIn{from{opacity:0}to{opacity:1}}  /* opacity only: no transform layer over a long page */
+.match,.hc-card{contain-intrinsic-size:auto 300px}  /* real card height ~300px (was 430: caused relayout jumps) */
+.globe-bg{contain:strict;transform:translateZ(0)}
+.aurora{contain:strict}
+/* backdrop blur over an always-animating WebGL background is re-computed every frame: use a plain dim instead */
+.modal-overlay,.side-overlay{-webkit-backdrop-filter:none;backdrop-filter:none}
+.modal-overlay{background:rgba(0,0,0,.6)}
+.side-overlay{background:rgba(8,7,20,.72)}
+@media (max-width:760px){.globe-stage{width:max(165vw,80vh)}}
+/* globe is pinned to the LARGE viewport: it never moves/resizes when the mobile URL bar shows or hides; only the cards scroll */
+.globe-bg{inset:auto;top:0;left:0;right:0;height:100vh;height:100lvh}
 
 /* Lenis smooth scroll (from its docs): let Lenis own the easing */
 html.lenis, html.lenis body { height:auto; }
@@ -462,14 +479,31 @@ html.lenis, html.lenis body { height:auto; }
 .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior:contain; }
 .lenis.lenis-stopped { overflow:hidden; }
 
+
+/* ── compliance additions ── */
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-sub);margin:4px 2px 12px;line-height:1.45;text-align:start}
+.consent input{margin-top:2px;width:18px;height:18px;flex:none;accent-color:var(--brand)}
+.consent a,.site-footer a,#cookieBar a{color:var(--brand-2);text-decoration:underline}
+.site-footer{max-width:900px;margin:24px auto 110px;padding:0 16px;text-align:center;font-size:12.5px;color:var(--text-sub);line-height:1.6}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;margin-bottom:10px}
+.link-btn{background:none;border:0;padding:0;color:var(--brand-2);text-decoration:underline;font:inherit;cursor:pointer}
+#cookieBar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:200;max-width:640px;margin:auto;background:var(--card);color:var(--ink);border:1px solid var(--line-2);border-radius:18px;padding:16px;box-shadow:0 18px 50px -12px rgba(0,0,0,.7);font-size:13.5px;line-height:1.5}
+#cookieBar[hidden]{display:none}
+#cookieBar p{margin:0 0 12px}
+#cookieBar .cb-row{display:flex;flex-wrap:wrap;gap:10px}
+#cookieBar .cb-btn{flex:1 1 140px;padding:11px 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--soft);color:var(--ink);font-weight:600;font-size:14px;cursor:pointer}
+.danger-zone{margin-top:16px;padding:16px;border:1px solid var(--bad);border-radius:16px}
+.danger-zone h3{font-size:15px;margin:0 0 6px;color:var(--bad)}
+.auth-btn.danger{background:var(--bad);color:#0A0F1C}
+.perf-note{font-size:12.5px;color:var(--text-sub);margin:10px 2px 0}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<div class="globe-bg" id="globeCard" aria-hidden="true">
-      <div class="globe-stage" id="globeStage"><canvas class="globe-canvas" id="globeCanvas"></canvas></div>
-    </div>
-
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="globe-bg" id="globeCard" aria-hidden="true">
+  <div class="globe-stage" id="globeStage"><canvas class="globe-canvas" id="globeCanvas"></canvas></div>
+</div>
 
 <div class="wrap">
   <!-- ✅ HEADER: Logo and name left, icons right -->
@@ -477,7 +511,7 @@ html.lenis, html.lenis body { height:auto; }
     <div class="brand">
       <button class="icon-btn hidden" id="menuBtn" type="button" aria-label="Menu" onclick="openMenu()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="brand-mark">
-        <img src="logo.png" alt="Logo">
+        <img src="logo.png" alt="LuciBet logo" width="34" height="34" decoding="async" fetchpriority="high">
       </div>
       <div class="brand-text">
         <div class="brand-name">LuciBet</div>
@@ -489,7 +523,7 @@ html.lenis, html.lenis body { height:auto; }
       <div class="live-status hidden" id="live-status">
         <span class="dot"></span><span id="live-text">LIVE</span>
       </div>
-      <button class="icon-btn" id="loginBtn" title="Login">🔐</button>
+      <button class="icon-btn" id="loginBtn" title="Login" aria-label="Login">🔐</button>
       <div class="profile-wrap">
         <button class="icon-btn hidden" id="profileBtn" title="Profile" aria-label="Profile"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></button>
         <div class="profile-menu hidden" id="profileMenu">
@@ -515,7 +549,7 @@ html.lenis, html.lenis body { height:auto; }
     </div>
   </header>
 
-  <div class="ticker"><div class="ticker-track">
+  <div class="ticker" aria-hidden="true"><div class="ticker-track">
     <span data-i18n="tick_1">⚽ Live Odds</span><span data-i18n="tick_2">🎯 +EV Value Bets</span><span data-i18n="tick_3">📊 Poisson Model</span><span data-i18n="tick_4">🏆 Daily Picks</span>
     <span data-i18n="tick_1">⚽ Live Odds</span><span data-i18n="tick_2">🎯 +EV Value Bets</span><span data-i18n="tick_3">📊 Poisson Model</span><span data-i18n="tick_4">🏆 Daily Picks</span>
   </div></div>
@@ -526,8 +560,8 @@ html.lenis, html.lenis body { height:auto; }
 
     <div class="landing-left">
       <div class="hero-badge" data-i18n="hero_badge">🔥 Live Odds · +EV Scanner</div>
-      <h1 class="hero-title" data-i18n="hero_title">Find the Edge.<br>Bet Smarter.</h1>
-      <p class="hero-subtitle" data-i18n="hero_sub">Advanced sports analytics powered by Poisson distribution and live market odds. Scan hundreds of matches to find the perfect Value Bets.</p>
+      <h1 class="hero-title" data-i18n="hero_title">Match analytics.<br>The decision is yours.</h1>
+      <p class="hero-subtitle" data-i18n="hero_sub">Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.</p>
 
       <div class="feature-grid">
         <div class="feature-card">
@@ -541,14 +575,14 @@ html.lenis, html.lenis body { height:auto; }
           <div class="feature-icon">🎯</div>
           <div>
             <div class="feature-title" data-i18n="feat_2_title">+EV Finder</div>
-            <div class="feature-desc" data-i18n="feat_2_desc">Automatically flags bets where the bookmakers got the odds wrong.</div>
+            <div class="feature-desc" data-i18n="feat_2_desc">Flags prices where our model's estimate differs from the bookmaker's odds. Estimates only, never certainties.</div>
           </div>
         </div>
         <div class="feature-card">
           <div class="feature-icon">⚡</div>
           <div>
             <div class="feature-title" data-i18n="feat_3_title">Live Updates</div>
-            <div class="feature-desc" data-i18n="feat_3_desc">Real-time odds and score tracking so you never miss a beat.</div>
+            <div class="feature-desc" data-i18n="feat_3_desc">Odds and scores refreshed regularly. Data can be delayed or contain errors.</div>
           </div>
         </div>
       </div>
@@ -596,7 +630,7 @@ html.lenis, html.lenis body { height:auto; }
             <div class="section-label">⚽ <span data-i18n="fixtures">Fixtures</span></div>
             <h2 data-i18n="matches">Matches</h2>
           </div>
-          <button class="filter-btn" id="openFilterBtn" title="Filters">
+          <button class="filter-btn" id="openFilterBtn" title="Filters" aria-label="Filters">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="4" y1="6" x2="20" y2="6"></line>
               <line x1="8" y1="12" x2="16" y2="12"></line>
@@ -638,6 +672,7 @@ html.lenis, html.lenis body { height:auto; }
           </div>
         </div>
 
+        <p class="perf-note" data-i18n="perf_note">Results of our own model's past picks. Past performance does not guarantee future results.</p>
         <div class="chart-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
             <h3 style="font-size:16px; font-weight:800; color:var(--ink);" data-i18n="perf_history">Performance History</h3>
@@ -659,7 +694,7 @@ html.lenis, html.lenis body { height:auto; }
           </div>
 
           <div class="chart-container">
-            <canvas id="perfChart"></canvas>
+            <canvas id="perfChart" role="img" aria-label="Chart of wins and losses over the selected period"></canvas>
           </div>
         </div>
 
@@ -670,6 +705,7 @@ html.lenis, html.lenis body { height:auto; }
       <section style="margin-top:24px;">
         <div class="section-head"><div><div class="section-label">📅 <span data-i18n="nav_weekly">Weekly Stats</span></div><h2 data-i18n="weekly_h">Last 7 days</h2></div></div>
         <div class="perf-grid" id="weeklyTop"></div>
+        <p class="perf-note" data-i18n="perf_note">Results of our own model's past picks. Past performance does not guarantee future results.</p>
         <div class="history-grid" id="weeklyDays" style="margin-top:16px;"></div>
       </section>
     </div>
@@ -683,6 +719,17 @@ html.lenis, html.lenis body { height:auto; }
 
   </div>
   <p class="disclaimer" data-i18n="disclaimer">18+ only. Gambling involves risk and predictions are never guaranteed. Bet responsibly.</p>
+
+<footer class="site-footer">
+  <nav aria-label="Legal">
+    <a href="/terms" data-i18n="terms_link">Terms of Service</a>
+    <a href="/privacy" data-i18n="privacy_link">Privacy Policy</a>
+    <a href="/refund" data-i18n="refund_link">Refund Policy</a>
+    <a href="/cookies" data-i18n="cookies_link">Cookie Policy</a>
+    <button type="button" class="link-btn" id="cookieManage" data-i18n="cookie_manage">Cookie settings</button>
+  </nav>
+  <p>© <span id="yr"></span> LuciBet · {{LEGAL_NAME}} · {{ADDRESS}}<br><span data-i18n="biz_contact">Contact</span>: <a href="mailto:{{EMAIL}}">{{EMAIL}}</a> · <a href="https://t.me/l1uci7er" target="_blank" rel="noopener noreferrer">Telegram @l1uci7er</a></p>
+</footer>
 </div>
 
 <!-- ═══════════════ MODALS ═══════════════ -->
@@ -691,16 +738,16 @@ html.lenis, html.lenis body { height:auto; }
     <h2 id="authTitle" data-i18n="login_title">🔐 Login</h2>
     <p id="authSub" data-i18n="login_sub">Log in with your email, or create a free account.</p>
     <div id="authStep">
-    <input type="text" class="auth-input hidden" id="regName" placeholder="Name" data-i18n-ph="ph_name" maxlength="30" autocomplete="nickname" autocapitalize="words">
     <input type="text" class="auth-input" id="loginUser" placeholder="Email" data-i18n-ph="ph_user" inputmode="email" autocapitalize="none" autocomplete="email">
     <input type="password" class="auth-input" id="loginPass" placeholder="Password" data-i18n-ph="ph_pass" autocomplete="current-password">
+    <label class="consent hidden" id="consentWrap"><input type="checkbox" id="regConsent"><span><span data-i18n="consent_a">I am 18 or older and I accept the</span> <a href="/terms" target="_blank" rel="noopener" data-i18n="terms_link">Terms of Service</a> <span data-i18n="consent_and">and</span> <a href="/privacy" target="_blank" rel="noopener" data-i18n="privacy_link">Privacy Policy</a>.</span></label>
     <button class="auth-btn" id="loginSubmitBtn" data-i18n="login_btn">Login</button>
     <button class="auth-btn auth-secondary" id="registerBtn" type="button" data-i18n="reg_btn">Create free account</button>
     <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" onclick="closeAuthModal()" data-i18n="cancel">Cancel</button>
     <div class="auth-error" id="authError"></div>
     </div>
     <div id="otpStep" class="hidden">
-      <input type="text" class="auth-input otp-input" id="otpCode" placeholder="······" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+      <input type="text" class="auth-input otp-input" id="otpCode" aria-label="Verification code" placeholder="······" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
       <button class="auth-btn" id="otpBtn" type="button" onclick="verifyOtp()" data-i18n="otp_btn">Verify</button>
       <button class="auth-btn auth-secondary" id="otpResend" type="button" onclick="resendOtp()" disabled></button>
       <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" onclick="resetAuthSteps()" data-i18n="otp_back">Back</button>
@@ -724,7 +771,7 @@ html.lenis, html.lenis body { height:auto; }
           <span class="control-label" data-i18n="mw_title">Market weight in final probability</span>
           <output class="control-output" id="mw-o">70%</output>
         </div>
-        <input type="range" id="mw" min="0" max="100" step="5" value="70">
+        <input type="range" id="mw" aria-label="Market weight in final probability" min="0" max="100" step="5" value="70">
         <span class="control-hint" data-i18n="mw_hint">0% trusts the Poisson model only, 100% trusts the market only.</span>
       </div>
 
@@ -733,7 +780,7 @@ html.lenis, html.lenis body { height:auto; }
           <span class="control-label" data-i18n="mev_title">Minimum EV to flag a bet</span>
           <output class="control-output" id="mev-o">4.5%</output>
         </div>
-        <input type="range" id="mev" min="0" max="10" step="0.5" value="4.5">
+        <input type="range" id="mev" aria-label="Minimum EV to flag a bet" min="0" max="10" step="0.5" value="4.5">
         <span class="control-hint" data-i18n="mev_hint">Only prices with expected value above this threshold are flagged.</span>
       </div>
 
@@ -790,12 +837,20 @@ html.lenis, html.lenis body { height:auto; }
       </div>
     </div>
 
+
+    <div class="danger-zone hidden" id="delZone">
+      <h3 data-i18n="del_title">Delete my account</h3>
+      <p class="control-hint" data-i18n="del_desc">Permanently deletes your account, login and plan data. This cannot be undone and any remaining Pro time is lost.</p>
+      <input type="password" class="auth-input" id="delPass" autocomplete="current-password" aria-label="Password" data-i18n-ph="del_pass" placeholder="Confirm with your password" style="margin-top:10px">
+      <button type="button" class="auth-btn danger" id="delBtn" onclick="deleteAccount()" data-i18n="del_btn">Delete my account and data</button>
+      <div class="auth-error" id="delMsg" role="alert"></div>
+    </div>
     <button class="auth-btn" style="margin-top:24px;" onclick="closeSettingsModal()" data-i18n="done">Done</button>
   </div>
 </div>
 
 <div id="menuOverlay" class="side-overlay hidden" onclick="closeMenu()"></div>
-<aside id="sideMenu" class="side-menu" aria-hidden="true">
+<aside id="sideMenu" class="side-menu" aria-hidden="true" inert>
   <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" onclick="closeMenu()">✕</button></div>
   <button class="side-item" type="button" data-tab="weekly" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
   <button class="side-item" type="button" data-tab="unlock" onclick="menuGo('unlock')"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
@@ -808,7 +863,7 @@ html.lenis, html.lenis body { height:auto; }
   <div class="modal-box" style="max-width: 420px;">
     <h2 data-i18n="lic_title">🔑 Activate Premium</h2>
     <p data-i18n="lic_sub">Enter your license key to activate Pro on your account.</p>
-    <input type="text" class="auth-input" id="licKey" placeholder="LB-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <input type="text" class="auth-input" id="licKey" aria-label="License key" placeholder="LB-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <button class="auth-btn" id="licBtn" type="button" onclick="activateLicense()" data-i18n="lic_btn">Activate</button>
     <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" onclick="closeLicenseModal()" data-i18n="cancel">Cancel</button>
     <div class="auth-error" id="licMsg"></div>
@@ -829,6 +884,11 @@ html.lenis, html.lenis body { height:auto; }
   <button class="nav-item" onclick="switchTab('performance')" id="nav-performance"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
 </nav>
 
+<div id="cookieBar" role="region" aria-label="Cookies" hidden>
+  <p><span data-i18n="cookie_text">We use essential storage to keep you logged in and remember your language and settings. With your permission, we also count live visitors (approximate location from IP, never stored) for the landing-page globe. No ads, no analytics, no tracking.</span> <a href="/cookies" data-i18n="cookie_more">Cookie Policy</a></p>
+  <div class="cb-row"><button type="button" class="cb-btn" id="cookieEss" data-i18n="cookie_ess">Essential only</button><button type="button" class="cb-btn" id="cookieAll" data-i18n="cookie_all">Accept all</button></div>
+</div>
+
 <a class="tg-fab hidden" id="tgFab" href="https://t.me/l1uci7er" target="_blank" rel="noopener noreferrer" aria-label="Chat on Telegram">
   <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
 </a>
@@ -837,14 +897,59 @@ html.lenis, html.lenis body { height:auto; }
 /* ═══════════════════════════════════════════════════════════════
    TRANSLATIONS
    ═══════════════════════════════════════════════════════════════ */
+/* PERF: skip DOM rebuilds when a list container is re-rendered with identical HTML
+   (polling re-renders every few seconds; rebuilding cards re-decodes crests and re-lays-out the page) */
+(function () {
+  var d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+  var MEMO = { cards: 1, board: 1, 'history-list': 1, stats: 1, weeklyTop: 1, weeklyDays: 1, planBox: 1 };
+  Object.defineProperty(Element.prototype, 'innerHTML', {
+    configurable: true, get: d.get,
+    set: function (v) { if (MEMO[this.id]) { if (this.__h === v) return; this.__h = v; } d.set.call(this, v); }
+  });
+})();
+
+/* PERF: Chart.js (~200 KB) is no longer render-blocking in <head>; it loads the first time the Performance tab needs it */
+let _chartLib = null;
+function loadChartLib() {
+  if (typeof Chart !== 'undefined') return Promise.resolve();
+  return _chartLib || (_chartLib = new Promise((ok, no) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    s.onload = () => { Chart.defaults.animation = false; ok(); };
+    s.onerror = () => { _chartLib = null; no(new Error('chart.js failed')); };
+    document.head.appendChild(s);
+  }));
+}
+
 const translations = {
   en: {
+    consent_a: "I am 18 or older and I accept the",
+    consent_and: "and",
+    terms_link: "Terms of Service",
+    privacy_link: "Privacy Policy",
+    refund_link: "Refund Policy",
+    cookies_link: "Cookie Policy",
+    consent_req: "Please confirm you are 18+ and accept the Terms and Privacy Policy to create an account.",
+    cookie_text: "We use essential storage to keep you logged in and remember your language and settings. With your permission, we also count live visitors (approximate location from IP, never stored) for the landing-page globe. No ads, no analytics, no tracking.",
+    cookie_all: "Accept all",
+    cookie_ess: "Essential only",
+    cookie_more: "Cookie Policy",
+    cookie_manage: "Cookie settings",
+    perf_note: "Results of our own model's past picks. Past performance does not guarantee future results.",
+    plan_fees: "Price shown is the full price. No hidden fees and no automatic renewal. Any payment-method charges are shown to you before you pay on Telegram.",
+    del_title: "Delete my account",
+    del_desc: "Permanently deletes your account, login and plan data. This cannot be undone and any remaining Pro time is lost.",
+    del_pass: "Confirm with your password",
+    del_btn: "Delete my account and data",
+    del_confirm: "Delete your account permanently? This cannot be undone.",
+    del_done: "Your account has been deleted.",
+    biz_contact: "Contact",
     pro_analytics: "Pro Analytics",
-    hero_title: "Find the Edge.<br>Bet Smarter.",
-    hero_sub: "Advanced sports analytics powered by Poisson distribution and live market odds. Scan hundreds of matches to find the perfect Value Bets.",
+    hero_title: "Match analytics.<br>The decision is yours.",
+    hero_sub: "Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.",
     feat_1_title: "Poisson Model", feat_1_desc: "Statistical match prediction using xG and recent team forms.",
-    feat_2_title: "+EV Finder", feat_2_desc: "Automatically flags bets where the bookmakers got the odds wrong.",
-    feat_3_title: "Live Updates", feat_3_desc: "Real-time odds and score tracking so you never miss a beat.",
+    feat_2_title: "+EV Finder", feat_2_desc: "Flags prices where our model's estimate differs from the bookmaker's odds. Estimates only, never certainties.",
+    feat_3_title: "Live Updates", feat_3_desc: "Odds and scores refreshed regularly. Data can be delayed or contain errors.",
     site_perf: "Site Performance",
     last_7: "Last 7 Days", last_30: "Last 30 Days",
     wins: "Wins", losses: "Losses", with_odds: "With odds", value_bets: "Value bets",
@@ -876,15 +981,36 @@ const translations = {
     plan_get: "Get access on Telegram", plan_renew: "Renew on Telegram", plan_active: "Pro active",
     plan_note: "After payment, send us your account email ({email}) on Telegram and we will activate your plan.", reg_btn: "Create free account",
     done: "Done",
-    hero_badge:"🔥 Live Odds · +EV Scanner", tick_1:"⚽ Live Odds", tick_2:"🎯 +EV Value Bets", tick_3:"📊 Poisson Model", tick_4:"🏆 Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. Bet responsibly.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Email", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
+    hero_badge:"🔥 Live Odds · +EV Scanner", tick_1:"⚽ Live Odds", tick_2:"🎯 +EV Value Bets", tick_3:"📊 Poisson Model", tick_4:"🏆 Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. This is information, not financial or betting advice. Bet responsibly; if gambling is a problem for you, seek help from a support service.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Email", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
   },
   fr: {
+    consent_a: "J'ai 18 ans ou plus et j'accepte les",
+    consent_and: "et la",
+    terms_link: "Conditions d'utilisation",
+    privacy_link: "Politique de confidentialité",
+    refund_link: "Politique de remboursement",
+    cookies_link: "Politique de cookies",
+    consent_req: "Confirmez que vous avez 18 ans ou plus et acceptez les Conditions et la Politique de confidentialité pour créer un compte.",
+    cookie_text: "Nous utilisons un stockage essentiel pour vous garder connecté et mémoriser votre langue et vos réglages. Avec votre accord, nous comptons aussi les visiteurs en direct (position approximative déduite de l'IP, jamais stockée) pour le globe de la page d'accueil. Aucune publicité, aucune analyse, aucun suivi.",
+    cookie_all: "Tout accepter",
+    cookie_ess: "Essentiel uniquement",
+    cookie_more: "Politique de cookies",
+    cookie_manage: "Paramètres des cookies",
+    perf_note: "Résultats passés des pronostics de notre propre modèle. Les performances passées ne garantissent pas les résultats futurs.",
+    plan_fees: "Le prix affiché est le prix total. Aucun frais caché et aucun renouvellement automatique. Les éventuels frais du moyen de paiement vous sont indiqués avant de payer sur Telegram.",
+    del_title: "Supprimer mon compte",
+    del_desc: "Supprime définitivement votre compte, votre connexion et les données de votre offre. Action irréversible ; le temps Pro restant est perdu.",
+    del_pass: "Confirmez avec votre mot de passe",
+    del_btn: "Supprimer mon compte et mes données",
+    del_confirm: "Supprimer définitivement votre compte ? Cette action est irréversible.",
+    del_done: "Votre compte a été supprimé.",
+    biz_contact: "Contact",
     pro_analytics: "Analytique Pro",
-    hero_title: "Trouvez l'Avantage.<br>Pariez Plus Intelligemment.",
-    hero_sub: "Analyses avancées de sport basées sur la distribution de Poisson et les cotes du marché en direct. Scannez des centaines de matchs pour trouver les Value Bets parfaites.",
+    hero_title: "Analyses de matchs.<br>La décision vous appartient.",
+    hero_sub: "Analyse statistique des matchs basée sur un modèle de Poisson et les cotes du marché en direct. Nous signalons les cotes pour lesquelles notre modèle estime une valeur espérée (EV) positive. Ce sont des estimations, pas des résultats garantis.",
     feat_1_title: "Modèle de Poisson", feat_1_desc: "Prédiction statistique des matchs utilisant les xG et les formes récentes.",
-    feat_2_title: "Chercheur +EV", feat_2_desc: "Signale automatiquement les paris où les bookmakers se sont trompés.",
-    feat_3_title: "Mises à jour en direct", feat_3_desc: "Suivi des cotes et des scores en temps réel.",
+    feat_2_title: "Chercheur +EV", feat_2_desc: "Signale les cotes où l'estimation de notre modèle diffère de celle du bookmaker. Des estimations, jamais des certitudes.",
+    feat_3_title: "Mises à jour en direct", feat_3_desc: "Cotes et scores actualisés régulièrement. Les données peuvent être retardées ou comporter des erreurs.",
     site_perf: "Performance du Site",
     last_7: "7 Derniers Jours", last_30: "30 Derniers Jours",
     wins: "Victoires", losses: "Défaites", with_odds: "Avec cotes", value_bets: "Value Bets",
@@ -916,15 +1042,36 @@ const translations = {
     plan_get: "Obtenir l'accès sur Telegram", plan_renew: "Renouveler sur Telegram", plan_active: "Pro actif",
     plan_note: "Après le paiement, envoyez-nous l'email de votre compte ({email}) sur Telegram et nous activerons votre offre.", reg_btn: "Créer un compte gratuit",
     done: "Terminé",
-    hero_badge:"🔥 Cotes en direct · Scanner +EV", tick_1:"⚽ Cotes en direct", tick_2:"🎯 Value Bets +EV", tick_3:"📊 Modèle de Poisson", tick_4:"🏆 Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques, aucun pronostic n'est garanti. Jouez responsablement.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Email", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
+    hero_badge:"🔥 Cotes en direct · Scanner +EV", tick_1:"⚽ Cotes en direct", tick_2:"🎯 Value Bets +EV", tick_3:"📊 Modèle de Poisson", tick_4:"🏆 Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques et aucun pronostic n'est garanti. Ces informations ne constituent pas un conseil financier ou de paris. Jouez responsablement ; si le jeu devient un problème, demandez de l'aide à un service spécialisé.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Email", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
   },
   ar: {
+    consent_a: "عمري 18 سنة أو أكثر وأوافق على",
+    consent_and: "و",
+    terms_link: "شروط الاستخدام",
+    privacy_link: "سياسة الخصوصية",
+    refund_link: "سياسة الاسترداد",
+    cookies_link: "سياسة الكوكيز",
+    consent_req: "أكّد أن عمرك 18 سنة أو أكثر ووافق على الشروط وسياسة الخصوصية لإنشاء حساب.",
+    cookie_text: "نستخدم تخزينًا أساسيًا لإبقائك مسجّل الدخول وتذكّر لغتك وإعداداتك. وبموافقتك نحصي أيضًا الزوار المباشرين (موقع تقريبي من عنوان IP دون تخزينه) لكرة الأرض في الصفحة الرئيسية. لا إعلانات ولا تحليلات ولا تتبّع.",
+    cookie_all: "قبول الكل",
+    cookie_ess: "الأساسية فقط",
+    cookie_more: "سياسة الكوكيز",
+    cookie_manage: "إعدادات الكوكيز",
+    perf_note: "نتائج توقعات نموذجنا السابقة. الأداء السابق لا يضمن النتائج المستقبلية.",
+    plan_fees: "السعر المعروض هو السعر الكامل. لا رسوم خفية ولا تجديد تلقائي. أي رسوم لوسيلة الدفع ستُعرض عليك قبل الدفع عبر تيليجرام.",
+    del_title: "حذف حسابي",
+    del_desc: "يحذف حسابك وبيانات الدخول والباقة نهائيًا. لا يمكن التراجع، وسيضيع أي وقت متبقٍ من باقة Pro.",
+    del_pass: "أكّد بكلمة المرور",
+    del_btn: "احذف حسابي وبياناتي",
+    del_confirm: "هل تريد حذف حسابك نهائيًا؟ لا يمكن التراجع.",
+    del_done: "تم حذف حسابك.",
+    biz_contact: "التواصل",
     pro_analytics: "تحليلات احترافية",
-    hero_title: "اكتشف الأفضلية.<br>راهن بذكاء.",
-    hero_sub: "تحليلات رياضية متقدمة مدعومة بتوزيع بواسون وأسعار السوق المباشرة. امسح مئات المباريات للعثور على أفضل الرهانات.",
+    hero_title: "تحليلات المباريات.<br>القرار قرارك.",
+    hero_sub: "تحليل إحصائي للمباريات يعتمد على نموذج بواسون وأسعار السوق المباشرة. نُبرز الأسعار التي يقدّر نموذجنا أن قيمتها المتوقعة (EV) إيجابية. هذه تقديرات وليست نتائج مضمونة.",
     feat_1_title: "نموذج بواسون", feat_1_desc: "توقع إحصائي للمباريات باستخدام xG وأشكال الفرق الأخيرة.",
-    feat_2_title: "مكتشف +EV", feat_2_desc: "يحدد تلقائيًا الرهانات التي أخطأ فيها صانعو المراهنات في الأسعار.",
-    feat_3_title: "تحديثات مباشرة", feat_3_desc: "تتبع مباشر للأسعار والنتائج.",
+    feat_2_title: "مكتشف +EV", feat_2_desc: "يُبرز الأسعار التي يختلف فيها تقدير نموذجنا عن أسعار شركة المراهنات. مجرد تقديرات وليست يقينًا.",
+    feat_3_title: "تحديثات مباشرة", feat_3_desc: "تُحدَّث الأسعار والنتائج بانتظام. قد تتأخر البيانات أو تحتوي على أخطاء.",
     site_perf: "أداء الموقع",
     last_7: "آخر 7 أيام", last_30: "آخر 30 يوم",
     wins: "أرباح", losses: "خسائر", with_odds: "مع أسعار", value_bets: "رهانات قيمة",
@@ -956,7 +1103,7 @@ const translations = {
     plan_get: "احصل على الوصول عبر تيليجرام", plan_renew: "جدد عبر تيليجرام", plan_active: "الباقة مفعلة",
     plan_note: "بعد الدفع أرسل لنا بريد حسابك ({email}) على تيليجرام وسنفعّل باقتك.", reg_btn: "إنشاء حساب مجاني",
     done: "تم",
-    hero_badge:"🔥 أسعار مباشرة · ماسح +EV", tick_1:"⚽ أسعار مباشرة", tick_2:"🎯 رهانات +EV", tick_3:"📊 نموذج بواسون", tick_4:"🏆 توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. راهن بمسؤولية.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"البريد الإلكتروني", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
+    hero_badge:"🔥 أسعار مباشرة · ماسح +EV", tick_1:"⚽ أسعار مباشرة", tick_2:"🎯 رهانات +EV", tick_3:"📊 نموذج بواسون", tick_4:"🏆 توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. هذه معلومات وليست نصيحة مالية أو نصيحة مراهنة. راهن بمسؤولية، وإذا أصبحت المراهنة مشكلة فاطلب مساعدة من جهة مختصة.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"البريد الإلكتروني", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
   }
 };
 
@@ -1076,13 +1223,13 @@ function updateAuthUI() {
 
 function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
 function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authError').textContent = ''; resetAuthSteps(); document.getElementById('loginPass').value = ''; setAuthMode('login'); }
-function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('menuSetBtn').classList.add('active'); }
+function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('delZone').classList.toggle('hidden', !authState.loggedIn); document.getElementById('menuSetBtn').classList.add('active'); }
 function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); document.getElementById('menuSetBtn').classList.remove('active'); }
 function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); }
 function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); }
 
-function openMenu() { document.getElementById('sideMenu').classList.add('open'); document.getElementById('menuOverlay').classList.remove('hidden'); }
-function closeMenu() { document.getElementById('sideMenu').classList.remove('open'); document.getElementById('menuOverlay').classList.add('hidden'); }
+function openMenu() { const sm = document.getElementById('sideMenu'); sm.inert = false; sm.setAttribute('aria-hidden', 'false'); sm.classList.add('open'); document.getElementById('menuOverlay').classList.remove('hidden'); }
+function closeMenu() { const sm = document.getElementById('sideMenu'); sm.classList.remove('open'); sm.setAttribute('aria-hidden', 'true'); sm.inert = true; document.getElementById('menuOverlay').classList.add('hidden'); }
 function menuGo(tab) { closeMenu(); switchTab(tab); }
 function menuDo(fn) { closeMenu(); fn(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
@@ -1156,23 +1303,16 @@ document.getElementById('logoutBtn').onclick = async () => {
   lastHash = null;
 };
 
-async function getDeviceHWID() {
+// Random per-browser id (replaces FingerprintJS: no fingerprinting, nothing derived from the device).
+function getDeviceHWID() {
   try {
-    if (typeof FingerprintJS === 'undefined') return 'no-fp';
-    const fpPromise = FingerprintJS.load();
-    const fp = await Promise.race([
-      fpPromise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
-    ]);
-    const result = await fp.get();
-    return result.visitorId;
-  } catch (e) {
-    console.warn("HWID timeout or error:", e);
-    return 'unknown-device';
-  }
+    let id = localStorage.getItem('mde:did');
+    if (!id) { id = Array.from(crypto.getRandomValues(new Uint8Array(16)), x => x.toString(16).padStart(2, '0')).join(''); localStorage.setItem('mde:did', id); }
+    return Promise.resolve(id);
+  } catch (e) { return Promise.resolve('unknown-device'); }
 }
 
-['regName', 'loginUser', 'loginPass'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click(); }));
+['loginUser', 'loginPass'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click(); }));
 
 function finishLogin(data) {
   authState.token = data.token;
@@ -1202,10 +1342,10 @@ function setAuthMode(mode) {
   set('authSub', reg ? 'reg_sub' : 'login_sub');
   set('loginSubmitBtn', reg ? 'reg_submit' : 'login_btn');
   set('registerBtn', reg ? 'have_acc' : 'reg_btn');
-  document.getElementById('regName').classList.toggle('hidden', !reg);
+  document.getElementById('consentWrap').classList.toggle('hidden', !reg);
   document.getElementById('loginPass').autocomplete = reg ? 'new-password' : 'current-password';
   document.getElementById('authError').textContent = '';
-  if (reg) setTimeout(() => document.getElementById('regName').focus(), 30);
+  if (reg) setTimeout(() => document.getElementById('loginUser').focus(), 30);
 }
 function startOtpCountdown(sec) {
   clearInterval(otpTimer);
@@ -1263,11 +1403,7 @@ async function authSubmit() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
   const errEl = document.getElementById('authError');
-  let name = '';
-  if (reg) {
-    name = document.getElementById('regName').value.replace(/\s+/g, ' ').trim();
-    if (name.length < 2 || name.length > 30) { errEl.textContent = t.name_bad; document.getElementById('regName').focus(); return; }
-  }
+  if (reg && !document.getElementById('regConsent').checked) { errEl.textContent = t.consent_req; document.getElementById('regConsent').focus(); return; }
   if (!u || !p) return;
   const btn = document.getElementById('loginSubmitBtn');
   if (btn.disabled) return;
@@ -1276,9 +1412,9 @@ async function authSubmit() {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
   try {
-    const hwid = await getDeviceHWID();
-    const body = { username: u, password: p, hwid };
-    if (reg) body.name = name;
+    const body = { username: u, password: p };
+    if (reg) { body.consent = true; body.ageConfirmed = true; }
+    else if (!u.includes('@')) body.hwid = await getDeviceHWID(); // only KeyAuth licence logins need a device id
     const r = await fetch(authUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body), signal: controller.signal
@@ -1484,7 +1620,7 @@ const crestHTML = t => {
   const url = logoOf(t);
   if (!url) return `<span class="crest">${ini}</span>`;
   return `<span class="crest has-logo">
-    <img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-ini="${ini}" onerror="crestFail(this)">
+    <img src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-ini="${ini}" onerror="crestFail(this)">
   </span>`;
 };
 
@@ -1502,22 +1638,28 @@ try {
 const persist = () => localStorage.setItem('mde:settings', JSON.stringify({ mw: st.mw, mev: st.mev }));
 
 window.switchTab = function(tab) {
-  document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('view-' + tab).classList.add('active');
-  const navEl = document.getElementById('nav-' + tab); if (navEl) navEl.classList.add('active');
+  // coalesce rapid taps: only the last requested tab is applied, once per frame
+  window.__tabNext = tab;
+  if (window.__tabRaf) return;
+  window.__tabRaf = requestAnimationFrame(() => { window.__tabRaf = 0; __doSwitch(window.__tabNext); });
+};
+function __doSwitch(tab) {
+  const view = document.getElementById('view-' + tab);
+  if (!view) return;
+  const cur = document.querySelector('.tab-view.active');
+  if (cur !== view) {
+    if (cur) cur.classList.remove('active');
+    view.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.id === 'nav-' + tab));
   document.querySelectorAll('.side-item[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  window.scrollTo({ top: 0 });
   document.getElementById('tgFab').classList.toggle('tab-off', tab !== 'signals');
+  if (window.__globePause) window.__globePause(250);   // let the tab paint before the globe draws again
   if (tab === 'weekly') renderWeekly();
   if (tab === 'unlock') renderUnlock();
-
-  if (tab === 'performance') {
-    setTimeout(() => {
-      updateChart(parseInt($('chartRange').value) || 7, 'app');
-    }, 50);
-  }
-};
+  if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
+}
 
 function getFinishedMatches() {
   const map = new Map();
@@ -1711,6 +1853,19 @@ function renderHistory() {
 
     if (botWon) wins++; else losses++;
 
+    // Over/Under: display only (NOT counted in wins/losses/performance)
+    let ouRow = '';
+    const ou = v.mainOU;
+    if (ou && ou.selection) {
+      const goals = hs + as;
+      const isOver = /^over/i.test(ou.selection);
+      const ouWon = isOver ? goals > 2.5 : goals < 2.5;
+      ouRow = `<div class="hc-footer hc-ou">
+        <span>${t.over_under}: <strong>${esc(ou.selection)}</strong></span>
+        ${ouWon ? `<span class="badge-win">${t.win}</span>` : `<span class="badge-loss">${t.loss}</span>`}
+      </div>`;
+    }
+
     return `<div class="hc-card">
       <div class="hc-header">
         <span>${esc(fx.league)}</span>
@@ -1725,6 +1880,7 @@ function renderHistory() {
         <span>${t.pick}: <strong>${esc(v.main1x2.sel)}</strong></span>
         ${botWon ? `<span class="badge-win">${t.win}</span>` : `<span class="badge-loss">${t.loss}</span>`}
       </div>
+      ${ouRow}
     </div>`;
   }).join('');
 
@@ -1803,8 +1959,14 @@ function updateChart(days, target) {
 
   const canvas = document.getElementById(ids.c);
   if (!canvas) return;
+  // nothing to draw while the Performance tab is hidden (a hidden canvas has size 0); switchTab() redraws on open
+  if (isApp && !document.getElementById('view-performance').classList.contains('active')) return;
+  if (typeof Chart === 'undefined') { loadChartLib().then(() => updateChart(days, target)).catch(() => {}); return; }
   const ctx = canvas.getContext('2d');
 
+  const __sig = days + '|' + (document.documentElement.getAttribute('data-theme') || '') + '|' + (localStorage.getItem('mde:lang') || '') + '|' + JSON.stringify([labels, winsArray, lossesArray]);
+  if (isApp && chartInstanceApp && window.__chartSig === __sig) { chartInstanceApp.resize(); return; }
+  if (isApp) window.__chartSig = __sig;
   if (isApp) { if (chartInstanceApp) chartInstanceApp.destroy(); chartInstanceApp = null; } else { if (chartInstanceLanding) chartInstanceLanding.destroy(); chartInstanceLanding = null; }
 
   const lang = localStorage.getItem('mde:lang') || 'en';
@@ -1882,7 +2044,7 @@ let _polling = false;
 async function pollFeed() { if (_polling) return; _polling = true; try { await pollFeedInner(); } finally { _polling = false; } }
 async function pollFeedInner() {
   if (document.hidden || !authState.loggedIn) return;
-  if (!isPro()) { loadPublicFixtures('app'); return; }
+  if (!isPro()) { const n = Date.now(); if (n - (window.__lastPub || 0) < 30000) return; window.__lastPub = n; loadPublicFixtures('app'); return; }
   try {
     const r = await fetch('/api/fixtures?t=' + Date.now(), {
       cache: 'no-store',
@@ -1992,7 +2154,7 @@ function renderWeekly() {
 function renderUnlock() {
   const t = tNow(), p = authState.profile || {};
   const status = isPro() ? `<div class="pill good" style="display:inline-block;margin-bottom:12px">✓ ${t.plan_active}${p.planUntil ? ' · ' + new Date(p.planUntil).toLocaleDateString('en-GB') : ''}</div>` : '';
-  $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div>
+  $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p>
     <ul class="plan-feats">${[t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5].map(f => `<li>${esc(f)}</li>`).join('')}</ul>
     <a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${isPro() ? t.plan_renew : t.plan_get}</span></a>
     ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:10px" onclick="openLicenseModal()">🔑 ${t.lic_have}</button>`}
@@ -2068,6 +2230,7 @@ loadPublicFixtures();
 setInterval(() => { if (!document.hidden) loadPublicFixtures(); }, 60000);
 
 setInterval(pollFeed, 5000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pollFeed(); });
 
 setInterval(async () => {
   if (document.hidden) return;
@@ -2078,9 +2241,9 @@ setInterval(async () => {
 }, 30000);
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
-(function(){
+document.addEventListener('DOMContentLoaded',function(){
   var hdr=document.querySelector('.app-header'),tick=false;
   addEventListener('scroll',function(){if(tick)return;tick=true;requestAnimationFrame(function(){tick=false;hdr&&hdr.classList.toggle('scrolled',scrollY>8)})},{passive:true});
   // spotlight only on real hover devices and only on the few big cards
@@ -2107,6 +2270,71 @@ setInterval(async () => {
     .from('.hero-title .w',{opacity:0,y:30,duration:.7,stagger:.06},'-=.2')
     .from('.hero-subtitle,.cta-box',{opacity:0,y:16,duration:.5,stagger:.1},'-=.4')
     .from('.feature-card',{opacity:0,y:24,duration:.5,stagger:.08},'-=.3');
+});
+</script>
+<script>
+/* ── compliance + accessibility additions ── */
+async function deleteAccount() {
+  const t = tNow(), pw = document.getElementById('delPass').value, msg = document.getElementById('delMsg'), btn = document.getElementById('delBtn');
+  msg.textContent = '';
+  if (!pw) { msg.textContent = t.del_pass; document.getElementById('delPass').focus(); return; }
+  if (!confirm(t.del_confirm)) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/account', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token }, body: JSON.stringify({ password: pw }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Error');
+    Object.keys(localStorage).filter(k => k.indexOf('mde:') === 0 && k !== 'mde:consent').forEach(k => localStorage.removeItem(k));
+    alert(t.del_done); location.reload();
+  } catch (e) { msg.textContent = e.message; btn.disabled = false; }
+}
+(function () {
+  /* cookie / storage notice: two equal buttons, nothing pre-selected */
+  const bar = document.getElementById('cookieBar');
+  const get = () => { try { return localStorage.getItem('mde:consent'); } catch (e) { return null; } };
+  const set = v => { try { localStorage.setItem('mde:consent', v); } catch (e) {} bar.hidden = true; if (v === 'all' && window.__mdePing) window.__mdePing(); };
+  if (!get()) bar.hidden = false;
+  document.getElementById('cookieAll').addEventListener('click', () => set('all'));
+  document.getElementById('cookieEss').addEventListener('click', () => set('essential'));
+  document.getElementById('cookieManage').addEventListener('click', () => { bar.hidden = false; document.getElementById('cookieEss').focus(); });
+
+  /* labels that depend on the language */
+  const L = { en: { close: 'Close', login: 'Login', filters: 'Filters' }, fr: { close: 'Fermer', login: 'Connexion', filters: 'Filtres' }, ar: { close: 'إغلاق', login: 'تسجيل الدخول', filters: 'عوامل التصفية' } };
+  function syncAria() {
+    const l = L[document.documentElement.lang] || L.en;
+    document.querySelectorAll('button.icon-btn').forEach(b => { if (b.textContent.trim() === '✕') b.setAttribute('aria-label', l.close); });
+    const lb = document.getElementById('loginBtn'); if (lb) lb.setAttribute('aria-label', l.login);
+    const fb = document.getElementById('openFilterBtn'); if (fb) fb.setAttribute('aria-label', l.filters);
+    document.querySelectorAll('input[placeholder]').forEach(i => { if (!i.getAttribute('aria-label') || i.dataset.auto) { i.setAttribute('aria-label', i.placeholder); i.dataset.auto = '1'; } });
+    const y = document.getElementById('yr'); if (y) y.textContent = new Date().getFullYear();
+  }
+  const baseApply = applyLanguage; applyLanguage = function (lang) { baseApply(lang); syncAria(); };
+  syncAria();
+
+  /* dialogs: role, focus in, focus trap, Escape, focus back */
+  const FOC = 'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])';
+  const vis = el => el.offsetParent !== null;
+  const overlays = [...document.querySelectorAll('.modal-overlay')], openers = new Map();
+  overlays.forEach((o, n) => { const box = o.querySelector('.modal-box'), h = o.querySelector('h2'); if (!box) return; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); if (h) { h.id = h.id || 'dlgTitle' + n; box.setAttribute('aria-labelledby', h.id); } });
+  const obs = new MutationObserver(ms => ms.forEach(m => {
+    const o = m.target;
+    if (!o.classList.contains('hidden')) { if (!openers.has(o)) { openers.set(o, document.activeElement); setTimeout(() => { const f = [...o.querySelectorAll(FOC)].find(vis); if (f) f.focus(); }, 50); } }
+    else if (openers.has(o)) { const b = openers.get(o); openers.delete(o); if (b && b.focus && document.contains(b)) b.focus(); }
+  }));
+  overlays.forEach(o => obs.observe(o, { attributes: true, attributeFilter: ['class'] }));
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if ((e.key === 'Enter' || e.key === ' ') && t.matches && t.matches('[role="button"][tabindex]')) { e.preventDefault(); t.click(); return; }
+    const open = overlays.filter(o => !o.classList.contains('hidden')).pop();
+    if (!open) return;
+    if (e.key === 'Escape') { const c = [...open.querySelectorAll('button')].find(b => /close(Auth|Filter|Settings|License)Modal/.test(b.getAttribute('onclick') || '')); if (c) c.click(); return; }
+    if (e.key === 'Tab') {
+      const f = [...open.querySelectorAll(FOC)].filter(vis); if (!f.length) return;
+      const a = f[0], z = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    }
+  });
 })();
 </script>
 <script src="live-globe.js" defer></script>
