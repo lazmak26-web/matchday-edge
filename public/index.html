@@ -1570,6 +1570,7 @@ const Engine = (() => {
       cands.push({ sel: A.name + ' to Win', p: p.a, odds: mk.best.away.o, book: mk.best.away.book, fair: mk.fair.a });
       cands.forEach(c => { c.ev = ev(c.p, c.odds); c.implied = 1 / c.odds; c.kelly = kelly(c.p, c.odds); });
     }
+    const bestEv = cands.length ? Math.max(...cands.map(c => c.ev)) : null; // best EV on any outcome, even below the slider threshold
     const flagged = cands.filter(c => c.ev > 0 && c.ev >= minEV).sort((x, y) => y.ev - x.ev);
     const bet = flagged[0] || null;
 
@@ -1585,7 +1586,7 @@ const Engine = (() => {
       scoreline_prediction: sim ? { most_likely: sim.top[0], alternatives: sim.top.slice(1) } : { most_likely: 'N/A', alternatives: [] },
       best_bet_value: bet ? { selection: bet.sel, bookmaker_odds: bet.odds, expected_value: sign(bet.ev), quarter_kelly: (bet.kelly * 25).toFixed(1) + '%', risk_level: riskOf(bet.odds) } : null,
     };
-    return { fx, json, v: { p, bet, source, main1x2, mainOU, started } };
+    return { fx, json, v: { p, bet, source, main1x2, mainOU, started, bestEv } };
   }
   return { analyze };
 })();
@@ -2017,8 +2018,13 @@ function updateFilterPreview() {
   const bets = up.filter(r => r.v.bet);
   const best = bets.length ? Math.max(...bets.map(r => r.v.bet.ev)) : null;
   if (!up.length) { el.textContent = '—'; return; }
+  const evs = up.map(r => r.v.bestEv).filter(x => x != null);
+  const topAny = evs.length ? Math.max(...evs) : null;
+  const est = up.filter(r => r.fx.xgSource === 'league-avg' || r.fx.xgSource === 'h2h').length;
+  const note = (!bets.length && topAny != null) ? ` · best available EV ${sgn(topAny)} (below ${(st.mev * 100).toFixed(1)}%)` : '';
+  const estNote = est ? ` · ${est} with estimated xG (low-quality model)` : '';
   el.innerHTML = withOdds
-    ? `<b>${bets.length}</b> value bets · ${withOdds}/${up.length} matches with odds · best EV ${best != null ? sgn(best) : '—'}`
+    ? `<b>${bets.length}</b> value bets · ${withOdds}/${up.length} matches with odds · best EV ${best != null ? sgn(best) : '—'}${note}${estNote}`
     : `0/${up.length} matches have odds yet, so these sliders have nothing to change right now.`;
 }
 
