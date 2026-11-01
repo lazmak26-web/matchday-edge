@@ -1180,6 +1180,14 @@ app.get('/api/public/fixtures', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
 });
 
+// Live presence for the landing-page globe: approximate, city-level points only (see presence.js).
+const presence = require('./presence')({
+  lookup: (() => { try { return require('geoip-lite').lookup; } catch (e) { return null; } })(),
+  trustCfGeo: process.env.TRUST_CF_GEO === '1'
+});
+app.post('/api/presence', presence.ping);
+app.get('/api/presence', presence.snapshot);
+
 app.get('/api/fixtures', authMiddleware, requirePro, async (req, res) => {
   try {
     const fixtures = await getFixtures();
