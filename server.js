@@ -630,14 +630,15 @@ function recordSnapshots(fixtures) {
     if (!prev) {
       // Only keep matches we saw BEFORE kickoff: that way the pick is a real prediction.
       if (f.status !== 'notstarted') continue;
-      snapshotStore.set(f.id, JSON.parse(JSON.stringify(f)));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: JSON.parse(JSON.stringify(f.odds || [])) }));
       changed = true;
       continue;
     }
 
     if (prev.status === 'notstarted' && f.status === 'notstarted') {
-      // Still before kickoff: keep the latest odds/form.
-      snapshotStore.set(f.id, JSON.parse(JSON.stringify(f)));
+      // Still before kickoff: keep the latest odds/form (= closing odds once the match starts); openOdds stays frozen.
+      const open = prev.openOdds || JSON.parse(JSON.stringify(prev.odds || []));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: open }));
       changed = true;
       continue;
     }
@@ -1224,6 +1225,19 @@ app.get('/api/fixtures', authMiddleware, requirePro, async (req, res) => {
     const logoP = ensureLogos(fixtures.flatMap(f => [f.home, f.away]));
     if (logoP) logoP.catch(e => console.error('Logo fetch error:', e.message));
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
+});
+
+// Independent engine output (additive: the legacy browser model keeps working). Pro only.
+const enginePre = require('./engine/prematch'), engineDecide = require('./engine/decision'), engineValidate = require('./engine/validate');
+app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) => {
+  try {
+    const fixtures = await getFixtures();
+    const out = fixtures.map(f => {
+      const pred = enginePre.predict(f, { marketWeight: 0.5 });
+      return { id: f.id, xgSource: f.xgSource || null, prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source }, validation: engineValidate.validate(pred, f), decision: engineDecide.decide(f, pred) };
+    });
+    res.json({ predictions: out });
+  } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
 });
 
 // History = saved snapshots (pre-match odds/form frozen) + final scores.
