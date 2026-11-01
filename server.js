@@ -24,14 +24,54 @@ if (!AUTH_CONFIGURED) console.error('❌ KEYAUTH_NAME / KEYAUTH_OWNERID / KEYAUT
 const MAX_SESSIONS_PER_USER = 2; // stops one key being shared by many people at once
 const KEYAUTH_BASE    = 'https://keyauth.win/api/1.3/';
 
-const SESSION_TTL = 24 * 60 * 60 * 1000;
-const sessions = new Map();
+/* ═══════════════════════════════════════════════════════════
+   SESSIONS  (survive deploys: stored on the persistent disk)
+   Only the SHA-256 of a token is kept, never the token itself, so a leaked
+   sessions.json cannot be used to log in. Sliding expiry: 7 days idle, 30 days max.
+   ═══════════════════════════════════════════════════════════ */
+const SESSION_IDLE = 7 * 24 * 60 * 60 * 1000;
+const SESSION_MAX = 30 * 24 * 60 * 60 * 1000;
+const SESSION_TTL = SESSION_IDLE; // sent to the client as expiresIn
+const sessions = new Map();       // sha256(token) -> { kind, username, createdAt, lastSeen, ... }
+const tokHash = t => crypto.createHash('sha256').update(String(t)).digest('hex');
+const sessionExpired = (v, now) => now - v.createdAt > SESSION_MAX || now - (v.lastSeen || v.createdAt) > SESSION_IDLE;
+
+// One atomic-write helper for every data file (tmp file + rename, owner-only permissions).
+function writeAtomic(file, data) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + '.tmp';
+  fs.writeFileSync(tmp, data, { mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
+function makeSaver(label, writeNow, delay) {
+  let timer = null;
+  const now = () => { if (timer) { clearTimeout(timer); timer = null; } try { writeNow(); } catch (e) { console.error(label + ' save error:', e.message); } };
+  const soon = () => { if (!timer) timer = setTimeout(now, delay); };
+  return { soon, now };
+}
+const SESSIONS_FILE_DEFAULT = () => path.join(path.dirname(HISTORY_FILE), 'sessions.json');
+const SESSIONS_FILE = process.env.SESSIONS_FILE || null; // resolved lazily (HISTORY_FILE is defined further down)
+const sessionsPath = () => SESSIONS_FILE || SESSIONS_FILE_DEFAULT();
+const sessionSaver = makeSaver('Sessions', () => writeAtomic(sessionsPath(), JSON.stringify([...sessions.entries()])), 1000);
+const saveSessionsSoon = sessionSaver.soon;
+function loadSessions() {
+  try {
+    const f = sessionsPath();
+    if (!fs.existsSync(f)) return;
+    const arr = JSON.parse(fs.readFileSync(f, 'utf8'));
+    const now = Date.now();
+    if (Array.isArray(arr)) for (const e of arr) {
+      if (Array.isArray(e) && /^[0-9a-f]{64}$/.test(e[0]) && e[1] && e[1].username && typeof e[1].createdAt === 'number' && !sessionExpired(e[1], now)) sessions.set(e[0], e[1]);
+    }
+    console.log(`🔐 Restored ${sessions.size} sessions`);
+  } catch (e) { console.error('Sessions load error:', e.message); }
+}
 
 setInterval(() => {
   const now = Date.now();
-  for (const [k, v] of sessions) {
-    if (now - v.createdAt > SESSION_TTL) sessions.delete(k);
-  }
+  let changed = false;
+  for (const [k, v] of sessions) if (sessionExpired(v, now)) { sessions.delete(k); changed = true; }
+  if (changed) saveSessionsSoon();
 }, 60 * 60 * 1000).unref();
 
 /* ═══════════════════════════════════════════════════════════
@@ -675,7 +715,6 @@ const HISTORY_FILE = process.env.HISTORY_FILE || path.join(__dirname, 'data', 'h
 const HISTORY_KEEP_DAYS = 60;
 const RESULTS_REFRESH_TTL = 5 * 60 * 1000;
 const snapshotStore = new Map();
-let saveTimer = null;
 let resultsRefreshInProgress = null;
 
 function dateDaysAgo(days) {
@@ -694,20 +733,12 @@ function loadSnapshots() {
   } catch (e) { console.error('History load error:', e.message); }
 }
 
-function saveSnapshotsSoon() {
-  if (saveTimer) return;
-  saveTimer = setTimeout(() => {
-    saveTimer = null;
-    try {
-      fs.mkdirSync(path.dirname(HISTORY_FILE), { recursive: true });
-      const cutoff = dateDaysAgo(HISTORY_KEEP_DAYS);
-      for (const [id, f] of snapshotStore) if (f.date < cutoff) snapshotStore.delete(id);
-      const tmp = HISTORY_FILE + '.tmp';
-      fs.writeFileSync(tmp, JSON.stringify([...snapshotStore.values()]));
-      fs.renameSync(tmp, HISTORY_FILE);
-    } catch (e) { console.error('History save error:', e.message); }
-  }, 2000);
-}
+const snapshotSaver = makeSaver('History', () => {
+  const cutoff = dateDaysAgo(HISTORY_KEEP_DAYS);
+  for (const [id, f] of snapshotStore) if (f.date < cutoff) snapshotStore.delete(id);
+  writeAtomic(HISTORY_FILE, JSON.stringify([...snapshotStore.values()]));
+}, 2000);
+const saveSnapshotsSoon = snapshotSaver.soon;
 
 function recordSnapshots(fixtures) {
   let changed = false;
@@ -827,13 +858,15 @@ async function keyauthLogin(username, password, sessionid, hwid) {
    ═══════════════════════════════════════════════════════════ */
 function authMiddleware(req, res, next) {
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  if (!token) return res.status(401).json({ error: 'Authentication required' });
-  const sess = sessions.get(token);
-  if (!sess || Date.now() - sess.createdAt > SESSION_TTL) {
-    sessions.delete(token);
+  if (!token || token.length > 200) return res.status(401).json({ error: 'Authentication required' });
+  const key = tokHash(token), now = Date.now();
+  const sess = sessions.get(key);
+  if (!sess || sessionExpired(sess, now)) {
+    if (sess) { sessions.delete(key); saveSessionsSoon(); }
     return res.status(401).json({ error: 'Session expired' });
   }
-  req.authToken = token;
+  if (now - (sess.lastSeen || 0) > 10 * 60 * 1000) { sess.lastSeen = now; saveSessionsSoon(); } // sliding expiry, written at most every 10 min
+  req.authToken = key; // the HASH: every sessions.get(req.authToken) below keeps working
   next();
 }
 
@@ -857,23 +890,64 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('Origin-Agent-Cluster', '?1');
   if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   next();
 });
-app.use(express.json({ limit: '10kb' }));
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+// Only the methods this site really uses.
+app.use((req, res, next) => {
+  if (['GET', 'HEAD', 'POST', 'OPTIONS'].includes(req.method)) return next();
+  res.setHeader('Allow', 'GET, HEAD, POST, OPTIONS');
+  res.status(405).json({ error: 'Method not allowed' });
+});
 
 app.set('trust proxy', 1);
-const loginAttempts = new Map();
-setInterval(() => { const n = Date.now(); for (const [k, v] of loginAttempts) if (n - v.t > 10 * 60 * 1000) loginAttempts.delete(k); }, 10 * 60 * 1000).unref();
-function loginLimiter(req, res, next) {
-  const ip = req.ip || 'unknown', now = Date.now();
-  const e = loginAttempts.get(ip) || { n: 0, t: now };
-  if (now - e.t > 10 * 60 * 1000) { e.n = 0; e.t = now; }
-  if (e.n >= 10) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
-  e.n++; loginAttempts.set(ip, e);
-  next();
+
+/* ── rate limiting (in memory; per client IP) ── */
+function makeLimiter({ windowMs, max, message, maxKeys = 50000 }) {
+  const hits = new Map();
+  setInterval(() => { const n = Date.now(); for (const [k, v] of hits) if (n - v.t > windowMs) hits.delete(k); }, Math.min(windowMs, 60 * 1000)).unref();
+  return function limiter(req, res, next) {
+    const ip = req.ip || 'unknown', now = Date.now();
+    let e = hits.get(ip);
+    if (!e || now - e.t > windowMs) {
+      if (!e && hits.size >= maxKeys) return res.status(429).json({ error: message || 'Too many requests.' }); // map full: refuse new keys instead of growing forever
+      e = { n: 0, t: now };
+    }
+    if (e.n >= max) {
+      res.setHeader('Retry-After', String(Math.ceil((e.t + windowMs - now) / 1000)));
+      return res.status(429).json({ error: message || 'Too many requests. Slow down.' });
+    }
+    e.n++; hits.set(ip, e);
+    next();
+  };
 }
+const loginLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
+const registerLimiter = makeLimiter({ windowMs: 60 * 60 * 1000, max: 8, message: 'Too many sign-ups from this network. Try again later.' });
+const apiLimiter = makeLimiter({ windowMs: 60 * 1000, max: 240, message: 'Too many requests. Slow down.' });
+const dataLimiter = makeLimiter({ windowMs: 60 * 1000, max: 60, message: 'Too many requests. Slow down.' });
+const pageLimiter = makeLimiter({ windowMs: 60 * 1000, max: 600, message: 'Too many requests. Slow down.' });
+app.use('/api/', apiLimiter);
+
+// Same-origin check for anything that changes data. Login uses a Bearer token (no cookies), so this is a second layer.
+const EXTRA_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean);
+app.use('/api/', (req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  const origin = req.headers.origin;
+  if (!origin) return next(); // non-browser client (curl, server-to-server): nothing to forge
+  let host = '';
+  try { host = new URL(origin).host; } catch (e) { return res.status(403).json({ error: 'Forbidden' }); }
+  const ok = host === req.headers.host || host === req.headers['x-forwarded-host'] || EXTRA_ORIGINS.includes(origin);
+  if (!ok) return res.status(403).json({ error: 'Forbidden' });
+  next();
+});
+
+app.use(express.json({ limit: '10kb' }));
+app.use(pageLimiter);
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], dotfiles: 'deny', index: 'index.html' }));
 
 /* ═══════════════════════════════════════════════════════════
    EMAIL ACCOUNTS  (free by default; "pro" is granted by the owner after payment)
@@ -881,7 +955,6 @@ function loginLimiter(req, res, next) {
    ═══════════════════════════════════════════════════════════ */
 const USERS_FILE = process.env.USERS_FILE || path.join(path.dirname(HISTORY_FILE), 'users.json');
 const users = new Map(); // email -> { email, salt, hash, plan, planUntil, createdAt, seq }
-let usersTimer = null;
 function loadUsers() {
   try {
     if (!fs.existsSync(USERS_FILE)) return;
@@ -890,21 +963,29 @@ function loadUsers() {
     console.log(`👤 Loaded ${users.size} accounts`);
   } catch (e) { console.error('Users load error:', e.message); }
 }
-function saveUsersSoon() {
-  if (usersTimer) return;
-  usersTimer = setTimeout(() => {
-    usersTimer = null;
-    try {
-      fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
-      const tmp = USERS_FILE + '.tmp';
-      fs.writeFileSync(tmp, JSON.stringify([...users.values()]), { mode: 0o600 });
-      fs.renameSync(tmp, USERS_FILE);
-    } catch (e) { console.error('Users save error:', e.message); }
-  }, 1000);
-}
+const userSaver = makeSaver('Users', () => writeAtomic(USERS_FILE, JSON.stringify([...users.values()])), 1000);
+const saveUsersSoon = userSaver.soon;
 loadUsers();
+loadSessions();
 const TERMS_VERSION = '2026-11-01';
-const scryptAsync = (pw, salt) => new Promise((ok, no) => crypto.scrypt(pw, salt, 64, (e, k) => (e ? no(e) : ok(k))));
+// scrypt is CPU+memory heavy: cap how many run at once and how many may wait, so a flood of
+// login/register requests gets a quick 503 instead of freezing the whole server.
+const SCRYPT_MAX = 3, SCRYPT_QUEUE = 40;
+let scryptActive = 0;
+const scryptWait = [];
+const scryptAsync = (pw, salt) => new Promise((ok, no) => {
+  const run = () => {
+    scryptActive++;
+    crypto.scrypt(pw, salt, 64, (e, k) => {
+      scryptActive--;
+      const next = scryptWait.shift(); if (next) next();
+      e ? no(e) : ok(k);
+    });
+  };
+  if (scryptActive < SCRYPT_MAX) run();
+  else if (scryptWait.length < SCRYPT_QUEUE) scryptWait.push(run);
+  else no(Object.assign(new Error('busy'), { busy: true }));
+});
 const DUMMY_SALT = crypto.randomBytes(16);
 
 /* ═══════════════════════════════════════════════════════════
@@ -963,7 +1044,7 @@ async function sendOtp(email) {
 
 function planOf(sess) {
   if (!sess) return 'free';
-  if (sess.kind === 'keyauth') return 'pro';
+  if (sess.kind === 'keyauth') return sess.lifetime === true || !sess.expiry || sess.expiry > Date.now() ? 'pro' : 'free';
   const u = users.get(sess.username);
   return u && u.plan === 'pro' && (!u.planUntil || u.planUntil > Date.now()) ? 'pro' : 'free';
 }
@@ -986,12 +1067,14 @@ function requirePro(req, res, next) {
 }
 function startSession(res, sess) {
   const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { ...sess, createdAt: Date.now() });
+  const key = tokHash(token), now = Date.now();
+  sessions.set(key, { ...sess, createdAt: now, lastSeen: now });
   const mine = [...sessions.entries()].filter(([, v]) => v.username === sess.username).sort((a, b) => b[1].createdAt - a[1].createdAt);
   for (const [k] of mine.slice(MAX_SESSIONS_PER_USER)) sessions.delete(k);
-  res.json({ token, username: sess.username, expiresIn: SESSION_TTL, profile: profileOf(sessions.get(token)) });
+  saveSessionsSoon();
+  res.json({ token, username: sess.username, expiresIn: SESSION_TTL, profile: profileOf(sessions.get(key)) });
 }
-const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
+const EMAIL_RE = /^[a-z0-9._%+-]{1,64}@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/i;
 
 async function localLogin(res, email, password, uKey) {
   const u = users.get(email);
@@ -999,7 +1082,10 @@ async function localLogin(res, email, password, uKey) {
   try {
     const dk = await scryptAsync(password, u ? Buffer.from(u.salt, 'hex') : DUMMY_SALT);
     ok = !!u && crypto.timingSafeEqual(dk, Buffer.from(u.hash, 'hex'));
-  } catch (e) { ok = false; }
+  } catch (e) {
+    if (e && e.busy) return res.status(503).json({ error: 'Server is busy. Please try again in a moment.' });
+    ok = false;
+  }
   if (!ok) {
     const f = userFails.get(uKey) || { n: 0, t: Date.now() };
     f.n++; f.t = Date.now(); userFails.set(uKey, f);
@@ -1012,7 +1098,7 @@ async function localLogin(res, email, password, uKey) {
   res.json({ otpRequired: true, email, resendIn: o.resendIn });
 }
 
-app.post('/api/auth/register', loginLimiter, async (req, res) => {
+app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) => {
   const body = req.body || {};
   const email = String(body.email || body.username || '').trim().toLowerCase();
   const password = body.password;
@@ -1038,7 +1124,10 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
     const o = await sendOtp(email);
     if (!o.ok) return res.status(o.status).json({ error: o.error });
     res.json({ otpRequired: true, email, resendIn: o.resendIn });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  } catch (e) {
+    if (e && e.busy) return res.status(503).json({ error: 'Server is busy. Please try again in a moment.' });
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 app.post('/api/auth/verify-otp', loginLimiter, (req, res) => {
@@ -1087,7 +1176,6 @@ app.post('/api/admin/plan', loginLimiter, (req, res) => {
    ═══════════════════════════════════════════════════════════ */
 const LICENSES_FILE = process.env.LICENSES_FILE || path.join(path.dirname(HISTORY_FILE), 'licenses.json');
 const licenses = new Map(); // sha256(key) -> { hash, days, createdAt, note, usedBy, usedAt }
-let licensesTimer = null;
 try {
   if (fs.existsSync(LICENSES_FILE)) {
     const arr = JSON.parse(fs.readFileSync(LICENSES_FILE, 'utf8'));
@@ -1095,18 +1183,8 @@ try {
     console.log(`🔑 Loaded ${licenses.size} licenses`);
   }
 } catch (e) { console.error('Licenses load error:', e.message); }
-function saveLicensesSoon() {
-  if (licensesTimer) return;
-  licensesTimer = setTimeout(() => {
-    licensesTimer = null;
-    try {
-      fs.mkdirSync(path.dirname(LICENSES_FILE), { recursive: true });
-      const tmp = LICENSES_FILE + '.tmp';
-      fs.writeFileSync(tmp, JSON.stringify([...licenses.values()]), { mode: 0o600 });
-      fs.renameSync(tmp, LICENSES_FILE);
-    } catch (e) { console.error('Licenses save error:', e.message); }
-  }, 500);
-}
+const licenseSaver = makeSaver('Licenses', () => writeAtomic(LICENSES_FILE, JSON.stringify([...licenses.values()])), 500);
+const saveLicensesSoon = licenseSaver.soon;
 const licHash = key => crypto.createHash('sha256').update(String(key).toUpperCase().replace(/[^A-Z0-9]/g, '')).digest('hex');
 const B32 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
 function newLicenseKey() {
@@ -1246,29 +1324,7 @@ app.get('/api/auth/verify', authMiddleware, (req, res) => {
 
 app.post('/api/auth/logout', authMiddleware, (req, res) => {
   sessions.delete(req.authToken);
-  res.json({ ok: true });
-});
-
-// Right to erasure: the user deletes their own account and everything we hold about it.
-app.delete('/api/account', loginLimiter, authMiddleware, async (req, res) => {
-  const sess = sessions.get(req.authToken);
-  if (!sess || sess.kind !== 'local') return res.status(400).json({ error: 'This login is managed through Telegram support. Message us there and we will delete it.' });
-  const email = sess.username;
-  const u = users.get(email);
-  if (!u) return res.status(404).json({ error: 'Account not found' });
-  const password = (req.body || {}).password;
-  if (typeof password !== 'string' || password.length > 200) return res.status(400).json({ error: 'Password required' });
-  const uKey = email.toLowerCase();
-  const uf = userFails.get(uKey);
-  if (uf && uf.n >= 8 && Date.now() - uf.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
-  let ok = false;
-  try { ok = crypto.timingSafeEqual(await scryptAsync(password, Buffer.from(u.salt, 'hex')), Buffer.from(u.hash, 'hex')); } catch (e) { ok = false; }
-  if (!ok) { const f = userFails.get(uKey) || { n: 0, t: Date.now() }; f.n++; f.t = Date.now(); userFails.set(uKey, f); return res.status(401).json({ error: 'Wrong password' }); }
-  users.delete(email);
-  for (const [k, v] of sessions) if (v.username === email) sessions.delete(k);
-  for (const l of licenses.values()) if (l.usedBy === email) l.usedBy = 'deleted-account'; // keep the hash so a used key cannot be reused, drop the email
-  otps.delete(email); otpSends.delete(email); userFails.delete(uKey); userFails.delete('lic:' + email);
-  saveUsersSoon(); saveLicensesSoon();
+  saveSessionsSoon();
   res.json({ ok: true });
 });
 
@@ -1325,7 +1381,7 @@ async function getFixturesWithForms() {
   return fixtures;
 }
 
-app.get('/api/fixtures', authMiddleware, requirePro, async (req, res) => {
+app.get('/api/fixtures', dataLimiter, authMiddleware, requirePro, async (req, res) => {
   try {
     const fixtures = await getFixturesWithForms();
     // Form data is only useful before kickoff (snapshots are frozen afterwards).
@@ -1353,7 +1409,7 @@ app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) 
 });
 
 // History = saved snapshots (pre-match odds/form frozen) + final scores.
-app.get('/api/history', async (req, res) => {
+app.get('/api/history', dataLimiter, async (req, res) => {
   try {
     await refreshHistoryResults().catch(e => console.error(e.message));
     const cutoff = dateDaysAgo(HISTORY_KEEP_DAYS);
@@ -1381,4 +1437,52 @@ async function backgroundTick() {
 setTimeout(backgroundTick, 10 * 1000);
 setInterval(backgroundTick, 3 * 60 * 1000).unref();
 
-app.listen(PORT, () => console.log(`✅ Server on ${PORT}`));
+// Unknown API routes -> JSON 404. Body-parser errors (bad JSON, too large) -> clean 4xx, never a stack trace.
+app.use('/api/', (req, res) => res.status(404).json({ error: 'Not found' }));
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err && (err.status || err.statusCode);
+  if (status === 413) return res.status(413).json({ error: 'Request too large' });
+  if (status >= 400 && status < 500) return res.status(status).json({ error: 'Bad request' });
+  console.error('Unhandled error:', err && err.message);
+  res.status(500).json({ error: 'Server error' });
+});
+
+const server = app.listen(PORT, () => console.log(`✅ Server on ${PORT}`));
+// Slow-loris / idle-connection protection (keepAlive is above the proxy's idle timeout so the proxy never reuses a dead socket).
+server.headersTimeout = 15 * 1000;
+server.requestTimeout = 20 * 1000;
+server.keepAliveTimeout = 65 * 1000;
+server.maxHeadersCount = 60;
+
+// Remove sign-ups that never confirmed their email within 24h (stops fake-email flooding and frees the address).
+setInterval(() => {
+  const now = Date.now(); let n = 0;
+  for (const [k, u] of users) if (u.verified === false && now - u.createdAt > 24 * 60 * 60 * 1000) { users.delete(k); otps.delete(k); otpSends.delete(k); n++; }
+  if (n) { saveUsersSoon(); console.log(`🧹 Removed ${n} unverified sign-ups`); }
+}, 60 * 60 * 1000).unref();
+
+// Write everything to disk before the container stops (every deploy sends SIGTERM), so nothing is lost.
+let shuttingDown = false;
+function shutdown(signal, code = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal}: saving data before exit`);
+  for (const sv of [userSaver, sessionSaver, licenseSaver, snapshotSaver]) sv.now();
+  server.close(() => process.exit(code));
+  setTimeout(() => process.exit(code), 4000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('unhandledRejection', e => console.error('Unhandled rejection:', e && e.message));
+process.on('uncaughtException', e => { console.error('Uncaught exception:', e && e.stack); shutdown('uncaughtException', 1); });
+
+// Tell the owner loudly if the data folder cannot be written (otherwise accounts vanish on every deploy).
+try {
+  const dir = path.dirname(USERS_FILE);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.accessSync(dir, fs.constants.W_OK);
+  console.log(`💾 Data folder OK: ${dir}`);
+} catch (e) {
+  console.error(`❌ DATA FOLDER NOT WRITABLE (${e.message}). Accounts and logins will be LOST on every deploy. On Railway set RAILWAY_RUN_UID=0 on this service.`);
+}
