@@ -444,8 +444,9 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
    LIVE GLOBE: a huge globe that slowly turns behind the whole landing page (cobe, plain JS)
    ═══════════════════════════════════════════════════════════ */
 .globe-bg { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
-.globe-stage { position:absolute; left:50%; top:54%; width:min(1250px,max(115vw,92vh)); aspect-ratio:1; transform:translate(-50%,-50%); opacity:0; transition:opacity 2s ease; }
-.globe-bg.is-ready .globe-stage { opacity:.6; }
+.globe-stage { position:absolute; left:50%; top:62%; width:max(135vw,100vh); aspect-ratio:1; transform:translate(-50%,-50%); opacity:0; transition:opacity 2s ease; }
+.globe-bg.is-ready .globe-stage { opacity:.55; }
+@media (min-width:900px){ .globe-stage { left:66%; top:88%; width:max(120vw,170vh); } }
 .globe-stage::before { content:""; position:absolute; inset:6%; border-radius:50%; filter:blur(60px); opacity:.5;
   background:radial-gradient(circle, var(--brand-dim), transparent 70%); }
 .globe-canvas { position:relative; display:block; width:100%; height:100%; contain:layout paint size; }
@@ -454,7 +455,6 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
   color:var(--good); background:var(--good-dim); border:1px solid var(--good-line); }
 .globe-online b { font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
 .globe-online .dot { width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 1.2s infinite; }
-.hero-badge + .globe-online, .landing-left > .globe-online { margin:0 0 14px 8px; vertical-align:middle; }
 
 /* Lenis smooth scroll (from its docs): let Lenis own the easing */
 html.lenis, html.lenis body { height:auto; }
@@ -465,6 +465,10 @@ html.lenis, html.lenis body { height:auto; }
 </style>
 </head>
 <body>
+<div class="globe-bg" id="globeCard" aria-hidden="true">
+      <div class="globe-stage" id="globeStage"><canvas class="globe-canvas" id="globeCanvas"></canvas></div>
+    </div>
+
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 
 <div class="wrap">
@@ -519,13 +523,9 @@ html.lenis, html.lenis body { height:auto; }
   <!-- ═══════════════ LANDING PAGE ═══════════════ -->
   <div id="landingPage">
 
-    <div class="globe-bg" id="globeCard" aria-hidden="true">
-      <div class="globe-stage" id="globeStage"><canvas class="globe-canvas" id="globeCanvas"></canvas></div>
-    </div>
 
     <div class="landing-left">
       <div class="hero-badge" data-i18n="hero_badge">🔥 Live Odds · +EV Scanner</div>
-      <div class="globe-online"><span class="dot"></span><b id="globeOnline">0</b><span data-i18n="globe_online">online</span></div>
       <h1 class="hero-title" data-i18n="hero_title">Find the Edge.<br>Bet Smarter.</h1>
       <p class="hero-subtitle" data-i18n="hero_sub">Advanced sports analytics powered by Poisson distribution and live market odds. Scan hundreds of matches to find the perfect Value Bets.</p>
 

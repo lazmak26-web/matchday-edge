@@ -64,7 +64,7 @@
   if (!card) return;
   var stage = document.getElementById('globeStage');
   var canvas = document.getElementById('globeCanvas');
-  var onlineEl = document.getElementById('globeOnline');
+  var onlineEl = document.getElementById('globeOnline') || { textContent: '' };
 
   var visible = false, booted = false, globe = null, createGlobe = null;
   var AUTO = 0.0012;                 // slow spin (about 85 s per turn at 60 fps)
@@ -208,7 +208,7 @@
   }
 
   var lp = document.getElementById('landingPage');
-  function onLanding() { return !!lp && !lp.classList.contains('hidden'); }
+  function onLanding() { return true; }
   function sync() {
     var on = onLanding();
     setVisible(on);
