@@ -73,7 +73,7 @@
 
   function palette() {
     var t = document.documentElement.getAttribute('data-theme') || 'dark';
-    if (t === 'light') return { dark: 0, diffuse: 0.5, mapBrightness: 1.3, baseColor: [1, 1, 1], glowColor: [0.93, 0.97, 0.95], markerColor: [0.06, 0.72, 0.5] };
+    if (t === 'light' || /^light/.test(getComputedStyle(document.documentElement).colorScheme || '')) return { dark: 0, diffuse: 0.5, mapBrightness: 1.3, baseColor: [1, 1, 1], glowColor: [0.93, 0.97, 0.95], markerColor: [0.06, 0.72, 0.5] };
     if (t === 'blue') return { dark: 0, diffuse: 0.5, mapBrightness: 1.3, baseColor: [0.93, 0.96, 1], glowColor: [0.75, 0.86, 1], markerColor: [0.06, 0.72, 0.5] };
     return { dark: 1, diffuse: 1.1, mapBrightness: 6, baseColor: [0.32, 0.28, 0.62], glowColor: [0.26, 0.22, 0.62], markerColor: [0.2, 0.83, 0.6] };
   }
@@ -196,7 +196,7 @@
   }
 
   function boot() {
-    loadScript(CDN.gsap)
+    (window.gsap ? Promise.resolve() : loadScript(CDN.gsap))
       .then(function () { return import(CDN.cobe); })
       .then(function (mod) { createGlobe = mod.default; start(); })
       .catch(function () { card.classList.add('is-fallback'); })

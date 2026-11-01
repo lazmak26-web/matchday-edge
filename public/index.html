@@ -440,6 +440,51 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 @keyframes blink{50%{opacity:.3}}
 .match{transition:none}
 @media (hover:hover){.match:hover{transform:none}}
+
+/* ═══════════════════════════════════════════════════════════
+   LIVE GLOBE  (Magic UI globe + border beam, React Bits shiny text: ported to plain CSS/JS)
+   ═══════════════════════════════════════════════════════════ */
+.globe-card { order:6; position:relative; overflow:hidden; margin:6px 0 0; padding:20px 18px 16px; border-radius:26px; text-align:left; color:var(--ink);
+  background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow); }
+.globe-head { position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.globe-title { margin:0; font-size:20px; font-weight:800; letter-spacing:-0.02em; line-height:1.2; }
+.shiny { background:linear-gradient(110deg, var(--ink) 38%, var(--brand-2) 50%, var(--ink) 62%); background-size:250% 100%;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; animation:shine 3.4s linear infinite; }
+@keyframes shine { from { background-position:150% 0; } to { background-position:-50% 0; } }
+.globe-online { display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap;
+  color:var(--good); background:var(--good-dim); border:1px solid var(--good-line); }
+.globe-online b { font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.globe-online .dot { width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 1.2s infinite; }
+.globe-stage { position:relative; width:100%; max-width:460px; aspect-ratio:1; margin:-6px auto 0; touch-action:pan-y; }
+.globe-stage::before { content:""; position:absolute; inset:8%; border-radius:50%; filter:blur(36px); opacity:.55; pointer-events:none;
+  background:radial-gradient(circle, var(--brand-dim), transparent 70%); }
+.globe-canvas { display:block; width:100%; height:100%; cursor:grab; opacity:0; transition:opacity .9s ease; contain:layout paint size; }
+.globe-card.is-ready .globe-canvas { opacity:1; }
+.globe-canvas.is-dragging { cursor:grabbing; }
+.globe-note { position:relative; z-index:2; margin:6px 0 0; text-align:center; font-size:11.5px; font-weight:600; line-height:1.5; color:var(--ink-3); }
+.globe-card.is-fallback .globe-stage { display:none; }
+.globe-card.is-fallback .globe-note { margin-top:14px; }
+
+/* border beam: a short light that runs the card's edge */
+.globe-card .beam { position:absolute; inset:0; z-index:3; border-radius:inherit; border:1.5px solid transparent; pointer-events:none;
+  -webkit-mask:linear-gradient(transparent,transparent),linear-gradient(#000,#000); -webkit-mask-clip:padding-box,border-box; -webkit-mask-composite:source-in;
+  mask:linear-gradient(transparent,transparent),linear-gradient(#000,#000); mask-clip:padding-box,border-box; mask-composite:intersect; }
+.globe-card .beam i { display:none; position:absolute; width:90px; aspect-ratio:1; background:linear-gradient(to left, var(--brand-2), var(--good), transparent); }
+@supports (offset-path: rect(0 auto auto 0)) {
+  .globe-card .beam i { display:block; offset-anchor:90% 50%; offset-path:rect(0 auto auto 0 round 26px); animation:beam 7s linear infinite; }
+}
+@keyframes beam { to { offset-distance:100%; } }
+@media (prefers-reduced-motion:reduce) { .shiny, .globe-card .beam i { animation:none; } }
+
+/* Lenis smooth scroll (from its docs): let Lenis own the easing */
+html.lenis, html.lenis body { height:auto; }
+.lenis.lenis-smooth { scroll-behavior:auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior:contain; }
+.lenis.lenis-stopped { overflow:hidden; }
+
+/* globe card inside main's landing grid: full width on phones, side by side with the chart on desktop */
+.globe-card{grid-column:1/-1; background:var(--glass,var(--card)); border-color:var(--glass-line,var(--line));}
+@media (min-width:960px){ .globe-card{grid-column:1/span 5;} #landingPage>.landing-right .chart-card{grid-column:6/-1;} }
 </style>
 </head>
 <body>
@@ -528,6 +573,21 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
     </div>
 
     <div class="landing-right">
+      <div class="globe-card" id="globeCard">
+        <div class="beam" aria-hidden="true"><i></i></div>
+        <div class="globe-head">
+          <div>
+            <div class="section-label">🌍 <span data-i18n="globe_kicker">Live now</span></div>
+            <h3 class="globe-title shiny" data-i18n="globe_title">Around the world</h3>
+          </div>
+          <div class="globe-online"><span class="dot"></span><b id="globeOnline">0</b><span data-i18n="globe_online">online</span></div>
+        </div>
+        <div class="globe-stage" id="globeStage">
+          <canvas class="globe-canvas" id="globeCanvas" aria-label="Globe showing where people using LuciBet are"></canvas>
+        </div>
+        <p class="globe-note" id="globeNote" data-i18n="globe_note">Approximate city-level locations of people on the site right now.</p>
+      </div>
+
       <div class="chart-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <h3 style="font-size:16px; font-weight:800; color:var(--ink); display:flex; align-items:center; gap:6px;">🏆 <span data-i18n="site_perf">Site Performance</span></h3>
@@ -959,8 +1019,11 @@ const translations = {
 };
 
 Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "📧 Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "🔑 Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "✨ Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again." });
+Object.assign(translations.en, { globe_kicker: "Live now", globe_title: "Around the world", globe_online: "online", globe_note: "Approximate city-level locations of people on the site right now." });
 Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "📧 Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "🔑 Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "✨ Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
+Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partout dans le monde", globe_online: "en ligne", globe_note: "Localisation approximative (niveau ville) des personnes présentes sur le site en ce moment." });
 Object.assign(translations.ar, { left_lbl: "المدة المتبقية", lifetime: "مدى الحياة", lic_checking: "جارٍ التحقق من الترخيص…", otp_title: "📧 تحقق من بريدك", otp_sub: "أرسلنا رمزًا من 6 أرقام إلى {email}.", otp_btn: "تحقق", otp_back: "رجوع", otp_bad: "أدخل الرمز المكون من 6 أرقام.", otp_resend: "إعادة إرسال الرمز", otp_resend_in: "إعادة الإرسال بعد {s}ث", menu_title: "القائمة", lic_menu: "تفعيل بريميوم", lic_title: "🔑 تفعيل بريميوم", lic_sub: "أدخل مفتاح الترخيص لتفعيل Pro على حسابك.", lic_btn: "تفعيل", lic_have: "لدي مفتاح ترخيص", lic_ok: "تم تفعيل بريميوم ✓", lic_fail: "فشل التفعيل.", lic_login: "انتهت الجلسة. سجل الدخول مجددًا.", reg_title: "✨ إنشاء حساب", reg_sub: "اختر اسمًا ثم أدخل بريدك الإلكتروني وكلمة مرور.", reg_submit: "إنشاء الحساب", have_acc: "لدي حساب بالفعل", ph_name: "اسمك", name_bad: "أدخل اسمك (من 2 إلى 30 حرفًا).", lic_doing: "جارٍ التفعيل…", lic_timeout: "استغرق الخادم وقتًا طويلًا. حاول مجددًا." });
+Object.assign(translations.ar, { globe_kicker: "مباشر الآن", globe_title: "حول العالم", globe_online: "متصل", globe_note: "مواقع تقريبية على مستوى المدينة للأشخاص المتواجدين على الموقع الآن." });
 
 let boardHidden = false;
 
@@ -2105,5 +2168,6 @@ setInterval(async () => {
     .from('.feature-card',{opacity:0,y:24,duration:.5,stagger:.08},'-=.3');
 })();
 </script>
+<script src="live-globe.js" defer></script>
 </body>
 </html>
