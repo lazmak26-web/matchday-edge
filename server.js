@@ -1234,7 +1234,7 @@ app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) 
     const fixtures = await getFixtures();
     const out = fixtures.map(f => {
       const pred = enginePre.predict(f, { marketWeight: 0.5 });
-      return { id: f.id, xgSource: f.xgSource || null, prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source }, validation: engineValidate.validate(pred, f), decision: engineDecide.decide(f, pred) };
+      return { id: f.id, safety: (engineDecide.decide(f, pred).safety || []), xgSource: f.xgSource || null, prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source }, validation: engineValidate.validate(pred, f), decision: engineDecide.decide(f, pred) };
     });
     res.json({ predictions: out });
   } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }

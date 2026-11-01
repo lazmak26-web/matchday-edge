@@ -1821,7 +1821,7 @@ function renderSignals() {
         <div class="vb-head"><span class="vb-tag">${t.value_bet}</span><span class="vb-ev">${esc(json.best_bet_value.expected_value)} EV</span></div>
         <div class="vb-body"><span class="vb-sel">${esc(json.best_bet_value.selection)}</span><span class="vb-price">${json.best_bet_value.bookmaker_odds.toFixed(2)}</span></div>
         <div class="vb-meta"><span>${t.kelly}: ${esc(json.best_bet_value.quarter_kelly)}</span><span class="pill ${riskClass(json.best_bet_value.risk_level)}">${esc(json.best_bet_value.risk_level)}</span></div>
-      </div>` : ''}
+      </div>` : (v.noBet && !v.started ? `<div class="vb" style="opacity:.8"><div class="vb-head"><span class="vb-tag">NO BET</span></div><div class="vb-meta"><span>${esc(v.noBet[0])}</span></div></div>` : '')}
     </article>`;
   }).join('') : `<div class="empty-state">${t.no_upcoming}</div>`;
 }
@@ -2000,8 +2000,30 @@ function updateChart(days, target) {
   if (isApp) chartInstanceApp = inst; else chartInstanceLanding = inst;
 }
 
+// Safety gate from the server engine: hides a value bet only for DATA-SAFETY reasons (single bookmaker, model/market clash,
+// invalid odds, high upset risk...). It never overrides the user's EV / market-weight sliders.
+st.gate = st.gate || new Map();
+function applyGate(results) {
+  results.forEach(r => {
+    const g = st.gate.get(String(r.fx.id));
+    if (r.v.bet && g && g.length) { r.v.bet = null; r.v.noBet = g; r.json.best_bet_value = null; }
+  });
+  return results;
+}
+async function loadGate() {
+  if (!authState.loggedIn || !isPro()) return;
+  try {
+    const r = await fetch('/api/engine/predictions', { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + authState.token } });
+    if (!r.ok) return;
+    const d = await r.json(), m = new Map();
+    (d.predictions || []).forEach(p => { if (p && p.id != null && Array.isArray(p.safety)) m.set(String(p.id), p.safety); });
+    st.gate = m;
+    st.results = applyGate(st.results || []);
+    renderSignals();
+  } catch (e) { /* gate unavailable: the board keeps working without it */ }
+}
 function renderAll() {
-  st.results = st.fixtures.map(f => Engine.analyze(f, { marketWeight: st.mw, minEV: st.mev }));
+  st.results = applyGate(st.fixtures.map(f => Engine.analyze(f, { marketWeight: st.mw, minEV: st.mev })));
   renderSignals();
   renderHistory();
   
@@ -2070,6 +2092,7 @@ async function pollFeedInner() {
     if (newHash !== lastHash) {
       st.fixtures = data.fixtures;
       renderAll();
+      loadGate();
       
       if (document.getElementById('view-performance').classList.contains('active')) updateChart(parseInt($('chartRange').value) || 7, 'app');
       
