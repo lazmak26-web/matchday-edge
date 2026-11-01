@@ -1621,7 +1621,7 @@ const Engine = (() => {
   const kelly = (p, odds) => { const b = odds - 1; return b <= 0 ? 0 : Math.max(0, (p * b - (1 - p)) / b); };
 
   function analyze(fx, opts){
-    const w = clamp(opts.marketWeight, 0, 1), minEV = opts.minEV || 0;
+    const w = isNum(opts.marketWeight) ? clamp(opts.marketWeight, 0, 1) : 0.5, minEV = isNum(opts.minEV) ? Math.max(0, opts.minEV) : 0;
     const H = fx.home, A = fx.away;
     const fH = formStats(H), fA = formStats(A);
     const mk = marketView(fx.odds), lam = expectedGoals(fx, fH, fA), sim = getSim(fx, lam);
@@ -1707,8 +1707,9 @@ if (localStorage.getItem('mde:settings_version') !== SETTINGS_VERSION) {
 
 try {
   const saved = JSON.parse(localStorage.getItem('mde:settings') || '{}');
-  if (saved.mw != null) st.mw = saved.mw;
-  if (saved.mev != null) st.mev = saved.mev;
+  // only accept finite numbers inside the slider ranges (mw 0-100%, mev 0-10%); anything else keeps the defaults
+  if (Number.isFinite(saved.mw)) st.mw = Math.min(1, Math.max(0, saved.mw));
+  if (Number.isFinite(saved.mev)) st.mev = Math.min(0.1, Math.max(0, saved.mev));
 } catch (e) {}
 const persist = () => localStorage.setItem('mde:settings', JSON.stringify({ mw: st.mw, mev: st.mev }));
 
