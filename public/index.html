@@ -1769,33 +1769,100 @@ function __doSwitch(tab) {
 
 // Result row from the pick the server froze BEFORE kickoff. Legacy rows (saved before this change) fall back to the
 // browser model but never on guessed data (league-avg / h2h xG), so non-real matches are not counted.
-function frozenResult(fx) {
-  const pk = fx.pick;
-  if (pk && (pk.key === 'home' || pk.key === 'draw' || pk.key === 'away')) {
-    const sel = pk.key === 'home' ? fx.home.name + ' Win' : pk.key === 'away' ? fx.away.name + ' Win' : 'Draw';
-    const mainOU = pk.ou ? { selection: pk.ou === 'over' ? 'Over 2.5 Goals' : 'Under 2.5 Goals' } : null;
-    return { fx, v: { main1x2: { sel, key: pk.key, p: pk.p }, mainOU } };
-  }
+// ---- Frozen history -------------------------------------------------------------------------------------------
+// TODAY's picks/results always follow the sliders (st.mw / st.mev). Once a day is over, its result is written to
+// localStorage 'mde:frozen_history' ({ 'YYYY-MM-DD': { wins, losses, picks } }) and never recalculated again.
+const FROZEN_KEY = 'mde:frozen_history';
+function readFrozen() {
+  try { const o = JSON.parse(localStorage.getItem(FROZEN_KEY) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; }
+  catch (e) { return {}; }
+}
+function writeFrozen(o) { try { localStorage.setItem(FROZEN_KEY, JSON.stringify(o)); } catch (e) {} }
+
+function resultFromPick(fx, pk) {
+  const sel = pk.key === 'home' ? fx.home.name + ' Win' : pk.key === 'away' ? fx.away.name + ' Win' : 'Draw';
+  const mainOU = pk.ou ? { selection: pk.ou === 'over' ? 'Over 2.5 Goals' : 'Under 2.5 Goals' } : null;
+  return { fx, v: { main1x2: { sel, key: pk.key, p: pk.p }, mainOU } };
+}
+const validPickKey = pk => !!pk && (pk.key === 'home' || pk.key === 'draw' || pk.key === 'away');
+function pickOf(r) {
+  const o = /^over/i.test((r.v.mainOU && r.v.mainOU.selection) || '') ? 'over' : (r.v.mainOU && r.v.mainOU.selection ? 'under' : null);
+  return { key: r.v.main1x2.key, p: r.v.main1x2.p, ou: o };
+}
+
+// Result row for one finished match. `dynamic` = the match is from today: always re-run the engine with the CURRENT
+// sliders (the server's pre-kickoff pick is ignored so the slider can move today's results). Past matches that are
+// not frozen yet use the server's pre-kickoff pick if there is one, otherwise the engine with the current sliders,
+// and are then frozen by getFinishedMatches(). Never on guessed data (league-avg / h2h xG).
+function frozenResult(fx, dynamic) {
+  if (!dynamic && validPickKey(fx.pick)) return resultFromPick(fx, fx.pick);
   let f = fx;
   if (fx.xgSource === 'league-avg' || fx.xgSource === 'h2h') {
     f = Object.assign({}, fx, { home: Object.assign({}, fx.home, { xgFor: null }), away: Object.assign({}, fx.away, { xgFor: null }) });
   }
-  const r = Engine.analyze(f, { marketWeight: 0.7, minEV: 0 });
+  const r = Engine.analyze(f, { marketWeight: st.mw, minEV: st.mev });
   return r.v.main1x2 ? { fx, v: r.v } : null;
+}
+
+function pickWon(r) {
+  const hs = r.fx.homeScore ?? 0, as = r.fx.awayScore ?? 0, k = r.v.main1x2.key;
+  return (k === 'home' && hs > as) || (k === 'away' && as > hs) || (k === 'draw' && hs === as);
+}
+
+// A past day is only frozen once none of its matches is still unfinished (e.g. a late kickoff that ends after midnight).
+function dayHasOpenMatch(dateStr) {
+  return (st.fixtures || []).some(f => f && f.status !== 'finished' && f.date && fxLocalDate(f) === dateStr);
 }
 
 function getFinishedMatches() {
   const live = new Map();
   (st.fixtures || []).forEach(f => { if (f && f.id) live.set(String(f.id), f); });
+  const today = localDateStr(new Date());
+  const frozen = readFrozen();
+  const fresh = {};               // past days not frozen yet -> results computed in this pass
   const out = [];
   (historyFixtures || []).forEach(h => {
     if (!h || !h.id || h.status !== 'finished') return;
     const l = live.get(String(h.id));
     const fx = l && l.status === 'finished' ? Object.assign({}, h, { homeScore: l.homeScore, awayScore: l.awayScore }) : h;
-    const r = frozenResult(fx);
+    const d = fx.date ? fxLocalDate(fx) : today;
+    let r;
+    if (d >= today) {                                   // today: dynamic, never frozen
+      r = frozenResult(fx, true);
+    } else if (frozen[d]) {                             // already frozen: use the stored pick, never recompute
+      const pk = frozen[d].picks && frozen[d].picks[String(fx.id)];
+      r = validPickKey(pk) ? resultFromPick(fx, pk) : frozenResult(fx, false);
+    } else {                                            // past day, first time seen: compute now, freeze below
+      r = frozenResult(fx, false);
+      if (r) (fresh[d] = fresh[d] || []).push(r);
+    }
     if (r) out.push(r);
   });
+  let dirty = false;
+  Object.keys(fresh).forEach(d => {
+    if (dayHasOpenMatch(d)) return;
+    const e = { wins: 0, losses: 0, picks: {} };
+    fresh[d].forEach(r => { if (pickWon(r)) e.wins++; else e.losses++; e.picks[String(r.fx.id)] = pickOf(r); });
+    frozen[d] = e; dirty = true;
+  });
+  if (dirty) writeFrozen(frozen);
   return out;
+}
+
+// { 'YYYY-MM-DD': { wins, losses } } — frozen numbers for past days, live numbers for today.
+function getDailyTotals(fin) {
+  fin = fin || getFinishedMatches();
+  const today = localDateStr(new Date()), frozen = readFrozen(), map = {};
+  Object.keys(frozen).forEach(d => { map[d] = { wins: frozen[d].wins | 0, losses: frozen[d].losses | 0 }; });
+  const seen = {};
+  fin.forEach(r => {
+    if (!r.fx.date) return;
+    const d = fxLocalDate(r.fx);
+    if (d < today && frozen[d]) return;                 // frozen day: stored numbers win
+    const m = seen[d] || (seen[d] = map[d] = { wins: 0, losses: 0 });
+    if (pickWon(r)) m.wins++; else m.losses++;
+  });
+  return map;
 }
 
 const isTodayFx = fx => fxLocalDate(fx) === localDateStr(new Date());
@@ -1959,7 +2026,9 @@ function renderHistory() {
     return;
   }
 
-  let wins = 0, losses = 0;
+  // Today's numbers follow the sliders; past days come from mde:frozen_history (see getDailyTotals).
+  const todayTot = getDailyTotals(finished)[localDateStr(new Date())] || { wins: 0, losses: 0 };
+  const wins = todayTot.wins, losses = todayTot.losses;
 
   $('history-list').innerHTML = finished.map(r => {
     const fx = r.fx, v = r.v;
@@ -1970,8 +2039,6 @@ function renderHistory() {
     if (pickKey === 'home' && hs > as) botWon = true;
     if (pickKey === 'away' && as > hs) botWon = true;
     if (pickKey === 'draw' && hs === as) botWon = true;
-
-    if (isTodayFx(fx)) { if (botWon) wins++; else losses++; }
 
     let ouRow = '';
     const ou = v.mainOU;
@@ -2037,33 +2104,18 @@ function updateChart(days, target) {
   const isApp = true;
   const ids = isApp ? { w: 'chartTotalWins', l: 'chartTotalLosses', c: 'perfChart' } : { w: 'landingTotalWins', l: 'landingTotalLosses', c: 'landingChart' };
 
-  const finished = getFinishedMatches();
+  // Past days = frozen numbers (mde:frozen_history); today = live numbers from the current sliders.
+  const totals = getDailyTotals();
   const now = new Date();
   const dateMap = {};
+  let totalW = 0, totalL = 0;
 
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    dateMap[localDateStr(d)] = { wins: 0, losses: 0 };
+    const key = localDateStr(d), tt = totals[key] || { wins: 0, losses: 0 };
+    dateMap[key] = { wins: tt.wins, losses: tt.losses };
+    totalW += tt.wins; totalL += tt.losses;
   }
-
-  let totalW = 0, totalL = 0;
-
-  finished.forEach(r => {
-    if (!r.fx.date) return;
-    const dateStr = fxLocalDate(r.fx);
-    if (!dateMap[dateStr]) return;
-
-    const hs = r.fx.homeScore ?? 0, as = r.fx.awayScore ?? 0;
-    const key = r.v.main1x2.key;
-
-    let won = false;
-    if (key === 'home' && hs > as) won = true;
-    if (key === 'away' && as > hs) won = true;
-    if (key === 'draw' && hs === as) won = true;
-
-    if (won) { dateMap[dateStr].wins++; totalW++; }
-    else { dateMap[dateStr].losses++; totalL++; }
-  });
 
   $(ids.w).textContent = totalW;
   $(ids.l).textContent = totalL;
@@ -2082,7 +2134,7 @@ function updateChart(days, target) {
   if (typeof Chart === 'undefined') { loadChartLib().then(() => updateChart(days, target)).catch(() => {}); return; }
   const ctx = canvas.getContext('2d');
 
-  const __sig = days + '|' + (document.documentElement.getAttribute('data-theme') || '') + '|' + (localStorage.getItem('mde:lang') || '') + '|' + JSON.stringify([labels, winsArray, lossesArray]);
+  const __sig = days + '|' + (document.documentElement.getAttribute('data-theme') || '') + '|' + (localStorage.getItem('mde:lang') || '') + '|' + st.mw + '|' + st.mev + '|' + JSON.stringify([labels, winsArray, lossesArray]);
   if (isApp && chartInstanceApp && window.__chartSig === __sig) { chartInstanceApp.resize(); return; }
   if (isApp) window.__chartSig = __sig;
   if (isApp) { if (chartInstanceApp) chartInstanceApp.destroy(); chartInstanceApp = null; } else { if (chartInstanceLanding) chartInstanceLanding.destroy(); chartInstanceLanding = null; }
@@ -2353,19 +2405,13 @@ function renderFreeSignals() {
   else { $('cards').innerHTML = ''; loadPublicFixtures('app'); }
 }
 
-function pickWon(r) {
-  const hs = r.fx.homeScore ?? 0, as = r.fx.awayScore ?? 0, k = r.v.main1x2.key;
-  return (k === 'home' && hs > as) || (k === 'away' && as > hs) || (k === 'draw' && hs === as);
-}
-
 function renderWeekly() {
-  const t = tNow(), fin = getFinishedMatches(), now = new Date(), days = [];
+  const t = tNow(), totals = getDailyTotals(), now = new Date(), days = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    days.push({ key: localDateStr(d), label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), w: 0, l: 0 });
+    const key = localDateStr(d), tt = totals[key] || { wins: 0, losses: 0 };
+    days.push({ key, label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), w: tt.wins, l: tt.losses });
   }
-  const map = Object.fromEntries(days.map(d => [d.key, d]));
-  fin.forEach(r => { const d = map[fxLocalDate(r.fx)]; if (d) { if (pickWon(r)) d.w++; else d.l++; } });
   const W = days.reduce((a, d) => a + d.w, 0), L = days.reduce((a, d) => a + d.l, 0), tot = W + L, rate = tot ? Math.round(W / tot * 100) : 0;
   $('weeklyTop').innerHTML = `<div class="perf-card hero"><div class="perf-val" style="color:#10B981">${rate}%</div><div class="perf-lbl">${t.win_rate}</div><div class="perf-track"><div class="perf-fill" style="width:${rate}%"></div></div></div>
     <div class="perf-card"><div class="perf-val" style="color:var(--good)">${W}</div><div class="perf-lbl">${t.wins}</div></div>
@@ -2668,11 +2714,14 @@ setInterval(() => {
   const k = localDateStr(new Date());
   if (k === _dayKey) return;
   _dayKey = k;
+  // Day rollover: the day that just ended is now "past" — getFinishedMatches() writes it into mde:frozen_history
+  // with the slider values as they are right now (before any re-render), so it never changes again.
+  try { getFinishedMatches(); } catch (e) {}
   if (!authState.loggedIn) return;
   renderHistory(); refreshCharts();
   const act = document.querySelector('.tab-view.active');
   if (act && act.id === 'view-weekly') renderWeekly();
-}, 30000);
+}, 5000);
 
 setInterval(pollFeed, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pollFeed(); });
