@@ -288,3 +288,43 @@ test('a null bookmaker entry does not crash validation or the decision', () => {
   assert.doesNotThrow(() => validate(pred, fx));
   assert.doesNotThrow(() => decide(fx, pred));
 });
+
+test('sliders: the browser re-run (public/reblend.js) gives exactly the server result for every slider position', () => {
+  const serve = require('../engine/serve'), Reblend = require('../public/reblend');
+  const mk = (over = {}) => Object.assign({ id: 1, status: 'notstarted', xgSource: 'season', league: 'L',
+    home: { name: 'Alpha', xgFor: 1.5, xgAgainst: 1.1, formN: 20 }, away: { name: 'Beta', xgFor: 1.3, xgAgainst: 1.2, formN: 20 },
+    odds: [{ book: 'A', home: 2.5, draw: 3.3, away: 3.0, over25: 1.9, under25: 1.95 }, { book: 'B', home: 2.7, draw: 3.25, away: 3.05, over25: 1.92, under25: 1.93 }] }, over);
+  const eloBook = { rating: n => (n === 'Alpha' ? 1600 : 1500), games: () => 20 };
+  let compared = 0;
+  for (const [label, f, eb, ew] of [['no elo', mk(), null, 0], ['with elo', mk(), eloBook, 0.15], ['value-ish prices', mk({ odds: [{ book: 'A', home: 3.2, draw: 3.4, away: 2.6 }, { book: 'B', home: 3.1, draw: 3.5, away: 2.7 }] }), eloBook, 0.15]]) {
+    const base = serve.item(f, { marketWeight: 0.7, eloWeight: ew, eloBook: eb, decide: { minEV: 0.045, minBooks: 2 }, maxGap: 0.4 });
+    assert.ok(base.components, label + ': model + market present');
+    for (const w of [0, 0.25, 0.5, 0.7, 1]) for (const ev of [0, 0.02, 0.045, 0.1]) {
+      const want = serve.item(f, { marketWeight: w, eloWeight: ew, eloBook: eb, decide: { minEV: ev, minBooks: 2 }, maxGap: 0.4 });
+      const got = Reblend.evaluate(base, w, ev);
+      for (const k of ['h', 'd', 'a']) assert.ok(Math.abs(got.p[k] - want.prediction.p[k]) < 1e-9, `${label} w=${w} p.${k}`);
+      assert.ok(Math.abs(got.over - want.prediction.over) < 1e-9, `${label} w=${w} over`);
+      assert.strictEqual(got.bestEv == null, want.bestEv == null);
+      if (want.bestEv != null) assert.ok(Math.abs(got.bestEv - want.bestEv) < 1e-9, `${label} w=${w} ev=${ev} bestEv`);
+      assert.strictEqual(got.tier, want.tier, `${label} w=${w} ev=${ev} tier`);
+      compared++;
+    }
+  }
+  assert.strictEqual(compared, 60);
+});
+
+test('sliders: the EV slider really flips a price between WATCH and BET; market-only matches are not changeable', () => {
+  const serve = require('../engine/serve'), Reblend = require('../public/reblend');
+  const f = { id: 2, status: 'notstarted', xgSource: 'season', league: 'L',
+    home: { name: 'Alpha', xgFor: 1.9, xgAgainst: 0.9, formN: 20 }, away: { name: 'Beta', xgFor: 1.0, xgAgainst: 1.5, formN: 20 },
+    odds: [{ book: 'A', home: 2.2, draw: 3.6, away: 3.6 }, { book: 'B', home: 2.25, draw: 3.5, away: 3.7 }] };
+  const base = serve.item(f, { marketWeight: 0.5, decide: { minEV: 0.045, minBooks: 2, maxGap: 0.4 }, maxGap: 0.4 });
+  const low = Reblend.evaluate(base, 0.5, 0), high = Reblend.evaluate(base, 0.5, 0.5);
+  assert.ok(low.bestEv > 0, 'there is a positive-EV price');
+  assert.strictEqual(low.tier, 'BET');
+  assert.strictEqual(high.tier, 'WATCH', 'a 50% threshold hides it, without being a safety block');
+  assert.ok(Math.abs(Reblend.evaluate(base, 0, 0).p.h - Reblend.evaluate(base, 1, 0).p.h) > 0.01, 'market weight changes the probability');
+  const marketOnly = serve.item({ id: 3, status: 'notstarted', xgSource: 'league-avg', home: { name: 'A' }, away: { name: 'B' }, odds: f.odds }, { marketWeight: 0.5, decide: { minBooks: 2 } });
+  assert.strictEqual(marketOnly.components, null);
+  assert.strictEqual(Reblend.evaluate(marketOnly, 0.5, 0), null);
+});

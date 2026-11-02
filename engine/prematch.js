@@ -84,7 +84,9 @@ function predict(fx, opts = {}) {
   const we = isNum(opts.eloWeight) ? clamp(opts.eloWeight, 0, 0.5) : 0;
   if (we > 0 && eloP) { p = { h: (1 - we) * p.h + we * eloP.h, d: (1 - we) * p.d + we * eloP.d, a: (1 - we) * p.a + we * eloP.a }; source += '+elo'; }
   const s = p.h + p.d + p.a; p = { h: p.h / s, d: p.d / s, a: p.a / s };
+  const overModel = over;
   if (over != null && mk && mk.over != null) over = w * mk.over + (1 - w) * over; else if (over == null && mk) over = mk.over;
-  return { p, over, lam, top, topSource, source, sources: { model, market: mk && { h: mk.h, d: mk.d, a: mk.a }, elo: eloP }, marketBooks: mk ? mk.n : 0, rho };
+  return { p, over, lam, top, topSource, source, sources: { model, market: mk && { h: mk.h, d: mk.d, a: mk.a }, elo: eloP }, marketBooks: mk ? mk.n : 0, rho,
+    blend: { w, eloWeight: we > 0 && eloP ? we : 0, overModel, overMarket: mk ? mk.over : null } };
 }
 module.exports = { predict, lambdas, market, SHRINK_K };
