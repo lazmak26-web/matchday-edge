@@ -10,7 +10,7 @@ function predictLive(fx, live, opts = {}) {
   // live = { minute, homeScore, awayScore, homeReds, awayReds }, all from the real feed
   const ok = live && Number.isInteger(live.homeScore) && Number.isInteger(live.awayScore) && Number.isFinite(live.minute);
   if (!ok) return null;
-  const lam = lambdas(fx); if (!lam) return null;
+  const lam = lambdas(fx, opts); if (!lam) return null;
   const minute = Math.max(0, Math.min(120, live.minute)), left = (live.finished ? 0 : Math.max(MIN_LEFT_MIN, 90 - minute)) / 90;
   const hr = Math.min(MAX_REDS, Math.max(0, live.homeReds | 0)), ar = Math.min(MAX_REDS, Math.max(0, live.awayReds | 0));
   const fh = Math.pow(RED_OWN, hr) * Math.pow(RED_OPP, ar), fa = Math.pow(RED_OWN, ar) * Math.pow(RED_OPP, hr);

@@ -14,7 +14,7 @@ function validate(pred, fx, opts = {}) {
     const gap = Math.max(Math.abs(pred.sources.model.h - pred.sources.market.h), Math.abs(pred.sources.model.d - pred.sources.market.d), Math.abs(pred.sources.model.a - pred.sources.market.a));
     if (gap > maxGap) issues.push('model and market disagree by more than ' + Math.round(maxGap * 100) + ' points (' + (gap * 100).toFixed(0) + ')');
   }
-  if (fx && Array.isArray(fx.odds)) for (const b of fx.odds) for (const k of ['home', 'draw', 'away']) if (b[k] != null && !(b[k] > 1)) { issues.push('invalid bookmaker odds (<=1) from ' + (b.book || 'unknown')); break; }
+  if (fx && Array.isArray(fx.odds)) for (const b of fx.odds) if (b) for (const k of ['home', 'draw', 'away']) if (b[k] != null && !(b[k] > 1)) { issues.push('invalid bookmaker odds (<=1) from ' + (b.book || 'unknown')); break; }
   if (pred.live && fx && Number.isInteger(fx.homeScore) && pred.live.minute > 90 + 15) issues.push('live minute out of range');
   return { ok: issues.length === 0, issues };
 }
