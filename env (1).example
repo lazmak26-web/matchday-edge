@@ -1,0 +1,34 @@
+# Copy to .env (never commit the real one) or set these in your hosting dashboard
+KEYAUTH_NAME=
+KEYAUTH_OWNERID=
+KEYAUTH_SECRET=
+KEYAUTH_VERSION=1.0
+FOOTBALL_API_KEY=
+BZZOIRO_API_KEY=
+
+# Owner tools: generate license keys (POST /api/admin/license) and grant plans (POST /api/admin/plan) with header x-admin-token
+ADMIN_TOKEN=
+# Put these on a persistent disk so accounts and licenses survive restarts
+USERS_FILE=
+LICENSES_FILE=
+
+# Landing globe: set to 1 only if the site is behind Cloudflare with "Add visitor location headers" enabled (otherwise geoip-lite is used)
+TRUST_CF_GEO=
+
+# Email OTP (https://resend.com): without RESEND_API_KEY the login code check is OFF
+RESEND_API_KEY=
+MAIL_FROM=LuciBet <login@your-verified-domain.com>
+# Set to 1 in production once RESEND_API_KEY works: email sign-up/login is then refused (503) instead of skipping the code check when the key is missing
+REQUIRE_OTP=
+
+# Extra bookmakers for a reliable market consensus + best-price edges (https://www.api-football.com). Optional: without it only Bzzoiro's single bookmaker is used
+APIFOOTBALL_KEY=
+# Free plan = 100 requests/day: stay below it (default 90). Each refresh costs 1 (fixtures, cached 6h) + 1 per odds page (max APIFOOTBALL_MAX_PAGES, default 8), refreshed every 2h
+APIFOOTBALL_DAILY_BUDGET=
+APIFOOTBALL_MAX_PAGES=
+# Engine tuning (defaults shown): market weight in the final probability, Elo weight (needs >= 8 real games per team), recent games used for goal rates
+ENGINE_MARKET_WEIGHT=0.7
+ENGINE_ELO_WEIGHT=0.15
+BZZ_FORM_GAMES=8
+# Part of the API-Football daily budget reserved for season goals-per-game of each team (cached 24h per team). Default 35
+APIFOOTBALL_STATS_BUDGET=
