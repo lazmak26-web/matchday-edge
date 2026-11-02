@@ -29,6 +29,6 @@ function decide(fx, pred, opts = {}) {
   const upset = upsetRisk(fx, pred);
   const safety = reasons.slice(0, nSafety);
   if (upset && upset.risk === 'High') { const m = 'high upset risk: ' + upset.signals.join('; '); reasons.push(m); safety.push(m); }
-  return reasons.length ? { action: 'NO BET', reasons, safety, upset } : { action: 'BET', pick: top, reasons: [], safety: [], upset };
+  return reasons.length ? { action: 'NO BET', reasons, safety, upset, best: top || null } : { action: 'BET', pick: top, reasons: [], safety: [], upset, best: top };
 }
 module.exports = { decide, DEFAULTS };
