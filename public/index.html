@@ -972,6 +972,7 @@ html.lenis, html.lenis body { height:auto; }
   <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
 </a>
 
+<script src="reblend.js"></script>
 <script>
 (function () {
   var d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
@@ -1870,16 +1871,17 @@ function checkMatchStarts(fixtures) {
 function renderSignals() {
   renderProfile();
   if (!isPro()) { renderFreeSignals(); return; }
-  const upcoming = st.results.filter(r => !r.v.started);
+  const shown = st.results.filter(r => r.fx.status !== 'finished' && r.fx.status !== 'canceled'); // exactly the match cards below
+  const upcoming = shown.filter(r => !r.v.started);
   const bets = upcoming.filter(r => r.v.bet);
-  const withOdds = st.results.filter(r => r.fx.odds && r.fx.odds.length > 0).length;
+  const withOdds = shown.filter(r => r.fx.odds && r.fx.odds.length > 0).length;
   const best = bets.length ? Math.max(...bets.map(r => r.v.bet.ev)) : null;
 
   const lang = localStorage.getItem('mde:lang') || 'en';
   const t = translations[lang] || translations.en;
 
   $('stats').innerHTML = `
-    <div class="stat-item"><div class="stat-value">${st.results.length}</div><div class="stat-label">${t.matches}</div></div>
+    <div class="stat-item"><div class="stat-value">${shown.length}</div><div class="stat-label">${t.matches}</div></div>
     <div class="stat-item"><div class="stat-value">${withOdds}</div><div class="stat-label">${t.with_odds}</div></div>
     <div class="stat-item"><div class="stat-value">${bets.length}</div><div class="stat-label">${t.value_bets}</div></div>
     <div class="stat-item"><div class="stat-value">${best!=null?sgn(best):'—'}</div><div class="stat-label">${t.best_ev_short}</div></div>
@@ -2118,21 +2120,25 @@ function updateChart(days, target) {
 
 st.gate = st.gate || new Map();
 function applyServerPred(r, sp) {
-  const fx = r.fx, H = fx.home, A = fx.away, pr = sp.prediction, v = r.v, d = sp.decision || {};
+  const fx = r.fx, H = fx.home, A = fx.away, v = r.v, d = sp.decision || {};
+  // Sliders react instantly: re-run market weight + EV threshold here on the server's real model/market/prices (the server's safety verdict is reused as is).
+  const rb = window.Reblend ? window.Reblend.evaluate(sp, st.mw, st.mev) : null;
+  const pr = rb ? Object.assign({}, sp.prediction, { p: rb.p, over: rb.over }) : sp.prediction;
+  const tier = rb ? rb.tier : sp.tier, pick = rb ? rb.pick : d.pick;
   v.p = pr.p; v.source = (pr.source || '').replace('+', ' + ');
   v.main1x2 = [{ sel: H.name + ' Win', key: 'home', p: pr.p.h }, { sel: 'Draw', key: 'draw', p: pr.p.d }, { sel: A.name + ' Win', key: 'away', p: pr.p.a }].sort((x, y) => y.p - x.p)[0];
   v.mainOU = pr.over != null ? (pr.over >= 0.5 ? { selection: 'Over 2.5 Goals', confidence: pctS(pr.over) } : { selection: 'Under 2.5 Goals', confidence: pctS(1 - pr.over) }) : null;
   r.json.scoreline_prediction = { most_likely: pr.top || 'N/A', alternatives: [] };
   r.json.main_prediction = { selection: v.main1x2.sel, confidence: pctS(v.main1x2.p) };
-  v.bestEv = sp.bestEv != null ? sp.bestEv : null;
+  v.bestEv = rb ? rb.bestEv : (sp.bestEv != null ? sp.bestEv : null);
   v.bet = null; v.noBet = null; r.json.best_bet_value = null;
   if (v.started) return;
-  if (sp.tier === 'BET' && d.pick) {
-    const k = d.pick, o = k.odds, b = o - 1, kel = b <= 0 ? 0 : Math.max(0, (k.p * b - (1 - k.p)) / b);
+  if (tier === 'BET' && pick) {
+    const k = pick, o = k.odds, b = o - 1, kel = b <= 0 ? 0 : Math.max(0, (k.p * b - (1 - k.p)) / b);
     const sel = k.key === 'home' ? H.name + ' to Win' : k.key === 'away' ? A.name + ' to Win' : 'Draw';
     v.bet = { sel, p: k.p, odds: o, book: k.book, ev: k.ev, kelly: kel };
     r.json.best_bet_value = { selection: sel, bookmaker_odds: o, expected_value: sgn(k.ev), quarter_kelly: (kel * 25).toFixed(1) + '%', risk_level: o < 2.2 ? 'Low' : o < 3.5 ? 'Medium' : 'High' };
-  } else if (sp.tier === 'NO BET') v.noBet = (sp.safety && sp.safety.length ? sp.safety : d.reasons) || ['no bet'];
+  } else if (tier === 'NO BET') v.noBet = (rb ? rb.safety : (sp.safety && sp.safety.length ? sp.safety : d.reasons)) || ['no bet'];
 }
 function applyGate(results) {
   results.forEach(r => {
@@ -2143,12 +2149,15 @@ function applyGate(results) {
   });
   return results;
 }
+let _gateSeq = 0;
 async function loadGate() {
   if (!authState.loggedIn || !isPro()) return;
+  const seq = ++_gateSeq;
   try {
     const r = await fetch('/api/engine/predictions?mw=' + encodeURIComponent(st.mw) + '&mev=' + encodeURIComponent(st.mev), { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + authState.token } });
     if (!r.ok) return;
     const d = await r.json(), m = new Map(), tm = new Map();
+    if (seq !== _gateSeq) return; // a newer request is already on its way
     (d.predictions || []).forEach(p => { if (p && p.id != null && Array.isArray(p.safety)) { m.set(String(p.id), p.safety); if (p.tier) tm.set(String(p.id), p.tier); } });
     st.gate = m; st.tier = tm; st.gateMeta = d.meta || null;
     const sm = new Map(); (d.predictions || []).forEach(p => { if (p && p.id != null && p.prediction) sm.set(String(p.id), p); }); st.srv = sm;
@@ -2196,7 +2205,8 @@ function updateFilterPreview() {
   else if (!bets.length && topAny != null) note = ` · best available EV ${sgn(topAny)} (below ${(st.mev * 100).toFixed(1)}%)`;
   const gm = st.gateMeta;
   const dbg = gm ? `<br><small>server: forms ${gm.bzzForms && typeof gm.bzzForms === 'object' ? gm.bzzForms.covered + '/' + gm.bzzForms.need + ' teams, ' + gm.bzzForms.events + ' events, ' + gm.bzzForms.pages + ' pages' + (gm.bzzForms.error ? ', error: ' + esc(gm.bzzForms.error) : '') : esc(String(gm.bzzForms))} · xG ${esc(JSON.stringify(gm.xgSources))} · minBooks ${gm.minBooks}<br>API-Football: ${gm.apiFootball ? (gm.apiFootball.enabled ? gm.apiFootball.matches + ' matches with extra odds · calls ' + gm.apiFootball.used + '/' + gm.apiFootball.budget + ' · teams with stats ' + gm.apiFootball.teamsWithStats + (gm.apiFootball.lastError ? ' · ERROR: ' + esc(gm.apiFootball.lastError) : '') : 'OFF (APIFOOTBALL_KEY missing)') : 'n/a (old server)'}</small>` : (blocked.length ? '<br><small>server: old version (no diagnostics)</small>' : '');
-  const estNote = (est ? ` · ${est} with estimated xG (low-quality model)` : '') + dbg;
+  const mOnly = up.filter(r => r.v.source === 'market').length;
+  const estNote = (est ? ` · ${est} with estimated xG (low-quality model)` : '') + (mOnly ? ` · ${mOnly} match(es) use market prices only (no real xG), so the sliders cannot change them` : '') + dbg;
   el.innerHTML = withOdds
     ? `<b>${bets.length}</b> value bets · ${withOdds}/${up.length} matches with odds · best EV ${best != null ? sgn(best) : '—'}${note}${estNote}`
     : `0/${up.length} matches have odds yet, so these sliders have nothing to change right now.`;

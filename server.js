@@ -1534,7 +1534,7 @@ app.get('/api/fixtures', dataLimiter, authMiddleware, requirePro, async (req, re
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
 });
 
-const engineDecide = require('./engine/decision'), engineValidate = require('./engine/validate');
+const engineDecide = require('./engine/decision'), engineValidate = require('./engine/validate'), engineServe = require('./engine/serve');
 app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) => {
   try {
     const fixtures = await getFixturesWithForms();
@@ -1545,9 +1545,7 @@ app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) 
     if (Number.isFinite(qev) && qev >= 0 && qev <= 0.5) dOpts.minEV = qev;
     const out = fixtures.map(fx0 => {
       const f = lgAvg.has(fx0.league) ? Object.assign({}, fx0, { leagueAvg: lgAvg.get(fx0.league) }) : fx0;
-      const pred = enginePre.predict(f, { marketWeight: mw, eloWeight: ENGINE_ELO_WEIGHT, eloBook });
-      const decision = engineDecide.decide(f, pred, dOpts);
-      return { id: f.id, bestEv: decision.best ? decision.best.ev : null, tier: decision.action === 'BET' ? 'BET' : ((decision.safety || []).length ? 'NO BET' : 'WATCH'), safety: (decision.safety || []), xgSource: f.xgSource || null, prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source }, validation: engineValidate.validate(pred, f, { maxGap: ENGINE_MAX_GAP }), decision };
+      return engineServe.item(f, { marketWeight: mw, eloWeight: ENGINE_ELO_WEIGHT, eloBook, decide: dOpts, maxGap: ENGINE_MAX_GAP });
     });
     const xgCounts = {}; for (const f of fixtures) { const k = f.xgSource || 'none'; xgCounts[k] = (xgCounts[k] || 0) + 1; }
     res.json({ predictions: out, meta: { minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, apiFootball: afOdds.stats(), xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
