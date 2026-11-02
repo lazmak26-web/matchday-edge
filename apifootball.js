@@ -7,6 +7,10 @@ const BASE = 'https://v3.football.api-sports.io';
 
 const num = x => { const v = parseFloat(x); return Number.isFinite(v) ? v : null; };
 const pad = n => String(n).padStart(2, '0');
+// Plan limits come back as HTTP 200 + errors. Free plans cap the `page` parameter (e.g. "maximum value of 3 for the Page parameter")
+// and the season range; retrying them only burns the daily budget, so we learn the cap / back off instead.
+const pageCapFrom = msg => { const m = /maximum value of (\d+) for the page/i.exec(String(msg || '')); return m ? Math.max(1, parseInt(m[1], 10)) : null; };
+const isPlanError = msg => /"plan"|free plans?\b/i.test(String(msg || ''));
 const utcDay = (d = new Date()) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 
 // Pure: API-Football `bookmakers[]` of one fixture -> [{ book, home, draw, away, over25, under25 }] (only sane prices).
@@ -58,7 +62,7 @@ function create(cfg = {}) {
   const statsCache = new Map();
   const injuries = { byFixture: new Map(), ts: 0 }; // fixtureId -> { [teamId]: count of players ruled out }
   const retryMs = 10 * 60 * 1000;
-  const st = { day: null, used: 0, statsUsed: 0, statsInProgress: null, ts: 0, entries: [], fixtures: null, fixturesTs: 0, inProgress: null, lastError: null, lastPages: 0 };
+  const st = { day: null, used: 0, statsUsed: 0, statsInProgress: null, ts: 0, entries: [], fixtures: null, fixturesTs: 0, inProgress: null, lastError: null, lastPages: 0, pageCap: null, statsOffDay: null };
 
   const roll = () => { const d = utcDay(); if (st.day !== d) { st.day = d; st.used = 0; st.statsUsed = 0; st.entries = []; st.fixtures = null; st.ts = 0; } };
   const enabled = () => !!key;
@@ -115,8 +119,16 @@ function create(cfg = {}) {
       const fx = await loadFixtures(day);
       const entries = [];
       let page = 1, total = 1;
-      while (page <= total && page <= maxPages) {
-        const data = await call('/odds?date=' + day + '&page=' + page);
+      let partialErr = null;
+      while (page <= total && page <= maxPages && !(st.pageCap && page > st.pageCap)) {
+        let data;
+        try { data = await call('/odds?date=' + day + '&page=' + page); }
+        catch (e) {
+          const cap = pageCapFrom(e.message);
+          if (cap) { st.pageCap = cap; log('API-Football: plan allows max ' + cap + ' odds pages, keeping the ' + entries.length + ' fixtures already read'); break; }
+          if (entries.length) { partialErr = e.message; log(e.message); break; } // keep the pages we already paid for
+          throw e;
+        }
         total = (data.paging && Number(data.paging.total)) || 1;
         for (const it of data.response || []) {
           const meta = it && it.fixture && fx.get(it.fixture.id);
@@ -126,7 +138,7 @@ function create(cfg = {}) {
         }
         st.lastPages = page; page++;
       }
-      if (entries.length) { st.entries = entries; st.ts = Date.now(); st.lastError = null; }
+      if (entries.length) { st.entries = entries; st.ts = Date.now(); st.lastError = partialErr; }
       else st.ts = Date.now() - ttl + retryMs; // nothing usable: retry soon, keep old data
       if (process.env.APIFOOTBALL_INJURIES === '1') try { await loadInjuries(day); } catch (e) { st.lastError = e.message; log(e.message); } // injuries failing must never block odds
     } catch (e) {
@@ -169,6 +181,7 @@ function create(cfg = {}) {
   function ensureStats(list) {
     if (!enabled()) return null;
     roll();
+    if (st.statsOffDay === st.day) return null; // plan does not allow season stats today: do not burn the budget
     if (st.statsInProgress) return st.statsInProgress;
     st.statsInProgress = (async () => {
       let changed = false;
@@ -193,7 +206,11 @@ function create(cfg = {}) {
             try {
               const data = await call('/teams/statistics?league=' + q.leagueId + '&season=' + q.season + '&team=' + q.teamId);
               statsCache.set(k, { data: parseTeamStats(data.response), ts: Date.now() }); changed = true;
-            } catch (e) { st.lastError = e.message; statsCache.set(k, { data: null, ts: Date.now() }); log(e.message); }
+            } catch (e) {
+              st.lastError = e.message; log(e.message);
+              if (isPlanError(e.message)) { st.statsOffDay = st.day; queue.length = 0; break; } // e.g. free plan has no access to this season
+              statsCache.set(k, { data: null, ts: Date.now() });
+            }
           }
         };
         await Promise.all([worker(), worker()]);
@@ -221,7 +238,7 @@ function create(cfg = {}) {
     return h && a ? { home: h, away: a } : null;
   }
 
-  return { enabled, ensure, ensureStats, statsFor, injuriesFor, lookup, stats: () => ({ enabled: enabled(), used: st.used, budget, statsUsed: st.statsUsed, statsBudget, teamsWithStats: [...statsCache.values()].filter(c => c.data).length, matches: st.entries.length, pages: st.lastPages, lastError: st.lastError, at: st.ts ? new Date(st.ts).toISOString() : null }) };
+  return { enabled, ensure, ensureStats, statsFor, injuriesFor, lookup, stats: () => ({ enabled: enabled(), used: st.used, budget, statsUsed: st.statsUsed, statsBudget, teamsWithStats: [...statsCache.values()].filter(c => c.data).length, matches: st.entries.length, pages: st.lastPages, pageCap: st.pageCap, statsOff: st.statsOffDay === st.day, lastError: st.lastError, at: st.ts ? new Date(st.ts).toISOString() : null }) };
 }
 
-module.exports = { create, parseBooks, parseTeamStats };
+module.exports = { create, parseBooks, parseTeamStats, pageCapFrom, isPlanError };

@@ -19,7 +19,7 @@ function decide(fx, pred, opts = {}) {
     const books = Array.isArray(fx.odds) ? fx.odds : [], vals = books.map(b => b && b[key]).filter(x => x > 1).sort((x, y) => x - y);
     const ref = vals.length >= 3 ? (vals.length % 2 ? vals[vals.length >> 1] : (vals[vals.length / 2 - 1] + vals[vals.length / 2]) / 2) : vals.length === 2 ? vals[0] : null;
     const cap = ref ? ref * 1.25 : Infinity;
-    let o = 0, book = null; for (const b of books) if (b[key] > o && b[key] <= cap) { o = b[key]; book = b.book; }
+    let o = 0, book = null; for (const b of books) if (b && b[key] > o && b[key] <= cap) { o = b[key]; book = b.book; }
     if (o > 1) pick.push({ key, odds: o, book, p: pred.p[k], ev: pred.p[k] * (o - 1) - (1 - pred.p[k]) });
   }
   pick.sort((a, b) => b.ev - a.ev);

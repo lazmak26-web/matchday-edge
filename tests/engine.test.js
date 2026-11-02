@@ -235,3 +235,56 @@ test('injuries: only confirmed absences count; unknown is null, not zero', async
     assert.deepStrictEqual(c2.injuriesFor('Alpha', 'Beta', Date.now()), { home: 3, away: 1 });
   } finally { delete process.env.APIFOOTBALL_INJURIES; }
 });
+
+test('API-Football: free-plan page cap keeps the pages already read and is learned, not retried', async () => {
+  const { create, pageCapFrom } = require('../apifootball');
+  assert.strictEqual(pageCapFrom('API-Football: {"plan":"Free plans are limited to a maximum value of 3 for the Page parameter"}'), 3);
+  assert.strictEqual(pageCapFrom('something else'), null);
+  const fixture = id => ({ fixture: { id, date: new Date().toISOString(), status: { short: 'NS' } }, league: { id: 1, season: 2026 }, teams: { home: { id: id, name: 'H' + id }, away: { id: id + 100, name: 'A' + id } } });
+  const odds = id => ({ fixture: { id }, bookmakers: [{ name: 'B', bets: [{ id: 1, name: 'Match Winner', values: [{ value: 'Home', odd: '2.0' }, { value: 'Draw', odd: '3.4' }, { value: 'Away', odd: '3.8' }] }] }] });
+  const calls = [];
+  const fetchImpl = async u => {
+    calls.push(u);
+    const page = Number((/page=(\d+)/.exec(u) || [])[1] || 1);
+    let body;
+    if (u.includes('/fixtures')) body = { errors: [], response: [1, 2, 3].map(fixture) };
+    else if (page > 3) body = { errors: { plan: 'Free plans are limited to a maximum value of 3 for the Page parameter' }, response: [] };
+    else body = { errors: [], paging: { total: 6 }, response: [odds(page)] };
+    return { ok: true, json: async () => body };
+  };
+  const c = create({ key: 'k', fetchImpl, maxPages: 6, teamsFuzzyMatch: (a, b) => a === b, log: () => {} });
+  await c.ensure();
+  const s = c.stats();
+  assert.strictEqual(s.matches, 3, 'the 3 pages read before the plan error must be kept');
+  assert.strictEqual(s.pageCap, 3);
+  assert.strictEqual(s.lastError, null);
+  assert.strictEqual(c.lookup('H1', 'A1', Date.now()).length, 1);
+  assert.strictEqual(calls.filter(u => u.includes('/odds')).length, 4, 'exactly one wasted call (page 4)');
+});
+
+test('API-Football: a plan error on season stats stops further stats calls for the day', async () => {
+  const { create } = require('../apifootball');
+  let statCalls = 0;
+  const fx = id => ({ fixture: { id, date: new Date().toISOString(), status: { short: 'NS' } }, league: { id: 1, season: 2026 }, teams: { home: { id: id, name: 'H' + id }, away: { id: id + 100, name: 'A' + id } } });
+  const fetchImpl = async u => {
+    let body;
+    if (u.includes('/fixtures')) body = { errors: [], response: [1, 2, 3, 4].map(fx) };
+    else { statCalls++; body = { errors: { plan: 'Free plans do not have access to this season, try from 2021 to 2023.' }, response: [] }; }
+    return { ok: true, json: async () => body };
+  };
+  const c = create({ key: 'k', fetchImpl, teamsFuzzyMatch: (a, b) => a === b, log: () => {} });
+  const list = [1, 2, 3, 4].map(i => ({ home: 'H' + i, away: 'A' + i, t: Date.now() }));
+  await c.ensureStats(list);
+  assert.ok(statCalls <= 2, 'at most the two parallel workers fire before the backoff, got ' + statCalls);
+  const before = statCalls;
+  assert.strictEqual(c.ensureStats(list), null, 'backed off for the rest of the day');
+  assert.strictEqual(statCalls, before);
+  assert.strictEqual(c.stats().statsOff, true);
+});
+
+test('a null bookmaker entry does not crash validation or the decision', () => {
+  const fx = { status: 'notstarted', odds: [null, { book: 'A', home: 2, draw: 3.4, away: 3.8 }], home: { name: 'H' }, away: { name: 'A' } };
+  const pred = { p: { h: 0.45, d: 0.28, a: 0.27 }, over: null, lam: null, source: 'market', sources: { model: null, market: { h: 0.45, d: 0.28, a: 0.27 } }, marketBooks: 1 };
+  assert.doesNotThrow(() => validate(pred, fx));
+  assert.doesNotThrow(() => decide(fx, pred));
+});
