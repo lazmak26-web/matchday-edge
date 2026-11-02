@@ -996,7 +996,15 @@ const DUMMY_SALT = crypto.randomBytes(16);
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const MAIL_FROM = process.env.MAIL_FROM || 'LuciBet <onboarding@resend.dev>';
 const OTP_ENABLED = !!RESEND_API_KEY;
-if (!OTP_ENABLED) console.error('⚠️ RESEND_API_KEY is not set: email OTP is OFF, so email logins skip the code check.');
+// REQUIRE_OTP=1 makes email sign-up/login FAIL CLOSED when RESEND_API_KEY is missing, instead of silently skipping the code check.
+// Off by default so an existing deployment keeps working; set it on the host once RESEND_API_KEY is configured.
+const REQUIRE_OTP = process.env.REQUIRE_OTP === '1';
+if (!OTP_ENABLED) console.error(REQUIRE_OTP
+  ? '❌ REQUIRE_OTP=1 but RESEND_API_KEY is not set: email sign-up and login are DISABLED until it is.'
+  : '⚠️ RESEND_API_KEY is not set: email OTP is OFF, so email logins skip the code check. Set REQUIRE_OTP=1 to refuse email logins instead.');
+const otpUnavailable = res => (REQUIRE_OTP && !OTP_ENABLED)
+  ? (res.status(503).json({ error: 'Email login is temporarily unavailable.' }), true)
+  : false;
 const OTP_TTL = 10 * 60 * 1000, OTP_RESEND_GAP = 45 * 1000, OTP_MAX_TRIES = 5, OTP_MAX_SENDS_PER_HOUR = 6;
 const OTP_SECRET = crypto.randomBytes(32);
 const otps = new Map();      // email -> { hash, exp, tries, sentAt }
@@ -1077,6 +1085,7 @@ function startSession(res, sess) {
 const EMAIL_RE = /^[a-z0-9._%+-]{1,64}@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/i;
 
 async function localLogin(res, email, password, uKey) {
+  if (otpUnavailable(res)) return;
   const u = users.get(email);
   let ok = false;
   try {
@@ -1099,6 +1108,7 @@ async function localLogin(res, email, password, uKey) {
 }
 
 app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) => {
+  if (otpUnavailable(res)) return;
   const body = req.body || {};
   const email = String(body.email || body.username || '').trim().toLowerCase();
   const password = body.password;
