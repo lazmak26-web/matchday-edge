@@ -984,7 +984,7 @@ const translations = {
     pro_analytics: "Pro Analytics",
     hero_title: "Match analytics.<br>The decision is yours.",
     hero_sub: "Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.",
-    feat_1_title: "Poisson Model", feat_1_desc: "Statistical match prediction using xG and recent team forms.",
+    feat_1_title: "Poisson Model", feat_1_desc: "Statistical match prediction using estimated xG (from recent goals) and team form.",
     feat_2_title: "+EV Finder", feat_2_desc: "Flags prices where our model's estimate differs from the bookmaker's odds. Estimates only, never certainties.",
     feat_3_title: "Live Updates", feat_3_desc: "Odds and scores refreshed regularly. Data can be delayed or contain errors.",
     site_perf: "Site Performance",
@@ -1039,7 +1039,7 @@ const translations = {
     pro_analytics: "Analytique Pro",
     hero_title: "Analyses de matchs.<br>La décision vous appartient.",
     hero_sub: "Analyse statistique des matchs basée sur un modèle de Poisson et les cotes du marché en direct. Nous signalons les cotes pour lesquelles notre modèle estime une valeur espérée (EV) positive. Ce sont des estimations, pas des résultats garantis.",
-    feat_1_title: "Modèle de Poisson", feat_1_desc: "Prédiction statistique des matchs utilisant les xG et les formes récentes.",
+    feat_1_title: "Modèle de Poisson", feat_1_desc: "Prédiction statistique des matchs à partir des xG estimés (buts récents) et de la forme des équipes.",
     feat_2_title: "Chercheur +EV", feat_2_desc: "Signale les cotes où l'estimation de notre modèle diffère de celle du bookmaker. Des estimations, jamais des certitudes.",
     feat_3_title: "Mises à jour en direct", feat_3_desc: "Cotes et scores actualisés régulièrement. Les données peuvent être retardées ou comporter des erreurs.",
     site_perf: "Performance du Site",
@@ -1094,7 +1094,7 @@ const translations = {
     pro_analytics: "تحليلات احترافية",
     hero_title: "تحليلات المباريات.<br>القرار قرارك.",
     hero_sub: "تحليل إحصائي للمباريات يعتمد على نموذج بواسون وأسعار السوق المباشرة. نُبرز الأسعار التي يقدّر نموذجنا أن قيمتها المتوقعة (EV) إيجابية. هذه تقديرات وليست نتائج مضمونة.",
-    feat_1_title: "نموذج بواسون", feat_1_desc: "توقع إحصائي للمباريات باستخدام xG وأشكال الفرق الأخيرة.",
+    feat_1_title: "نموذج بواسون", feat_1_desc: "توقع إحصائي للمباريات باستخدام xG مقدّر (من الأهداف الأخيرة) وأشكال الفرق.",
     feat_2_title: "مكتشف +EV", feat_2_desc: "يُبرز الأسعار التي يختلف فيها تقدير نموذجنا عن أسعار شركة المراهنات. مجرد تقديرات وليست يقينًا.",
     feat_3_title: "تحديثات مباشرة", feat_3_desc: "تُحدَّث الأسعار والنتائج بانتظام. قد تتأخر البيانات أو تحتوي على أخطاء.",
     site_perf: "أداء الموقع",
@@ -1680,7 +1680,10 @@ const initials = n => String(n).trim().split(/\s+/).slice(0, 2).map(w => w.charA
 const logoOf = t => {
   if (!t) return '';
   const u = t.logo || t.crest || t.badge || t.image || t.img || t.logoUrl || t.crestUrl || t.emblem || t.icon || '';
-  return typeof u === 'string' ? u.trim().replace(/^http:\/\//i, 'https://') : '';
+  if (typeof u !== 'string') return '';
+  const url = u.trim().replace(/^http:\/\//i, 'https://');
+  // Only https images are ever rendered (API data is untrusted: no javascript:, data: or relative URLs).
+  return /^https:\/\//i.test(url) ? url : '';
 };
 
 // Runs when a logo fails to load: show initials as plain text (no inline HTML from API data).
