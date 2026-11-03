@@ -1,3 +1,0 @@
-GSAP 3.15 - gsap.com (GreenSock standard license, free to use)
-Lenis - darkroom.engineering (MIT)
-Barlow - Jeremy Tribby (SIL OFL 1.1), see public/fonts
