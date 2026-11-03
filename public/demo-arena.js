@@ -291,7 +291,8 @@
   }
 
   function renderArena(el) {
-    const sports = (S.me.sports || []).map(s => `<button class="da-pill ${S.sport === s.id ? 'on' : ''}" data-act="sport" data-k="${s.id}">${SPORT_ICON[s.id] || ''}${esc(s.name)}</button>`).join('');
+    const sportList = (S.me.sports || []).filter(s => s.id === 'football');
+    const sports = sportList.length < 2 ? '' : sportList.map(s => `<button class="da-pill ${S.sport === s.id ? 'on' : ''}" data-act="sport" data-k="${s.id}">${SPORT_ICON[s.id] || ''}${esc(s.name)}</button>`).join('');
     const views = [['live', 'Live'], ['upcoming', 'Upcoming'], ['finished', 'Finished']].map(([k, l]) => `<button class="da-pill ${S.view === k ? 'on' : ''}" data-act="view" data-k="${k}">${k === 'live' ? '<span class="da-chip live" style="padding:0;background:none"><i></i></span>' : ''}${l}</button>`).join('');
     let content;
     const M = S.matches;
@@ -308,7 +309,7 @@
         content += `<div class="da-empty"><b>${msg[0]}</b>${msg[1]}</div>`;
       } else if (rest.length) content += `<div class="da-grid">${rest.map(m => matchCard(m, false)).join('')}</div>`;
     }
-    el.innerHTML = `<div class="da-bar"><div class="da-pills" role="group" aria-label="Sport">${sports}</div><div class="da-pills" role="group" aria-label="Matches">${views}</div></div>${content}`;
+    el.innerHTML = `<div class="da-bar">${sports ? `<div class="da-pills" role="group" aria-label="Sport">${sports}</div>` : ''}<div class="da-pills" role="group" aria-label="Matches">${views}</div></div>${content}`;
   }
 
   /* ---------------- prediction slip ---------------- */
@@ -416,7 +417,7 @@
   /* ---------------- analytics ---------------- */
   function ring(rate) {
     const r = 46, c = 2 * Math.PI * r, v = rate == null ? 0 : Math.max(0, Math.min(100, rate));
-    return `<div class="da-ring"><svg viewBox="0 0 120 120" width="130" height="130" aria-hidden="true"><circle cx="60" cy="60" r="${r}" fill="none" stroke="#DCE4DA" stroke-width="12"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="#17843F" stroke-width="12" stroke-linecap="butt" stroke-dasharray="${(c * v / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 60 60)"/></svg><b>${rate == null ? '–' : Math.round(rate) + '%'}</b></div>`;
+    return `<div class="da-ring"><svg viewBox="0 0 120 120" width="130" height="130" aria-hidden="true"><circle cx="60" cy="60" r="${r}" fill="none" stroke="#C2DAF3" stroke-width="12"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="#17843F" stroke-width="12" stroke-linecap="butt" stroke-dasharray="${(c * v / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 60 60)"/></svg><b>${rate == null ? '–' : Math.round(rate) + '%'}</b></div>`;
   }
   function lineChart(series) {
     if (!series.length) return '<div class="da-empty"><b>No settled predictions yet</b>Your profit curve appears after your first result.</div>';
@@ -426,7 +427,7 @@
     const d = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.cum).toFixed(1)).join(' ');
     const area = d + ` L${X(pts.length - 1).toFixed(1)} ${Y(min).toFixed(1)} L${X(0).toFixed(1)} ${Y(min).toFixed(1)}Z`;
     const last = pts[pts.length - 1];
-    return `<svg class="da-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative profit and loss in virtual credits"><defs><pattern id="daHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#E3EBE1"/><line x1="0" y1="0" x2="0" y2="6" stroke="#B9C8B8" stroke-width="2"/></pattern></defs>
+    return `<svg class="da-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative profit and loss in virtual credits"><defs><pattern id="daHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#E6F0FB"/><line x1="0" y1="0" x2="0" y2="6" stroke="#A9C6E6" stroke-width="2"/></pattern></defs>
       <line x1="${pad}" x2="${W - pad}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="#0B2216" stroke-width="1.5" stroke-dasharray="5 5"/>
       <path d="${area}" fill="url(#daHatch)"/><path d="${d}" fill="none" stroke="#0B2216" stroke-width="3" stroke-linejoin="miter"/>
       <rect x="${(X(pts.length - 1) - 5).toFixed(1)}" y="${(Y(last.cum) - 5).toFixed(1)}" width="10" height="10" fill="#FFD60A" stroke="#0B2216" stroke-width="2"/>
