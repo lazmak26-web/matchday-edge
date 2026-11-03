@@ -1839,22 +1839,4 @@ const demoArena = require('./demo-arena').create({
 demoSaver = demoArena.saver;
 
 // ✅ Express 5 JSON 404 fallback
-/* ════════════════════════════════════════════════════
-   ⚽ FOOTBALL AGENT — expert chat (Darija / Arabic / FR / EN). Logic lives in football-agent.js.
-   Pro-only + per-user daily quota so API credit cannot be burned.
-   ════════════════════════════════════════════════════ */
-const footballAgent = require('./football-agent').create({ getFixtures: getFixturesWithForms });
-const agentLimiter = makeLimiter({ windowMs: 60 * 1000, max: 12, message: 'Too many messages. Slow down.' });
-app.get('/api/agent/status', authMiddleware, requirePro, (req, res) => {
-  const sess = sessions.get(req.authToken), c = footballAgent.config();
-  res.json({ enabled: c.enabled, left: footballAgent.quotaLeft(sess.username), limit: c.dailyLimit });
-});
-app.post('/api/agent/chat', agentLimiter, authMiddleware, requirePro, async (req, res) => {
-  try {
-    const sess = sessions.get(req.authToken), b = req.body || {};
-    const r = await footballAgent.chat({ user: sess.username, message: b.message, history: b.history, lang: b.lang });
-    res.status(r.status).json(r.body);
-  } catch (e) { console.error('Agent error:', e.message); res.status(500).json({ error: 'server' }); }
-});
-
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
