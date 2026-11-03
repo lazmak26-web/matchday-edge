@@ -264,6 +264,60 @@ div.da-odd{border-style:dashed;border-color:#8FA5BF;color:var(--ink2)}
 .da-toast.bad{border-left-color:var(--red)}
 .da-spark{position:fixed;z-index:3100;left:0;top:0;width:3px;height:14px;border-radius:2px;background:var(--yellow);pointer-events:none}
 
+/* ---------- dark-blue stage, green fixture tickets, blue prediction tickets ---------- */
+.da{--stage:#0B2B66;--card:#143A26}
+.da-stage{background:var(--stage);color:#E8F0FF}
+.da-hero{box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+.da-tabs{background:var(--stage);border-bottom-color:rgba(255,255,255,.3)}
+.da-tab{color:#9DB5DD}.da-tab.on{color:#fff}
+.da-ind{background:var(--yellow)}
+.da-pill{border-color:#8FAEE0;color:#fff}
+.da-pill:hover{background:rgba(255,255,255,.12)}
+.da-pill.on{background:var(--yellow);border-color:var(--yellow);color:var(--pine)}
+.da-pill.on .n{background:var(--pine);color:#fff}
+.da-sec-h{border-bottom-color:rgba(255,255,255,.22)}
+.da-sec-h h2{color:#fff}.da-sec-h p{color:#A9BEE3}
+.da-note{color:var(--ink)}
+.da-empty{border-color:rgba(255,255,255,.3);color:#C5D5EF}.da-empty b{color:#fff}
+.da-skel{background:rgba(255,255,255,.1)}
+.da-legal{color:#9DB5DD}
+.da-tile,.da-panel,.da-lock .cta{color:var(--ink)}
+.da-chip{color:var(--pine)}
+
+/* every fixture is a green ticket; featured ones get the darker green and a yellow edge */
+.da-card{background:var(--card);border-color:#0A1F14;color:#fff}
+.da-card.feat{background:var(--pine);border-color:var(--yellow)}
+.da-card .da-mh,.da-card .da-mid small,.da-card .da-foot,.da-card .da-mkl{color:rgba(255,255,255,.74)}
+.da-card .da-crest{border-color:var(--yellow)}
+.da-card .da-chip{background:var(--yellow);border-color:var(--yellow);color:var(--pine)}
+.da-card .da-chip.live{background:var(--red);border-color:var(--red);color:#fff}
+.da-card .da-mk{border-top-color:rgba(255,255,255,.3)}
+.da-card .da-mk::before,.da-card .da-mk::after{background:var(--stage);border-color:#0A1F14}
+.da-card.feat .da-mk::before,.da-card.feat .da-mk::after{border-color:var(--yellow)}
+.da-card .da-odd{background:transparent;border-color:rgba(255,255,255,.85);color:#fff;box-shadow:none}
+.da-card .da-odd small{color:rgba(255,255,255,.75)}
+.da-card button.da-odd{box-shadow:0 3px 0 rgba(255,255,255,.3)}
+.da-card button.da-odd:hover{background:var(--yellow);border-color:var(--yellow);color:var(--pine);box-shadow:0 5px 0 rgba(255,255,255,.3)}
+.da-card button.da-odd:hover small{color:var(--pine)}
+.da-card div.da-odd{border-color:rgba(255,255,255,.4);color:#fff}
+@media (hover:hover){.da-card:hover{background:radial-gradient(260px circle at var(--mx) var(--my),rgba(255,214,10,.2),transparent 65%),var(--card)}}
+
+/* predictions are blue tickets; the status stamp always sits in the same place and is big */
+.da-pred{background:#1F5FD0;border-color:#0A2F7A;border-left-color:#A9C8FF;color:#fff}
+.da-pred[data-p=won]{border-left-color:#4BE08A}
+.da-pred[data-p=lost]{border-left-color:#FF6B6E}
+.da-pred[data-p=void]{border-left-color:#E4ECF6}
+.da-pred .s{color:rgba(255,255,255,.84)}
+.da-pred .r small{color:rgba(255,255,255,.78)}
+.da-pred .f{min-height:56px;border-top-color:rgba(255,255,255,.4);color:rgba(255,255,255,.92)}
+.da-pred .f .da-chip{min-width:104px;justify-content:center;padding:3px 14px 1px;border-width:3px;border-radius:6px;font-size:25px;line-height:1.15;transform:rotate(-3deg)}
+.da-pred .da-chip.soon{background:transparent;border-color:#fff;color:#fff}
+.da-pred .da-chip.act{background:var(--yellow);border-color:var(--yellow);color:var(--pine)}
+.da-pred .da-chip.won{background:#17843F;border-color:#7DF0A6;color:#fff}
+.da-pred .da-chip.lost{background:var(--red);border-color:#FF9A9C;color:#fff}
+.da-pred .da-chip.void{background:#E4ECF6;border-color:#E4ECF6;color:#2C4767}
+@media (hover:hover){.da-pred:hover{background:radial-gradient(260px circle at var(--mx) var(--my),rgba(255,255,255,.2),transparent 65%),#1F5FD0}}
+
 @media (max-width:820px){.da-hero{grid-template-columns:1fr;padding:14px}.da-tabs{top:60px}}
 @media (max-width:420px){.da-mini{min-width:112px}.da-sec-h h2{font-size:26px}.da-grid,.da-feats{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.da *,.da *::before,.da *::after,.da-side .si-ic{animation:none!important;transition:none!important}}
