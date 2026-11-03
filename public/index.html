@@ -930,7 +930,7 @@ html.lenis, html.lenis body { height:auto; }
 </div>
 
 <div id="menuOverlay" class="side-overlay hidden" onclick="closeMenu()"></div>
-<aside id="sideMenu" class="side-menu" aria-hidden="true" inert>
+<aside id="sideMenu" data-lenis-prevent class="side-menu" aria-hidden="true" inert>
   <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" onclick="closeMenu()">✕</button></div>
   <button class="side-item da-side" type="button" data-tab="demo" onclick="menuGo('demo')"><span class="si-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg></span><span class="si-t"><b>Demo Arena</b><small>Virtual Sports Predictions</small></span></button>
   <button class="side-item" type="button" data-tab="performance" onclick="menuGo('performance')"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
@@ -1761,7 +1761,7 @@ function __doSwitch(tab) {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.id === 'nav-' + tab));
-  if (tab === 'demo' && window.DemoArena) window.DemoArena.open();
+  if (window.DemoArena) { if (tab === 'demo') window.DemoArena.open(); else window.DemoArena.close(); }
   document.querySelectorAll('.side-item[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.getElementById('tgFab').classList.toggle('tab-off', tab !== 'signals');
   if (window.__globePause) window.__globePause(250);
@@ -2768,6 +2768,8 @@ document.addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 <script src="live-globe.js" defer></script>
+<script src="vendor/gsap.min.js" defer></script>
+<script src="vendor/lenis.min.js" defer></script>
 <script src="demo-arena.js" defer></script>
 </body>
 </html>
