@@ -66,17 +66,91 @@
     const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
     return d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${String(m).padStart(2, '0')}m ${String(x).padStart(2, '0')}s`;
   }
-  function animateNumber(el, from, to) {
-    if (!el) return;
-    if (reduce() || from == null || from === to) { el.textContent = nf.format(to); return; }
-    const t0 = performance.now(), dur = 800;
-    const step = now => {
-      const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-      el.textContent = nf.format(Math.round((from + (to - from) * e) * 100) / 100);
-      if (k < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
+  /* ---------------- motion: GSAP + Lenis. Every effect is optional; the page works without them. ---------------- */
+  const G = () => (!reduce() && window.gsap) || null;
+  const FX = {
+    /* rolling-digit odometer (idea from React Bits' Counter, written for plain DOM) */
+    odometer(host, from, to) {
+      const g = G(), txt = nf.format(to);
+      host.setAttribute('role', 'text'); host.setAttribute('aria-label', txt + ' DH');
+      const old = from == null ? null : nf.format(from);
+      let frac = false;
+      const digits = txt.split('').map(ch => { if (ch === '.') frac = true; return /\d/.test(ch)
+        ? `<span class="d${frac ? ' fr' : ''}" aria-hidden="true"><span class="s">${'0123456789'.split('').map(n => `<i>${n}</i>`).join('')}</span></span>`
+        : `<span class="p" aria-hidden="true">${ch}</span>`; });
+      host.innerHTML = digits.join('');
+      const strips = host.querySelectorAll('.s'), want = txt.replace(/\D/g, '').split('').map(Number);
+      if (!g) { strips.forEach((el, k) => { el.style.transform = `translateY(${-want[k] * 10}%)`; }); return; }
+      const start = old == null ? want.map((w, k) => { const v = (w + 3 + k * 3) % 10; return v === w ? (w + 5) % 10 : v; }) : (() => { const o = old.replace(/\D/g, '').padStart(want.length, '0').slice(-want.length).split('').map(Number); return o; })();
+      strips.forEach((el, k) => {
+        g.set(el, { yPercent: -start[k] * 10 });
+        if (start[k] === want[k] && old != null) return;
+        g.to(el, { yPercent: -want[k] * 10, duration: old == null ? 1.1 : .8, ease: 'power3.inOut', delay: old == null ? .25 + (strips.length - 1 - k) * .09 : (strips.length - 1 - k) * .05 });
+      });
+    },
+    intro(root) {
+      const g = G(); if (!g) return;
+      g.from(root.querySelector('.da-hero'), { opacity: 0, y: 18, duration: .55, ease: 'power3.out', clearProps: 'all' });
+      g.from(root.querySelectorAll('.da-brand,.da-hero h1,.da-bal-l,.da-mini div,.da-recov'), { opacity: 0, y: 10, duration: .45, stagger: .06, delay: .15, ease: 'power2.out', clearProps: 'all' });
+    },
+    reveal(el) {
+      const g = G(); if (!g) return;
+      const t = el.querySelectorAll('.da-card,.da-pred,.da-tile,.da-panel,.da-empty,.da-sec-h');
+      if (t.length) g.from(t, { opacity: 0, y: 14, duration: .42, stagger: { each: .035, amount: .5 }, ease: 'power2.out', clearProps: 'opacity,transform' });
+    },
+    indicator(animate) {
+      const bar = document.querySelector('#daTabs .da-ind'), on = document.querySelector('#daTabs .da-tab.on'); if (!bar || !on) return;
+      const g = G(), x = on.offsetLeft, w = on.offsetWidth;
+      if (g && animate) g.to(bar, { x, width: w, duration: .4, ease: 'power3.out' }); else { bar.style.transform = `translateX(${x}px)`; bar.style.width = w + 'px'; }
+    },
+    modal(el) {
+      const g = G(); if (!g) return;
+      const box = el.querySelector('.da-modal');
+      g.from(el, { opacity: 0, duration: .2 });
+      g.from(box, { y: window.innerWidth < 560 ? 80 : 24, scale: window.innerWidth < 560 ? 1 : .96, opacity: 0, duration: .4, ease: 'power3.out', clearProps: 'transform,opacity' });
+    },
+    spark(x, y) {
+      const g = G(); if (!g) return;
+      for (let k = 0; k < 14; k++) {
+        const d = document.createElement('span'); d.className = 'da da-spark'; document.body.appendChild(d);
+        const a = (Math.PI * 2 * k) / 14, r = 46 + Math.random() * 40;
+        g.set(d, { x, y, rotation: a * 180 / Math.PI + 90, margin: 0 });
+        g.to(d, { x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, opacity: 0, scaleY: .3, duration: .6, ease: 'power2.out', onComplete: () => d.remove() });
+      }
+    },
+    /* pointer spotlight + magnetic keys, delegated so re-renders cost nothing */
+    pointer(root) {
+      let raf = 0, last = null;
+      root.addEventListener('pointermove', e => {
+        if (e.pointerType !== 'mouse') return;
+        last = e; if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0; const ev = last, t = ev.target.closest && ev.target.closest('.da-card,.da-pred');
+          if (t) { const r = t.getBoundingClientRect(); t.style.setProperty('--mx', (ev.clientX - r.left) + 'px'); t.style.setProperty('--my', (ev.clientY - r.top) + 'px'); }
+          const g = G(), b = ev.target.closest && ev.target.closest('.da-btn:not(.ghost):not(:disabled)');
+          if (g && b) { const r = b.getBoundingClientRect(); g.to(b, { x: (ev.clientX - r.left - r.width / 2) * .18, y: (ev.clientY - r.top - r.height / 2) * .22, duration: .25, ease: 'power2.out', overwrite: 'auto' }); FX.mag = b; }
+          else if (g && FX.mag) { g.to(FX.mag, { x: 0, y: 0, duration: .5, ease: 'elastic.out(1,.5)', overwrite: 'auto' }); FX.mag = null; }
+        });
+      }, { passive: true });
+    }
+  };
+
+  /* smooth scroll (Lenis by darkroom.engineering), only while the Demo Arena is open */
+  const SMOOTH = {
+    inst: null,
+    tick(t) { if (SMOOTH.inst) SMOOTH.inst.raf(t * 1000); },
+    start() {
+      if (SMOOTH.inst || reduce() || !window.Lenis || !window.gsap || (navigator.maxTouchPoints > 0 && !matchMedia('(pointer:fine)').matches)) return;
+      try {
+        const L = window.Lenis.default || window.Lenis.Lenis || window.Lenis;
+        SMOOTH.inst = new L({ lerp: .11, smoothWheel: true, anchors: false });
+        window.gsap.ticker.add(SMOOTH.tick);
+      } catch (e) { SMOOTH.inst = null; }
+    },
+    stop() { if (!SMOOTH.inst) return; try { window.gsap.ticker.remove(SMOOTH.tick); SMOOTH.inst.destroy(); } catch (e) {} SMOOTH.inst = null; },
+    hold() { if (SMOOTH.inst) SMOOTH.inst.stop(); },
+    release() { if (SMOOTH.inst) SMOOTH.inst.start(); }
+  };
 
   /* ---------------- modal ---------------- */
   let modalEl = null, modalFrom = null;
@@ -86,16 +160,18 @@
     modalEl = document.createElement('div');
     modalEl.className = 'da da-ov'; modalEl.setAttribute('role', 'dialog'); modalEl.setAttribute('aria-modal', 'true');
     modalEl.innerHTML = `<div class="da-modal">${html}</div>`;
+    modalEl.setAttribute('data-lenis-prevent', '');
     modalEl.addEventListener('mousedown', e => { if (e.target === modalEl) closeModal(); });
     modalEl.addEventListener('click', onClick);
     modalEl.addEventListener('input', onInput);
     document.body.appendChild(modalEl);
+    SMOOTH.hold(); FX.modal(modalEl);
     const f = modalEl.querySelector('input,button.da-btn'); if (f) f.focus();
     return modalEl.querySelector('.da-modal');
   }
   function closeModal() {
     if (!modalEl) return;
-    modalEl.remove(); modalEl = null; S.slip = null;
+    modalEl.remove(); modalEl = null; S.slip = null; SMOOTH.release();
     if (modalFrom && modalFrom.focus) { try { modalFrom.focus(); } catch (e) {} }
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalEl) closeModal(); });
@@ -115,6 +191,7 @@
       const t = e.target;
       if (t && t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('da-crest')) t.parentElement.textContent = t.parentElement.dataset.ini || '';
     }, true);
+    FX.pointer(r);
     S.built = true;
   }
 
@@ -152,15 +229,15 @@
         <div class="da-brand"><span class="ic">${ICON.trophy}</span><div>Demo Arena<small>Virtual Sports Predictions</small></div></div>
         <h1>Welcome back, ${esc(S.me.name)}</h1>
         <div class="da-bal-l">Available demo balance</div>
-        <div class="da-balrow"><div class="da-bal"><b id="daBal">${nf.format(S.shownBalance == null ? w.balance : S.shownBalance)}</b><span>DH</span></div>
+        <div class="da-balrow"><div class="da-bal"><div class="da-od" id="daBal"></div><span>DH</span></div>
         <div class="da-mini">
           <div><small>Win rate</small><b>${pct(w.winRate)}</b></div>
           <div><small>Profit / loss</small><b class="${w.profit > 0 ? 'da-pos' : w.profit < 0 ? 'da-neg' : ''}">${sgn(w.profit)} DH</b></div>
-          <div><small>Open</small><b>${w.pending}</b></div>
+          <div><small>Open predictions</small><b>${w.pending}</b></div>
         </div></div>
       </div>
       ${recoveryBlock()}</section>`;
-    animateNumber(document.getElementById('daBal'), S.shownBalance, w.balance);
+    FX.odometer(document.getElementById('daBal'), S.shownBalance, w.balance);
     S.shownBalance = w.balance;
   }
 
@@ -168,13 +245,16 @@
     const el = document.getElementById('daTabs'); if (!el || !S.me) return;
     const tabs = [['arena', 'Arena'], ['predictions', 'My predictions'], ['analytics', 'Analytics'], ['wallet', 'Wallet']];
     if (S.me.isAdmin) tabs.push(['admin', 'Admin']);
-    el.innerHTML = tabs.map(([k, l]) => `<button class="da-tab ${S.section === k ? 'on' : ''}" role="tab" aria-selected="${S.section === k}" data-act="section" data-k="${k}">${l}${k === 'predictions' && S.me.wallet.pending ? `<span class="n">${S.me.wallet.pending}</span>` : ''}</button>`).join('');
+    el.innerHTML = tabs.map(([k, l]) => `<button class="da-tab ${S.section === k ? 'on' : ''}" role="tab" aria-selected="${S.section === k}" data-act="section" data-k="${k}">${l}${k === 'predictions' && S.me.wallet.pending ? `<span class="n">${S.me.wallet.pending}</span>` : ''}</button>`).join('') + '<span class="da-ind" aria-hidden="true"></span>';
+    FX.indicator(S.tabsShown); S.tabsShown = true;
   }
 
   function renderBody() {
     const el = document.getElementById('daBody'); if (!el) return;
     if (!S.me) { el.innerHTML = '<div class="da-skel"></div>'; return; }
     ({ arena: renderArena, predictions: renderPreds, analytics: renderAnalytics, wallet: renderWallet, admin: renderAdmin }[S.section] || renderArena)(el);
+    const key = [S.section, S.sport, S.view, S.predFilter].join('|');
+    if (!el.querySelector('.da-skel') && key !== S.revealKey) { S.revealKey = key; FX.reveal(el); }
   }
   function renderAll() { renderHero(); renderTabs(); renderBody(); }
 
@@ -235,7 +315,7 @@
   function slipHTML() {
     const s = S.slip, w = S.me.wallet, c = S.me.config, max = Math.max(0, Math.min(c.maxStake, Math.floor(w.balance)));
     const chips = [10, 50, 100, 250, 500].filter(v => v >= c.minStake && v <= max).map(v => `<button type="button" class="da-pill" data-act="chip" data-v="${v}">${v}</button>`).join('') + (max >= c.minStake ? `<button type="button" class="da-pill" data-act="chip" data-v="${max}">Max ${max}</button>` : '');
-    return `<h3>Virtual prediction</h3>
+    return `<span class="da-stamp">Virtual credits</span><h3>Virtual prediction</h3>
       <p class="sub">${esc(s.m.home.name)} vs ${esc(s.m.away.name)}<br>${esc(s.m.league)}</p>
       <div class="da-sel"><div><small class="da-muted">${s.market === '1x2' ? 'Match result' : 'Total goals'}</small><br><b>${esc(s.label)}</b></div><div class="o" id="daSlipOdds">${s.odds.toFixed(2)}</div></div>
       <label for="daStake" class="da-mkl">Virtual stake (DH)</label>
@@ -275,7 +355,9 @@
     if (!S.slip) return;
     s.busy = false;
     if (r.ok) {
+      const br = btn && btn.getBoundingClientRect();
       S.me.wallet = r.json.wallet; S.preds = null; closeModal();
+      if (br) FX.spark(br.left + br.width / 2, br.top + br.height / 2);
       toast(`Prediction placed: ${s.label} at ${s.odds.toFixed(2)}, stake ${dh(s.stake)}`, 'ok');
       renderAll(); loadMe(true);
       return;
@@ -316,7 +398,7 @@
     else if (p.status === 'lost') line = `Lost ${dh(p.stake)}${p.score ? ', final score ' + esc(p.score) : ''}`;
     else if (p.status === 'void') line = `${dh(p.stake)} refunded: ${esc(REASON[p.voidReason] || 'match void')}`;
     else line = `Potential return ${dh(p.potential)}`;
-    return `<article class="da-pred"><div><div class="t">${esc(p.selectionLabel)}</div><div class="s">${esc(p.home.name)} vs ${esc(p.away.name)}</div><div class="s">${esc(p.league)}, ${esc(p.marketLabel)}</div></div>
+    return `<article class="da-pred" data-p="${esc(p.phase)}"><div><div class="t">${esc(p.selectionLabel)}</div><div class="s">${esc(p.home.name)} vs ${esc(p.away.name)}</div><div class="s">${esc(p.league)}, ${esc(p.marketLabel)}</div></div>
       <div class="r"><b>${dh(p.stake)}</b><small>at ${p.odds.toFixed(2)}</small></div><div class="f">${chip}<span>${line}</span></div></article>`;
   }
   function renderPreds(el) {
@@ -334,7 +416,7 @@
   /* ---------------- analytics ---------------- */
   function ring(rate) {
     const r = 46, c = 2 * Math.PI * r, v = rate == null ? 0 : Math.max(0, Math.min(100, rate));
-    return `<div class="da-ring"><svg viewBox="0 0 120 120" width="130" height="130" aria-hidden="true"><defs><linearGradient id="daRg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs><circle cx="60" cy="60" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="url(#daRg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(c * v / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 60 60)"/></svg><b>${rate == null ? '–' : Math.round(rate) + '%'}</b></div>`;
+    return `<div class="da-ring"><svg viewBox="0 0 120 120" width="130" height="130" aria-hidden="true"><circle cx="60" cy="60" r="${r}" fill="none" stroke="#DCE4DA" stroke-width="12"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="#17843F" stroke-width="12" stroke-linecap="butt" stroke-dasharray="${(c * v / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 60 60)"/></svg><b>${rate == null ? '–' : Math.round(rate) + '%'}</b></div>`;
   }
   function lineChart(series) {
     if (!series.length) return '<div class="da-empty"><b>No settled predictions yet</b>Your profit curve appears after your first result.</div>';
@@ -344,10 +426,10 @@
     const d = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.cum).toFixed(1)).join(' ');
     const area = d + ` L${X(pts.length - 1).toFixed(1)} ${Y(min).toFixed(1)} L${X(0).toFixed(1)} ${Y(min).toFixed(1)}Z`;
     const last = pts[pts.length - 1];
-    return `<svg class="da-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative profit and loss in virtual credits"><defs><linearGradient id="daAr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6D7BFF" stop-opacity=".45"/><stop offset="1" stop-color="#6D7BFF" stop-opacity="0"/></linearGradient><linearGradient id="daLn" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
-      <line x1="${pad}" x2="${W - pad}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="rgba(255,255,255,.18)" stroke-dasharray="4 5"/>
-      <path d="${area}" fill="url(#daAr)"/><path d="${d}" fill="none" stroke="url(#daLn)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="${X(pts.length - 1).toFixed(1)}" cy="${Y(last.cum).toFixed(1)}" r="5" fill="#fff"/>
+    return `<svg class="da-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative profit and loss in virtual credits"><defs><pattern id="daHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#E3EBE1"/><line x1="0" y1="0" x2="0" y2="6" stroke="#B9C8B8" stroke-width="2"/></pattern></defs>
+      <line x1="${pad}" x2="${W - pad}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="#0B2216" stroke-width="1.5" stroke-dasharray="5 5"/>
+      <path d="${area}" fill="url(#daHatch)"/><path d="${d}" fill="none" stroke="#0B2216" stroke-width="3" stroke-linejoin="miter"/>
+      <rect x="${(X(pts.length - 1) - 5).toFixed(1)}" y="${(Y(last.cum) - 5).toFixed(1)}" width="10" height="10" fill="#FFD60A" stroke="#0B2216" stroke-width="2"/>
       <text x="${pad}" y="14">${sgn(max)} DH</text><text x="${pad}" y="${H - 6}">${sgn(min)} DH</text><text x="${W - pad}" y="14" text-anchor="end">Now ${sgn(last.cum)} DH</text></svg>`;
   }
   function dailyBars(days) {
@@ -355,7 +437,7 @@
     const W = 640, H = 170, pad = 24, mx = Math.max(1, ...days.map(d => d.wins + d.losses)), bw = (W - pad * 2) / days.length;
     return `<svg class="da-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Wins and losses per day">${days.map((d, i) => {
       const x = pad + i * bw + bw * .2, w = bw * .6, hw = (H - pad * 2) * d.wins / mx, hl = (H - pad * 2) * d.losses / mx;
-      return `<rect x="${x.toFixed(1)}" y="${(H - pad - hw).toFixed(1)}" width="${w.toFixed(1)}" height="${hw.toFixed(1)}" rx="4" fill="#34D399"/><rect x="${x.toFixed(1)}" y="${(H - pad - hw - hl - (hw && hl ? 2 : 0)).toFixed(1)}" width="${w.toFixed(1)}" height="${hl.toFixed(1)}" rx="4" fill="#FB7185"/><text x="${(x + w / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(d.date.slice(5).replace('-', '/'))}</text>`;
+      return `<rect x="${x.toFixed(1)}" y="${(H - pad - hw).toFixed(1)}" width="${w.toFixed(1)}" height="${hw.toFixed(1)}" rx="4" fill="#17843F"/><rect x="${x.toFixed(1)}" y="${(H - pad - hw - hl - (hw && hl ? 2 : 0)).toFixed(1)}" width="${w.toFixed(1)}" height="${hl.toFixed(1)}" rx="4" fill="#D62E32"/><text x="${(x + w / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(d.date.slice(5).replace('-', '/'))}</text>`;
     }).join('')}</svg>`;
   }
   function breakdown(rows, title) {
@@ -533,14 +615,16 @@
     open() {
       if (!authState.loggedIn) return;
       if (!S.built) build();
-      startTimers();
+      startTimers(); SMOOTH.start();
+      if (!S.introDone) { S.introDone = true; requestAnimationFrame(() => FX.intro($root())); }
       if (S.me) renderAll(); else renderBody();
       if (!S.me || Date.now() - S.lastLoad > 15000) loadMe().then(ok => { if (ok) loadSection(); });
       else loadSection();
     },
+    close() { SMOOTH.stop(); },
     reset() {
-      closeModal(); clearInterval(S.poll); clearInterval(S.tick);
-      Object.assign(S, { built: false, me: null, section: 'arena', matches: null, preds: null, analytics: null, admin: null, tx: { items: [], total: 0 }, shownBalance: null, poll: 0, tick: 0, lastLoad: 0 });
+      closeModal(); SMOOTH.stop(); clearInterval(S.poll); clearInterval(S.tick);
+      Object.assign(S, { built: false, me: null, section: 'arena', matches: null, preds: null, analytics: null, admin: null, tx: { items: [], total: 0 }, shownBalance: null, poll: 0, tick: 0, lastLoad: 0, introDone: false, revealKey: '', tabsShown: false });
       const r = $root(); if (r) r.innerHTML = '';
     }
   };
