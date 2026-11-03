@@ -537,6 +537,7 @@ html.lenis, html.lenis body { height:auto; }
 .dc-comment-input button { background: var(--brand); color: #fff; border: 0; border-radius: 99px; padding: 0 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
 </style>
 <link rel="stylesheet" href="/demo-arena.css">
+<link rel="stylesheet" href="/agent.css">
 </head>
 <body>
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -777,6 +778,8 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-demo" class="tab-view"></div>
 
+    <div id="view-agent" class="tab-view"></div>
+
     <div id="view-unlock" class="tab-view">
       <section style="margin-top:24px;">
         <div class="section-head"><div><div class="section-label">💎 <span data-i18n="nav_unlock">Unlock Access</span></div><h2 data-i18n="unlock_h">Get full access to the signals</h2></div></div>
@@ -932,6 +935,7 @@ html.lenis, html.lenis body { height:auto; }
 <div id="menuOverlay" class="side-overlay hidden" onclick="closeMenu()"></div>
 <aside id="sideMenu" data-lenis-prevent class="side-menu" aria-hidden="true" inert>
   <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" onclick="closeMenu()">✕</button></div>
+  <button class="side-item ag-side" type="button" data-tab="agent" onclick="menuGo('agent')"><span class="si-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5l3.8 2.8-1.4 4.4H9.6l-1.4-4.4z"/><path d="M12 3v4.5M20.6 9.6l-4.8.7M17.4 19l-3-4.3M6.6 19l3-4.3M3.4 9.6l4.8.7"/></svg></span><span class="si-t"><b>Coach Edge</b><small>خبير الكرة · دارجة / عربية / FR / EN</small></span><span class="ag-new">AI</span></button>
   <button class="side-item da-side" type="button" data-tab="demo" onclick="menuGo('demo')"><span class="si-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg></span><span class="si-t"><b>Demo Arena</b><small>Virtual Sports Predictions</small></span></button>
   <button class="side-item" type="button" data-tab="performance" onclick="menuGo('performance')"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
   <button class="side-item" type="button" data-tab="weekly" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
@@ -1299,7 +1303,7 @@ function updateAuthUI() {
   document.getElementById('loginBtn').classList.toggle('hidden', authState.loggedIn);
   document.getElementById('profileBtn').classList.toggle('hidden', !authState.loggedIn);
   document.getElementById('menuBtn').classList.toggle('hidden', !authState.loggedIn);
-  if (!authState.loggedIn) { closeMenu(); if (window.DemoArena) window.DemoArena.reset(); }
+  if (!authState.loggedIn) { closeMenu(); if (window.DemoArena) window.DemoArena.reset(); if (window.FootballAgent) window.FootballAgent.reset(); }
   document.body.classList.toggle('has-side', authState.loggedIn);
   if (!authState.loggedIn) document.getElementById('profileMenu').classList.add('hidden');
   renderProfile(); applyPlanGate();
@@ -1762,6 +1766,7 @@ function __doSwitch(tab) {
   }
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.id === 'nav-' + tab));
   if (window.DemoArena) { if (tab === 'demo') window.DemoArena.open(); else window.DemoArena.close(); }
+  if (window.FootballAgent && tab === 'agent') window.FootballAgent.open();
   document.querySelectorAll('.side-item[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.getElementById('tgFab').classList.toggle('tab-off', tab !== 'signals');
   if (window.__globePause) window.__globePause(250);
@@ -2819,5 +2824,6 @@ document.addEventListener('DOMContentLoaded',function(){
 <script src="live-globe.js" defer></script>
 <script src="vendor/lenis.min.js" defer></script>
 <script src="demo-arena.js" defer></script>
+<script src="agent.js" defer></script>
 </body>
 </html>
