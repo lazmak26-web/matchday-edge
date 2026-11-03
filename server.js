@@ -1600,11 +1600,12 @@ setInterval(() => {
 }, 60 * 60 * 1000).unref();
 
 let shuttingDown = false;
+let demoSaver = null;   // set once Demo Arena is wired below
 function shutdown(signal, code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`${signal}: saving data before exit`);
-  for (const sv of [userSaver, sessionSaver, licenseSaver, snapshotSaver, discoverSaver]) sv.now(); 
+  for (const sv of [userSaver, sessionSaver, licenseSaver, snapshotSaver, discoverSaver, demoSaver]) if (sv) sv.now();
   server.close(() => process.exit(code));
   setTimeout(() => process.exit(code), 4000).unref();
 }
@@ -1791,6 +1792,44 @@ app.post('/api/discover/:id/comment', authMiddleware, (req, res) => {
   saveDiscoverSoon();
   res.json({ ok: true, comment });
 });
+
+/* ═══════════════════════════════════════════════════════════
+   🎯 DEMO ARENA — virtual-credit prediction simulator (no real money, ever). Logic lives in demo-arena.js.
+   ═══════════════════════════════════════════════════════════ */
+async function demoFeed() {
+  try {
+    const live = await getFixtures();
+    const byId = new Map(live.map(f => [String(f.id), f]));
+    const cut = dateDaysAgo(3);
+    for (const s of snapshotStore.values()) if (s && s.status === 'finished' && s.date >= cut && !byId.has(String(s.id))) byId.set(String(s.id), s);
+    return { ok: true, fixtures: [...byId.values()] };
+  } catch (e) { return { ok: false, error: e.message, fixtures: [] }; }
+}
+function demoLookup(id) {
+  const f = findFixture(id), s = snapshotStore.get(String(id));
+  const sFinal = s && s.status === 'finished' && Number.isInteger(s.homeScore) && Number.isInteger(s.awayScore);
+  const src = sFinal && (!f || f.status !== 'finished') ? s : (f || s);
+  return src ? { status: src.status, homeScore: src.homeScore, awayScore: src.awayScore } : null;
+}
+const demoArena = require('./demo-arena').create({
+  app, authMiddleware, requireAdmin, dataLimiter, writeAtomic, makeSaver, planOf,
+  getSession: req => sessions.get(req.authToken),
+  isAdminSession,
+  file: process.env.DEMO_FILE || path.join(path.dirname(HISTORY_FILE), 'demo-arena.json'),
+  getFeed: demoFeed,
+  lookupMatch: demoLookup,
+  providerStatus: () => ({
+    configured: !!(BZZOIRO_API_KEY || API_KEY),
+    providers: { bzzoiro: !!BZZOIRO_API_KEY, footballData: !!API_KEY, apiFootball: !!process.env.APIFOOTBALL_KEY },
+    bzzoiroRequestsToday: bzzUsage.n, bzzoiroDailyBudget: BZZ_DAILY_BUDGET,
+    apiFootball: (() => { try { return afOdds.stats(); } catch (e) { return null; } })()
+  }),
+  planOfUserKey: key => {
+    const i = key.indexOf(':'), kind = key.slice(0, i), name = key.slice(i + 1);
+    return kind === 'email' ? planOf({ kind: 'local', username: name }) : null;
+  }
+});
+demoSaver = demoArena.saver;
 
 // ✅ Express 5 JSON 404 fallback
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
