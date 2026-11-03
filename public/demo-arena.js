@@ -393,7 +393,7 @@
   /* ---------------- predictions ---------------- */
   const REASON = { match_canceled: 'Match cancelled', unresolved: 'No verified result' };
   function predCard(p) {
-    const chip = p.phase === 'won' ? '<span class="da-chip won">Won</span>' : p.phase === 'lost' ? '<span class="da-chip lost">Lost</span>' : p.phase === 'void' ? '<span class="da-chip void">Refunded</span>' : p.phase === 'active' ? '<span class="da-chip act">In play</span>' : '<span class="da-chip soon">Pending</span>';
+    const chip = p.phase === 'won' ? '<span class="da-stamp won">Won</span>' : p.phase === 'lost' ? '<span class="da-stamp lost">Loss</span>' : p.phase === 'void' ? '<span class="da-stamp void">Refunded</span>' : p.phase === 'active' ? '<span class="da-chip act">In play</span>' : '<span class="da-chip soon">Pending</span>';
     let line;
     if (p.status === 'won') line = `Returned ${dh(p.payout)}${p.score ? ', final score ' + esc(p.score) : ''}`;
     else if (p.status === 'lost') line = `Lost ${dh(p.stake)}${p.score ? ', final score ' + esc(p.score) : ''}`;
