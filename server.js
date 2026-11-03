@@ -1002,7 +1002,14 @@ app.use('/api/', (req, res, next) => {
 
 app.use(express.json({ limit: '10kb' }));
 app.use(pageLimiter);
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], dotfiles: 'deny', index: 'index.html' }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  extensions: ['html'], dotfiles: 'deny', index: 'index.html',
+  // static assets that rarely change are cached for a week; pages and our own scripts/styles always revalidate (ETag) so updates show up at once
+  setHeaders(res, file) {
+    if (/\.(woff2|png|jpe?g|webp|svg|ico)$/i.test(file) || /[\\/]vendor[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=604800');
+    else res.setHeader('Cache-Control', 'no-cache');
+  }
+}));
 
 /* ═══════════════════════════════════════════════════════════
    ✅ TRACKING (Visits & Live Users)
