@@ -1,0 +1,27 @@
+/* Matchday Edge: motion layer. Effects adapted from the React Bits (David Haz) ideas, rebuilt in vanilla JS on GSAP. */
+.bv{position:relative;overflow:hidden;margin:0 0 18px;padding:22px;border-radius:30px;background:var(--glass,var(--card));border:1px solid var(--good-line,var(--line));box-shadow:inset 0 1px 0 var(--hi,transparent),var(--shadow)}
+.bv::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(520px circle at var(--mx,85%) var(--my,0%),var(--good-dim),transparent 70%)}
+.bv-shine{position:absolute;top:0;bottom:0;left:-40%;width:40%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.14),transparent);transform:skewX(-18deg);opacity:0}
+.bv-top{display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative}
+.bv-tag{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--good)}
+.bv-hint{font-size:12px;color:var(--ink-3)}
+.bv-main{position:relative;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:end;margin-top:14px}
+.bv-match{display:flex;align-items:center;gap:10px;font-weight:700;font-size:clamp(17px,3.4vw,24px);letter-spacing:-.02em}
+.bv-match .crest{width:36px;height:36px;flex:none}
+.bv-league{font-size:12px;color:var(--ink-3);font-weight:500}
+.bv-sel{margin-top:10px;font-size:15px;font-weight:600;color:var(--ink-2)}
+.bv-nums{display:flex;gap:22px;text-align:right}
+.bv-num b{display:block;font-size:clamp(30px,6vw,52px);font-weight:700;letter-spacing:-.04em;line-height:1}
+.bv-num b.ev{color:var(--good)}
+.bv-num i{font-style:normal;font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+.bv-meta{position:relative;display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--ink-2)}
+.bv.is-none{border-color:var(--line)}
+.bv.is-none .bv-tag,.bv.is-none .bv-num b.ev{color:var(--ink-3)}
+@media(max-width:560px){.bv{padding:18px;border-radius:26px}.bv-main{grid-template-columns:1fr}.bv-nums{text-align:left}}
+/* selected card + clickable hints */
+.match[data-fx],.pick[data-fx]{cursor:pointer}
+.match.is-selected,.pick.is-selected{border-color:var(--good-line,var(--brand));box-shadow:0 0 0 2px var(--good-dim,var(--brand-dim)),var(--shadow)}
+/* shiny text (React Bits ShinyText idea) on the best-EV stat */
+.shiny{background:linear-gradient(100deg,currentColor 40%,var(--good) 50%,currentColor 60%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:shiny 3.4s linear infinite}
+@keyframes shiny{from{background-position:120% 0}to{background-position:-120% 0}}
+@media (prefers-reduced-motion:reduce){.shiny{animation:none;-webkit-text-fill-color:currentColor}}
