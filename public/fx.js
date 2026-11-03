@@ -24,6 +24,11 @@
     var t = (translations[localStorage.getItem('mde:lang') || 'en'] || translations.en);
     if (!r) return '';
     var b = r.json.best_bet_value, none = !b;
+    if (b && !(window.MDE_REV && MDE_REV.has(r.fx.id))) {
+      return '<div class="bv-top"><span class="bv-tag">' + (t.value_bet || 'Value Bet') + '</span><span class="bv-hint">' + esc(r.fx.league) + '</span></div>' +
+        '<div class="bv-main"><div><div class="bv-match">' + crestHTML(r.fx.home) + crestHTML(r.fx.away) + '<span>' + esc(r.json.match) + '</span></div></div>' +
+        '<div class="bv-nums"><button class="ev-gate-btn lg" type="button" data-reveal="' + esc(r.fx.id) + '">' + (t.show_ev || 'Show') + '</button></div></div>';
+    }
     return '<div class="bv-shine"></div>' +
       '<div class="bv-top"><span class="bv-tag">★ ' + (t.value_bet || 'Value Bet') + '</span><span class="bv-hint">' + esc(r.fx.league) + '</span></div>' +
       '<div class="bv-main"><div>' +
@@ -39,7 +44,7 @@
     var r = current();
     if (!spot || !spot.isConnected) { spot = document.createElement('div'); spot.id = 'bvSpot'; host.parentNode.insertBefore(spot, host); }
     if (!r) { spot.className = ''; spot.innerHTML = ''; return; }
-    var b = r.json.best_bet_value, key = String(r.fx.id) + '|' + (b ? b.expected_value + b.bookmaker_odds : '-');
+    var b = r.json.best_bet_value, key = String(r.fx.id) + '|' + (b ? b.expected_value + b.bookmaker_odds : '-') + (window.MDE_REV && MDE_REV.has(r.fx.id) ? '|o' : '|c');
     if (spot.dataset.key === key && !animate) return;
     var first = !spot.dataset.key;
     spot.dataset.key = key;
@@ -66,7 +71,7 @@
     var g = G(); if (!g) return;
     document.querySelectorAll('#stats .stat-value').forEach(function (el, i) {
       var txt = el.textContent.trim(), n = parseFloat(txt.replace('+', ''));
-      if (i === 3 && /%/.test(txt)) el.classList.add('shiny');
+      
       if (!isFinite(n) || lastStat[i] === txt) return;
       var fmt = /%/.test(txt) ? function (v) { return (txt[0] === '+' ? '+' : '') + v.toFixed(2) + '%'; } : function (v) { return String(Math.round(v)); };
       countTo(el, n, fmt, lastStat[i] ? parseFloat(lastStat[i].replace('+', '')) : 0);
@@ -105,7 +110,11 @@
     var r = c.getBoundingClientRect(); c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px');
   }, { passive: true });
 
-  window.MDEFX = { after: after };
+  window.MDEFX = { after: after, pop: function (id) {
+    var g = G(); if (!g) return;
+    var q = id === '*' ? '#board .pick' : '[data-fx="' + id + '"] .vb, #bvSpot .bv-num';
+    var n = document.querySelectorAll(q); if (n.length) g.from(n, { y: 10, opacity: 0, duration: .45, stagger: .06, ease: 'power3.out', clearProps: 'all' });
+  } };
   document.addEventListener('DOMContentLoaded', function () { setTimeout(after, 0); });
   if (typeof renderSignals === 'function') {
     var base = renderSignals;
