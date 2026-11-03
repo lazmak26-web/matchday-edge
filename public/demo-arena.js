@@ -152,12 +152,12 @@
         <div class="da-brand"><span class="ic">${ICON.trophy}</span><div>Demo Arena<small>Virtual Sports Predictions</small></div></div>
         <h1>Welcome back, ${esc(S.me.name)}</h1>
         <div class="da-bal-l">Available demo balance</div>
-        <div class="da-bal"><b id="daBal">${nf.format(S.shownBalance == null ? w.balance : S.shownBalance)}</b><span>DH</span></div>
+        <div class="da-balrow"><div class="da-bal"><b id="daBal">${nf.format(S.shownBalance == null ? w.balance : S.shownBalance)}</b><span>DH</span></div>
         <div class="da-mini">
           <div><small>Win rate</small><b>${pct(w.winRate)}</b></div>
           <div><small>Profit / loss</small><b class="${w.profit > 0 ? 'da-pos' : w.profit < 0 ? 'da-neg' : ''}">${sgn(w.profit)} DH</b></div>
-          <div><small>Open predictions</small><b>${w.pending}</b></div>
-        </div>
+          <div><small>Open</small><b>${w.pending}</b></div>
+        </div></div>
       </div>
       ${recoveryBlock()}</section>`;
     animateNumber(document.getElementById('daBal'), S.shownBalance, w.balance);
