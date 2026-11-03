@@ -536,6 +536,7 @@ html.lenis, html.lenis body { height:auto; }
 .dc-comment-input input { flex: 1; padding: 8px 12px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--soft); color: var(--ink); font-size: 13px; }
 .dc-comment-input button { background: var(--brand); color: #fff; border: 0; border-radius: 99px; padding: 0 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
 </style>
+<link rel="stylesheet" href="/demo-arena.css">
 </head>
 <body>
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -774,6 +775,8 @@ html.lenis, html.lenis body { height:auto; }
       </section>
     </div>
 
+    <div id="view-demo" class="tab-view"></div>
+
     <div id="view-unlock" class="tab-view">
       <section style="margin-top:24px;">
         <div class="section-head"><div><div class="section-label">💎 <span data-i18n="nav_unlock">Unlock Access</span></div><h2 data-i18n="unlock_h">Get full access to the signals</h2></div></div>
@@ -929,6 +932,7 @@ html.lenis, html.lenis body { height:auto; }
 <div id="menuOverlay" class="side-overlay hidden" onclick="closeMenu()"></div>
 <aside id="sideMenu" class="side-menu" aria-hidden="true" inert>
   <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" onclick="closeMenu()">✕</button></div>
+  <button class="side-item da-side" type="button" data-tab="demo" onclick="menuGo('demo')"><span class="si-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg></span><span class="si-t"><b>Demo Arena</b><small>Virtual Sports Predictions</small></span></button>
   <button class="side-item" type="button" data-tab="performance" onclick="menuGo('performance')"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
   <button class="side-item" type="button" data-tab="weekly" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
   <button class="side-item" type="button" data-tab="unlock" onclick="menuGo('unlock')"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
@@ -1295,7 +1299,7 @@ function updateAuthUI() {
   document.getElementById('loginBtn').classList.toggle('hidden', authState.loggedIn);
   document.getElementById('profileBtn').classList.toggle('hidden', !authState.loggedIn);
   document.getElementById('menuBtn').classList.toggle('hidden', !authState.loggedIn);
-  if (!authState.loggedIn) closeMenu();
+  if (!authState.loggedIn) { closeMenu(); if (window.DemoArena) window.DemoArena.reset(); }
   document.body.classList.toggle('has-side', authState.loggedIn);
   if (!authState.loggedIn) document.getElementById('profileMenu').classList.add('hidden');
   renderProfile(); applyPlanGate();
@@ -1757,6 +1761,7 @@ function __doSwitch(tab) {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.id === 'nav-' + tab));
+  if (tab === 'demo' && window.DemoArena) window.DemoArena.open();
   document.querySelectorAll('.side-item[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.getElementById('tgFab').classList.toggle('tab-off', tab !== 'signals');
   if (window.__globePause) window.__globePause(250);
@@ -2763,5 +2768,6 @@ document.addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 <script src="live-globe.js" defer></script>
+<script src="demo-arena.js" defer></script>
 </body>
 </html>
