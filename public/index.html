@@ -651,17 +651,6 @@ html.lenis, html.lenis body { height:auto; }
       <section>
         <div class="section-head">
           <div>
-            <div class="section-label">🔥 <span data-i18n="value_board">Value Board</span></div>
-            <h2 data-i18n="best_ev">Best positive-EV prices</h2>
-          </div>
-          <button class="hide-btn" id="toggleBoardBtn" onclick="toggleValueBoard()" data-i18n="hide">Hide</button>
-        </div>
-        <div class="board-wrap" id="board"></div>
-      </section>
-
-      <section>
-        <div class="section-head">
-          <div>
             <div class="section-label">⚽ <span data-i18n="fixtures">Fixtures</span></div>
             <h2 data-i18n="matches">Matches</h2>
           </div>
@@ -1175,17 +1164,6 @@ Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partou
 Object.assign(translations.ar, { left_lbl: "المدة المتبقية", lifetime: "مدى الحياة", lic_checking: "جارٍ التحقق من الترخيص…", otp_title: "📧 تحقق من بريدك", otp_sub: "أرسلنا رمزًا من 6 أرقام إلى {email}.", otp_btn: "تحقق", otp_back: "رجوع", otp_bad: "أدخل الرمز المكون من 6 أرقام.", otp_resend: "إعادة إرسال الرمز", otp_resend_in: "إعادة الإرسال بعد {s}ث", menu_title: "القائمة", lic_menu: "تفعيل بريميوم", lic_title: "🔑 تفعيل بريميوم", lic_sub: "أدخل مفتاح الترخيص لتفعيل Pro على حسابك.", lic_btn: "تفعيل", lic_have: "لدي مفتاح ترخيص", lic_ok: "تم تفعيل بريميوم ✓", lic_fail: "فشل التفعيل.", lic_login: "انتهت الجلسة. سجل الدخول مجددًا.", reg_title: "✨ إنشاء حساب", reg_sub: "اختر اسمًا ثم أدخل بريدك الإلكتروني وكلمة مرور.", reg_submit: "إنشاء الحساب", have_acc: "لدي حساب بالفعل", ph_name: "اسمك", name_bad: "أدخل اسمك (من 2 إلى 30 حرفًا).", lic_doing: "جارٍ التفعيل…", lic_timeout: "استغرق الخادم وقتًا طويلًا. حاول مجددًا." });
 Object.assign(translations.ar, { globe_kicker: "مباشر الآن", globe_title: "حول العالم", globe_online: "متصل", globe_note: "مواقع تقريبية على مستوى المدينة للأشخاص المتواجدين على الموقع الآن." });
 
-let boardHidden = false;
-
-function updateToggleBtnText() {
-  const btn = document.getElementById('toggleBoardBtn');
-  if (!btn) return;
-  const lang = localStorage.getItem('mde:lang') || 'en';
-  const t = translations[lang] || translations.en;
-  btn.textContent = boardHidden ? t.show : t.hide;
-  btn.style.color = boardHidden ? 'var(--good)' : 'var(--text-sub)';
-}
-
 function applyLanguage(lang) {
   if (!translations[lang]) lang = 'en';
   document.documentElement.lang = lang;
@@ -1209,7 +1187,6 @@ function applyLanguage(lang) {
     const v = translations[lang] && translations[lang][el.getAttribute('data-i18n-ph')];
     if (v) el.placeholder = v;
   });
-  updateToggleBtnText();
   if (typeof syncThemeLabels === 'function') syncThemeLabels();
 }
 
@@ -1382,12 +1359,6 @@ async function activateLicense() {
 document.getElementById('loginBtn').onclick = openAuthModal;
 document.getElementById('settingsBtn').onclick = openSettingsModal;
 document.getElementById('openFilterBtn').onclick = openFilterModal;
-
-function toggleValueBoard() {
-  boardHidden = !boardHidden;
-  document.getElementById('board').classList.toggle('hidden', boardHidden);
-  updateToggleBtnText();
-}
 
 document.getElementById('logoutBtn').onclick = async () => {
   try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token } }); } catch(e) {}
@@ -1960,25 +1931,6 @@ function renderSignals() {
     <div class="stat-item"><div class="stat-value">${best!=null?sgn(best):'—'}</div><div class="stat-label">${t.best_ev_short}</div></div>
   `;
 
-  const rows = bets.sort((a, b) => b.v.bet.ev - a.v.bet.ev);
-  if (!rows.length) {
-    $('board').innerHTML = `<div class="empty-state">${t.no_value}</div>`;
-  } else {
-    $('board').innerHTML = rows.map(r => `<div class="pick" data-fx="${esc(r.fx.id)}">
-        <div class="pick-row">
-          <div class="pick-teams">${crestHTML(r.fx.home)}${crestHTML(r.fx.away)}<div><div class="pick-match">${esc(r.json.match)}</div><div class="pick-league">${esc(r.fx.league)}</div></div></div>
-          <div class="pick-odds">${r.json.best_bet_value.bookmaker_odds.toFixed(2)}</div>
-        </div>
-        <div class="pick-row">
-          <div class="pick-sel">${esc(r.json.best_bet_value.selection)}</div>
-          <div class="pick-tags">
-            <span class="pill good">${esc(r.json.best_bet_value.expected_value)} EV</span>
-            <span class="pill ${riskClass(r.json.best_bet_value.risk_level)}">${esc(r.json.best_bet_value.risk_level)}</span>
-          </div>
-        </div>
-      </div>`).join('');
-  }
-
   const cardList = st.results
     .filter(r => r.fx.status !== 'finished' && r.fx.status !== 'canceled')
     .sort((a, b) => (Number(isPinned(b.fx.id)) - Number(isPinned(a.fx.id))) || ((b.fx.big || 0) - (a.fx.big || 0)) || (Number(b.v.started) - Number(a.v.started)) || (fxDateTime(a.fx) - fxDateTime(b.fx)));
@@ -2204,6 +2156,8 @@ function applyGate(results) {
     if (sp && sp.prediction && sp.prediction.p) { applyServerPred(r, sp); return; }
     const g = st.gate.get(String(r.fx.id));
     if (r.v.bet && g && g.length) { r.v.blockedEv = r.v.bet.ev; r.v.bet = null; r.v.noBet = g; r.json.best_bet_value = null; }
+    // The browser-side model has no safety gate (bookmaker count, model/market gap, upset risk). Never show its value bet unless the server verified the match.
+    else if (r.v.bet && !(sp && sp.prediction && sp.prediction.p)) { r.v.blockedEv = r.v.bet.ev; r.v.bet = null; r.v.noBet = ['waiting for the server safety check']; r.json.best_bet_value = null; }
   });
   return results;
 }
@@ -2406,7 +2360,6 @@ function applyPlanGate() {
 function renderFreeSignals() {
   const t = tNow();
   $('stats').innerHTML = '';
-  $('board').innerHTML = `<div class="empty-state">🔒 ${t.free_board}<button class="btn-main" style="margin:14px auto 0;max-width:260px" onclick="switchTab('unlock')">${t.nav_unlock}</button></div>`;
   if (lpAppList) renderLanding(lpAppList, 'cards', "switchTab('unlock')");
   else { $('cards').innerHTML = ''; loadPublicFixtures('app'); }
 }
