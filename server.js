@@ -79,15 +79,17 @@ setInterval(() => {
 /* ═══════════════════════════════════════════════════════════
    CACHE & CONCURRENCY
    ═══════════════════════════════════════════════════════════ */
+// Low Bzzoiro quota (BZZ_DAILY_BUDGET <= 1000, e.g. 200/day): refresh far less often so the quota lasts the whole day.
+const BZZ_LOW = (parseInt(process.env.BZZ_DAILY_BUDGET, 10) || 5500) <= 1000;
 const FORM_TTL = 60 * 60 * 1000;
 const FIXTURES_TTL = 20 * 1000;
-const EVENTS_TTL_ACTIVE = 60 * 1000;
-const EVENTS_TTL_IDLE = 10 * 60 * 1000;
+const EVENTS_TTL_ACTIVE = BZZ_LOW ? 30 * 60 * 1000 : 60 * 1000;
+const EVENTS_TTL_IDLE = BZZ_LOW ? 60 * 60 * 1000 : 10 * 60 * 1000;
 const FD_TTL_ACTIVE = 60 * 1000;
 const FD_TTL_IDLE = 10 * 60 * 1000;
 const ODDS_TTL = 60 * 1000;
-const ODDS_EVENT_TTL = 10 * 60 * 1000;
-const ODDS_MISS_TTL = 3 * 60 * 1000;
+const ODDS_EVENT_TTL = BZZ_LOW ? 6 * 60 * 60 * 1000 : 10 * 60 * 1000;
+const ODDS_MISS_TTL = BZZ_LOW ? 60 * 60 * 1000 : 3 * 60 * 1000;
 const FORM_MISS_TTL = 10 * 60 * 1000;
 const HISTORY_TTL = 5 * 60 * 1000;
 
@@ -113,6 +115,7 @@ const oddsByEvent = new Map();
 let lastFixtures = null;
 
 const BZZ_DAILY_BUDGET = parseInt(process.env.BZZ_DAILY_BUDGET, 10) || 5500;
+if (BZZ_LOW) console.log(`🐢 Low Bzzoiro quota mode (${BZZ_DAILY_BUDGET}/day): slower refresh of events, odds, forms and results.`);
 const bzzUsage = { day: null, n: 0 };
 function bzzRoll() { const d = new Date().toISOString().slice(0, 10); if (bzzUsage.day !== d) { bzzUsage.day = d; bzzUsage.n = 0; } }
 function bzzCount() { bzzRoll(); bzzUsage.n++; if (bzzUsage.n % 100 === 0) console.log(`📈 Bzzoiro requests today: ${bzzUsage.n}/${BZZ_DAILY_BUDGET}`); }
@@ -348,11 +351,11 @@ function ensureFdSeasonStats() {
 /* ═══════════════════════════════════════════════════════════
    TEAM FORMS FROM BZZOIRO RESULTS
    ═══════════════════════════════════════════════════════════ */
-const BZZ_FORM_TTL = 6 * 60 * 60 * 1000;
+const BZZ_FORM_TTL = BZZ_LOW ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000;
 const BZZ_FORM_RETRY = 10 * 60 * 1000;
 const BZZ_FORM_DAYS = Math.max(7, parseInt(process.env.BZZ_FORM_DAYS, 10) || 30);
 const BZZ_FORM_GAMES = Math.min(15, Math.max(5, parseInt(process.env.BZZ_FORM_GAMES, 10) || 8));
-const BZZ_FORM_MAX_PAGES = Math.max(1, parseInt(process.env.BZZ_FORM_MAX_PAGES, 10) || 80);
+const BZZ_FORM_MAX_PAGES = Math.max(1, parseInt(process.env.BZZ_FORM_MAX_PAGES, 10) || (BZZ_LOW ? 25 : 80));
 const bzzFormCache = { map: new Map(), ts: 0 };
 let bzzFormInProgress = null;
 
@@ -855,7 +858,7 @@ async function getFixtures() {
    ═══════════════════════════════════════════════════════════ */
 const HISTORY_FILE = process.env.HISTORY_FILE || path.join(__dirname, 'data', 'history.json');
 const HISTORY_KEEP_DAYS = 60;
-const RESULTS_REFRESH_TTL = 5 * 60 * 1000;
+const RESULTS_REFRESH_TTL = BZZ_LOW ? 60 * 60 * 1000 : 5 * 60 * 1000;
 const snapshotStore = new Map();
 let resultsRefreshInProgress = null;
 const enginePre = require('./engine/prematch');
@@ -949,7 +952,7 @@ async function refreshHistoryResults() {
       let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${dateFrom}&date_to=${todayStr()}`;
       let changed = false;
 
-      for (let page = 0; url && page < 10; page++) {
+      for (let page = 0; url && page < (BZZ_LOW ? 3 : 10); page++) {
         bzzCount();
         const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
         if (!r.ok) throw new Error(`Results refresh HTTP ${r.status}`);
