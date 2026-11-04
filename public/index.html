@@ -1941,14 +1941,25 @@ function renderSignals() {
   const cardList = st.results
     .filter(r => r.fx.status !== 'finished' && r.fx.status !== 'canceled')
     .sort((a, b) => (Number(isPinned(b.fx.id)) - Number(isPinned(a.fx.id))) || ((b.fx.big || 0) - (a.fx.big || 0)) || (Number(b.v.started) - Number(a.v.started)) || (fxDateTime(a.fx) - fxDateTime(b.fx)));
-  $('cards').innerHTML = cardList.length ? cardList.map(r => {
-    const { fx, json, v } = r, H = fx.home, A = fx.away;
-    const scoreHTML = `<b class="kv-score">${esc(json.scoreline_prediction.most_likely)}</b>`;
-    const mx = v.p ? Math.max(v.p.h, v.p.d, v.p.a) : null;
-    const tile = (cls, label, val) => `<div class="tile ${cls} ${v.p && val === mx ? 'top' : ''}"><i>${label}</i><b>${v.p ? pct1(val) : '-'}</b></div>`;
-    let probHTML = `<div class="tiles">${tile('t-h', t.home, v.p ? v.p.h : 0)}${tile('t-d', t.draw, v.p ? v.p.d : 0)}${tile('t-a', t.away, v.p ? v.p.a : 0)}</div>`;
+  // One broken fixture (missing odds, missing scoreline...) must not stop the other cards from rendering.
+  const cardsHTML = cardList.map(r => {
+    try {
+      const { fx, json, v } = r, H = fx.home, A = fx.away;
+      const mostLikely = json?.scoreline_prediction?.most_likely;
+      const scoreHTML = mostLikely != null ? `<b class="kv-score">${esc(mostLikely)}</b>` : NA;
+      const mx = v.p ? Math.max(v.p.h, v.p.d, v.p.a) : null;
+      const tile = (cls, label, val) => `<div class="tile ${cls} ${v.p && val === mx ? 'top' : ''}"><i>${label}</i><b>${v.p ? pct1(val) : '-'}</b></div>`;
+      let probHTML = `<div class="tiles">${tile('t-h', t.home, v.p ? v.p.h : 0)}${tile('t-d', t.draw, v.p ? v.p.d : 0)}${tile('t-a', t.away, v.p ? v.p.a : 0)}</div>`;
 
-    return `<article data-fx="${esc(fx.id)}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
+      const bv = json?.best_bet_value;
+      const bvOdds = Number(bv?.bookmaker_odds);
+      const valueHTML = (v.bet && bv) ? `<div class="vb">
+        <div class="vb-head"><span class="vb-tag">${t.value_bet}</span><span class="vb-ev">${esc(bv.expected_value ?? '—')} EV</span></div>
+        <div class="vb-body"><span class="vb-sel">${esc(bv.selection ?? '—')}</span><span class="vb-price">${Number.isFinite(bvOdds) ? bvOdds.toFixed(2) : '—'}</span></div>
+        <div class="vb-meta"><span>${t.kelly}: ${esc(bv.quarter_kelly ?? '—')}</span><span class="pill ${riskClass(bv.risk_level)}">${esc(bv.risk_level ?? '—')}</span></div>
+      </div>` : '';
+
+      return `<article data-fx="${esc(fx.id)}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
       <div class="m-top">
         <div class="m-league">${esc(fx.league)}</div>
         <div class="m-top-right">
@@ -1969,13 +1980,14 @@ function renderSignals() {
         <div class="kv-row"><span>${t.pick_1x2}</span><b>${v.main1x2 ? esc(v.main1x2.sel) + ' (' + pctS(v.main1x2.p) + ')' : NA}</b></div>
         <div class="kv-row"><span>${t.over_under}</span><div>${v.mainOU ? `<b>${esc(v.mainOU.selection)}</b><em>${esc(v.mainOU.confidence)}</em>` : NA}</div></div>
       </div>
-      ${v.bet ? `<div class="vb">
-        <div class="vb-head"><span class="vb-tag">${t.value_bet}</span><span class="vb-ev">${esc(json.best_bet_value.expected_value)} EV</span></div>
-        <div class="vb-body"><span class="vb-sel">${esc(json.best_bet_value.selection)}</span><span class="vb-price">${json.best_bet_value.bookmaker_odds.toFixed(2)}</span></div>
-        <div class="vb-meta"><span>${t.kelly}: ${esc(json.best_bet_value.quarter_kelly)}</span><span class="pill ${riskClass(json.best_bet_value.risk_level)}">${esc(json.best_bet_value.risk_level)}</span></div>
-      </div>` : ''}
+      ${valueHTML}
     </article>`;
-  }).join('') : `<div class="empty-state">${t.no_upcoming}</div>`;
+    } catch (e) {
+      console.error('renderSignals: skipped a broken card', r?.fx?.id, e);
+      return '';
+    }
+  }).join('');
+  $('cards').innerHTML = cardsHTML || `<div class="empty-state">${t.no_upcoming}</div>`;
 }
 
 function renderHistory() {
@@ -2711,7 +2723,7 @@ setInterval(async () => {
 }, 30000);
 </script>
 
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="vendor/gsap.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   var hdr=document.querySelector('.app-header'),tick=false;
