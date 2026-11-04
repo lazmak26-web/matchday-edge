@@ -11,14 +11,7 @@ const API_BASE = 'https://api.football-data.org/v4';
 
 const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
 const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
-const afOdds = require('./apifootball').create({
-  key: process.env.APIFOOTBALL_KEY,
-  teamsFuzzyMatch: (a, b) => teamsFuzzyMatch(a, b),
-  dailyBudget: parseInt(process.env.APIFOOTBALL_DAILY_BUDGET, 10) || 90,
-  maxPages: parseInt(process.env.APIFOOTBALL_MAX_PAGES, 10) || 6,
-  statsBudget: parseInt(process.env.APIFOOTBALL_STATS_BUDGET, 10) || 35,
-  onUpdate: () => { fixturesCache.data = null; }
-});
+const fdStats = require('./fdstats');
 
 /* ═══════════════════════════════════════════════════════════
    KEYAUTH CONFIG
@@ -319,6 +312,37 @@ async function ensureForms(teams) {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   SEASON GOALS PER GAME FROM FOOTBALL-DATA.ORG (standings)
+   ═══════════════════════════════════════════════════════════ */
+const FD_SEASON_TTL = 24 * 60 * 60 * 1000;
+const FD_SEASON_MISS_TTL = 60 * 60 * 1000;   // plan without access to that competition / error: retry later
+const fdSeasonCache = new Map();             // competition code -> { ts, ok, teams: Map }
+let fdSeasonInProgress = null;
+const fdSeasonMaps = () => [...fdSeasonCache.values()].filter(e => e.ok).map(e => e.teams);
+
+function ensureFdSeasonStats() {
+  if (!API_KEY) return null;
+  const codes = [...new Set((fdCache.data || []).map(m => m.competition && m.competition.code).filter(Boolean))];
+  const now = Date.now();
+  const need = codes.filter(c => { const e = fdSeasonCache.get(c); return !e || now - e.ts > (e.ok ? FD_SEASON_TTL : FD_SEASON_MISS_TTL); });
+  if (!need.length) return fdSeasonInProgress;
+  if (fdSeasonInProgress) return fdSeasonInProgress;
+  fdSeasonInProgress = (async () => {
+    try {
+      for (const code of need) {
+        if (Date.now() < fdBlockedUntil) break;
+        try {
+          const d = await apiGet(`/competitions/${code}/standings`);
+          fdSeasonCache.set(code, { ts: Date.now(), ok: true, teams: fdStats.parseStandings(d) });
+        } catch (e) { fdSeasonCache.set(code, { ts: Date.now(), ok: false, teams: new Map() }); }
+        await new Promise(r => setTimeout(r, API_DELAY));
+      }
+    } finally { fixturesCache.data = null; fdSeasonInProgress = null; }
+  })();
+  return fdSeasonInProgress;
+}
+
+/* ═══════════════════════════════════════════════════════════
    TEAM FORMS FROM BZZOIRO RESULTS
    ═══════════════════════════════════════════════════════════ */
 const BZZ_FORM_TTL = 6 * 60 * 60 * 1000;
@@ -605,10 +629,8 @@ async function fetchOdds() {
    ═══════════════════════════════════════════════════════════ */
 function estimateXGForFixture(fixture) {
   const H = fixture.home, A = fixture.away;
-  const inj = afOdds.injuriesFor(H.name, A.name, new Date(fixture.date + 'T' + fixture.kickoff + ':00Z').getTime());
-  if (inj) { H.injuries = inj.home; A.injuries = inj.away; }
   if (H.xgFor != null && A.xgFor != null) { fixture.xgSource = 'direct'; fixture.dataQuality = 'high'; return; }
-  const ss = afOdds.statsFor(H.name, A.name, new Date(fixture.date + 'T' + fixture.kickoff + ':00Z').getTime());
+  const ss = fdStats.seasonFor(fdSeasonMaps(), H.name, A.name, teamsFuzzyMatch);
   if (ss) {
     H.xgFor = ss.home.gf; H.xgAgainst = ss.home.ga; H.formN = ss.home.n;
     A.xgFor = ss.away.gf; A.xgAgainst = ss.away.ga; A.formN = ss.away.n;
@@ -627,10 +649,8 @@ function estimateXGForFixture(fixture) {
   fixture.xgSource = 'league-avg'; fixture.dataQuality = 'very-low';
 }
 
-function mergeOdds(base, home, away, kickoffMs) {
-  const out = base ? [base] : [], seen = new Set(out.map(b => String(b.book).toLowerCase()));
-  for (const b of afOdds.lookup(home, away, kickoffMs)) { const k = String(b.book).toLowerCase(); if (!seen.has(k)) { seen.add(k); out.push(b); } }
-  return out;
+function mergeOdds(base) {
+  return base ? [base] : [];
 }
 
 // Well-known clubs / national teams: their matches are shown first (fixture.big = 0, 1 or 2 famous teams).
@@ -783,7 +803,7 @@ async function getFixtures() {
             ga5: af?.ga5 ?? null,
             formN: af?.n ?? null
           },
-          odds: mergeOdds(oddsMap.get(normalizeTeamKey(ev.home_team, ev.away_team)), ev.home_team, ev.away_team, kickoff.getTime()),
+          odds: mergeOdds(oddsMap.get(normalizeTeamKey(ev.home_team, ev.away_team))),
           h2h: ev.head_to_head || null,
           sources: fdMatch ? ['bzz', 'fd'] : ['bzz']
         };
@@ -808,7 +828,7 @@ async function getFixtures() {
           awayScore: m.score?.fullTime?.away ?? 0,
           home: { id: m.homeTeam.id, name: m.homeTeam.name, logo: m.homeTeam.crest || cachedLogo(m.homeTeam.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null },
           away: { id: m.awayTeam.id, name: m.awayTeam.name, logo: m.awayTeam.crest || cachedLogo(m.awayTeam.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null },
-          odds: mergeOdds(odds, m.homeTeam.name, m.awayTeam.name, kickoff.getTime()),
+          odds: mergeOdds(odds),
           sources: odds ? ['fd', 'bzz'] : ['fd']
         };
         if (fixture.status === 'finished' && (m.score?.fullTime?.home == null || m.score?.fullTime?.away == null)) fixture.status = 'started';
@@ -1593,7 +1613,7 @@ async function getFixturesWithForms() {
   const upcoming = fixtures.filter(f => f.status === 'notstarted' || f.status === 'started');
   if (!upcoming.length) return fixtures;
   const teams = upcoming.flatMap(f => [f.home, f.away]).filter(t => t.id);
-  const pending = [teams.length ? ensureForms(teams) : null, ensureBzzForms(), afOdds.ensure(), afOdds.ensureStats(upcoming.map(f => ({ home: f.home.name, away: f.away.name, t: new Date(f.date + 'T' + f.kickoff + ':00Z').getTime() })))].filter(Boolean);
+  const pending = [teams.length ? ensureForms(teams) : null, ensureBzzForms(), ensureFdSeasonStats()].filter(Boolean);
   if (pending.length) {
     let timer;
     await Promise.race([Promise.all(pending.map(p => p.catch(() => {}))), new Promise(r => { timer = setTimeout(r, FORMS_WAIT_MS); })]);
@@ -1628,7 +1648,7 @@ app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) 
       return engineServe.item(f, { marketWeight: mw, eloWeight: ENGINE_ELO_WEIGHT, eloBook, decide: dOpts, maxGap: ENGINE_MAX_GAP });
     });
     const xgCounts = {}; for (const f of fixtures) { const k = f.xgSource || 'none'; xgCounts[k] = (xgCounts[k] || 0) + 1; }
-    res.json({ predictions: out, meta: { feed: feedHealth(), minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, apiFootball: afOdds.stats(), xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
+    res.json({ predictions: out, meta: { feed: feedHealth(), minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, fdSeason: { competitions: fdSeasonMaps().length, teams: fdSeasonMaps().reduce((n, m) => n + m.size, 0) }, xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
   } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
 });
 
@@ -1917,9 +1937,8 @@ const demoArena = require('./demo-arena').create({
   lookupMatch: demoLookup,
   providerStatus: () => ({
     configured: !!(BZZOIRO_API_KEY || API_KEY),
-    providers: { bzzoiro: !!BZZOIRO_API_KEY, footballData: !!API_KEY, apiFootball: !!process.env.APIFOOTBALL_KEY },
+    providers: { bzzoiro: !!BZZOIRO_API_KEY, footballData: !!API_KEY },
     bzzoiroRequestsToday: bzzUsage.n, bzzoiroDailyBudget: BZZ_DAILY_BUDGET,
-    apiFootball: (() => { try { return afOdds.stats(); } catch (e) { return null; } })()
   }),
   planOfUserKey: key => {
     const i = key.indexOf(':'), kind = key.slice(0, i), name = key.slice(i + 1);
