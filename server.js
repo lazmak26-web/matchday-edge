@@ -704,7 +704,8 @@ function stabilizeToday(fresh) {
   let list = fresh.filter(f => f.date === day || f.status === 'started');
   if (degraded) {
     const seen = new Set(list.map(f => f.id));
-    for (const [id, pf] of stableToday.map) if (!seen.has(id)) list.push(pf);
+    // Only keep matches that are still going to be played / are live. Finished and canceled ones must not come back from the cache.
+    for (const [id, pf] of stableToday.map) if (!seen.has(id) && pf.status !== 'finished' && pf.status !== 'canceled') list.push(pf);
     list = dedupeFixtures(list);
   }
   for (const f of list) {
@@ -1257,7 +1258,9 @@ function isAdminSession(sess) {
   if (!sess || sess.kind !== 'local' || sess.username !== ADMIN_EMAIL) return false;
   const u = users.get(sess.username);
   if (!u || u.verified === false) return false;
-  return OTP_ENABLED || process.env.ADMIN_ALLOW_NO_OTP === '1';
+  // Admin needs real email OTP. Without RESEND_API_KEY anyone could sign up with the admin e-mail first, so admin is refused.
+  // The only bypass is for the automated tests (NODE_ENV=test), never in production.
+  return OTP_ENABLED || (process.env.NODE_ENV === 'test' && process.env.ADMIN_ALLOW_NO_OTP === '1');
 }
 function requireAdmin(req, res, next) {
   if (isAdminSession(sessions.get(req.authToken))) return next();
@@ -1390,7 +1393,7 @@ app.get('/api/admin/users', dataLimiter, authMiddleware, requireAdmin, (req, res
 });
 
 // ✅ New Admin Endpoint for Live Visitors & Total Visits
-app.get('/api/admin/stats', authMiddleware, requireAdmin, (req, res) => {
+app.get('/api/admin/stats', dataLimiter, authMiddleware, requireAdmin, (req, res) => {
   res.json({
     liveUsers: activeUsers.size,
     totalVisits: totalVisits
@@ -1641,7 +1644,7 @@ app.get('/api/fixtures', dataLimiter, authMiddleware, requirePro, async (req, re
 });
 
 const engineDecide = require('./engine/decision'), engineValidate = require('./engine/validate'), engineServe = require('./engine/serve');
-app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) => {
+app.get('/api/engine/predictions', dataLimiter, authMiddleware, requirePro, async (req, res) => {
   try {
     const fixtures = await getFixturesWithForms();
     const eloBook = getEloBook(), lgAvg = getLeagueAvgs();
@@ -1707,11 +1710,15 @@ setInterval(() => {
 
 let shuttingDown = false;
 let demoSaver = null;   // set once Demo Arena is wired below
+let discoverSaver = null;   // declared before shutdown() so an early signal can't hit the temporal dead zone
 function shutdown(signal, code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`${signal}: saving data before exit`);
-  for (const sv of [userSaver, sessionSaver, licenseSaver, snapshotSaver, discoverSaver, demoSaver]) if (sv) sv.now();
+  // Each saver is read inside try/catch: one that is not created yet (early signal) or that throws must not block the exit.
+  for (const getSaver of [() => userSaver, () => sessionSaver, () => licenseSaver, () => snapshotSaver, () => discoverSaver, () => demoSaver]) {
+    try { const sv = getSaver(); if (sv) sv.now(); } catch (e) { console.error('Shutdown save error:', e && e.message); }
+  }
   server.close(() => process.exit(code));
   setTimeout(() => process.exit(code), 4000).unref();
 }
@@ -1742,7 +1749,7 @@ try {
     console.log(`📰 Loaded ${discoverPosts.size} discover posts`);
   }
 } catch (e) { console.error('Discover load error:', e.message); }
-const discoverSaver = makeSaver('Discover', () => writeAtomic(DISCOVER_FILE, JSON.stringify([...discoverPosts.values()])), 1000);
+discoverSaver = makeSaver('Discover', () => writeAtomic(DISCOVER_FILE, JSON.stringify([...discoverPosts.values()])), 1000);
 const saveDiscoverSoon = discoverSaver.soon;
 
 // Uploaded images live next to the other data files (a persistent disk), not inside the app folder that every deploy replaces.
@@ -1771,7 +1778,7 @@ const upload = multer({
 });
 
 // ✅ Upload route safely wrapped for Express 5
-app.post('/api/upload', authMiddleware, requireAdmin, (req, res, next) => {
+app.post('/api/upload', dataLimiter, authMiddleware, requireAdmin, (req, res, next) => {
   upload.single('image')(req, res, (err) => {
     if (err) {
       console.error('Upload error:', err);
@@ -1871,7 +1878,7 @@ app.post('/api/discover/:id/delete', authMiddleware, requireAdmin, (req, res) =>
 });
 
 // ✅ Fixed Express 5 Routes (Removed regex params like :action(like|dislike))
-app.post('/api/discover/:id/like', authMiddleware, (req, res) => {
+app.post('/api/discover/:id/like', dataLimiter, authMiddleware, (req, res) => {
   const p = discoverPosts.get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Post not found' });
   const user = sessions.get(req.authToken).username;
@@ -1887,7 +1894,7 @@ app.post('/api/discover/:id/like', authMiddleware, (req, res) => {
   res.json({ ok: true, likes: p.likes.length, dislikes: p.dislikes.length, isLiked: p.likes.includes(user), isDisliked: p.dislikes.includes(user) });
 });
 
-app.post('/api/discover/:id/dislike', authMiddleware, (req, res) => {
+app.post('/api/discover/:id/dislike', dataLimiter, authMiddleware, (req, res) => {
   const p = discoverPosts.get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Post not found' });
   const user = sessions.get(req.authToken).username;
@@ -1903,7 +1910,7 @@ app.post('/api/discover/:id/dislike', authMiddleware, (req, res) => {
   res.json({ ok: true, likes: p.likes.length, dislikes: p.dislikes.length, isLiked: p.likes.includes(user), isDisliked: p.dislikes.includes(user) });
 });
 
-app.post('/api/discover/:id/comment', authMiddleware, (req, res) => {
+app.post('/api/discover/:id/comment', dataLimiter, authMiddleware, (req, res) => {
   const p = discoverPosts.get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Post not found' });
   const text = String((req.body || {}).text || '').trim();

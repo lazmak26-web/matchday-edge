@@ -3,14 +3,23 @@
 
 const API_BASE = 'https://footballdata.io/api/v1';
 
-function cors() {
+// ALLOWED_ORIGINS (Worker variable, comma-separated), e.g. "https://your-site.com,https://www.your-site.com".
+// Only these origins get CORS headers and may use the proxy, so nobody else burns the footballdata.io quota from a browser.
+function allowedOrigins(env) {
+  return String(env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean);
+}
+
+function cors(origin) {
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin,
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json'
   };
 }
+
+const json = (body, status, headers) => new Response(JSON.stringify(body), { status, headers });
 
 async function fetchFixtures(env) {
   const res = await fetch(`${API_BASE}/fixtures/today?limit=50`, {
@@ -68,21 +77,23 @@ function mapMatch(m) {
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: cors() });
+    const allowed = allowedOrigins(env);
+    const origin = request.headers.get('Origin') || '';
+    // No ALLOWED_ORIGINS configured, or an origin that is not on the list => refused (fail closed).
+    if (!allowed.length || !allowed.includes(origin)) {
+      return json({ error: 'Forbidden' }, 403, { 'Content-Type': 'application/json', 'Vary': 'Origin' });
     }
+    const headers = cors(origin);
+
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
+    if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 405, headers);
 
     try {
       const fixtures = await fetchFixtures(env);
-      const mapped = fixtures.map(mapMatch);
-      return new Response(JSON.stringify({ fixtures: mapped }), {
-        headers: cors()
-      });
+      return json({ fixtures: fixtures.map(mapMatch) }, 200, headers);
     } catch (e) {
-      return new Response(JSON.stringify({ error: e.message }), {
-        status: 500,
-        headers: cors()
-      });
+      console.error(e.message);
+      return json({ error: 'Upstream error' }, 502, headers);   // never leak upstream details to the browser
     }
   }
 };
