@@ -1827,7 +1827,7 @@ function __doSwitch(tab) {
 // Result row from the pick the server froze BEFORE kickoff. Legacy rows (saved before this change) fall back to the
 // browser model but never on guessed data (league-avg / h2h xG), so non-real matches are not counted.
 // ---- Frozen history -------------------------------------------------------------------------------------------
-// TODAY's picks/results always follow the sliders (st.mw / st.mev). Once a day is over, its result is written to
+// Once a day is over, its result is written to
 // localStorage 'mde:frozen_history' ({ 'YYYY-MM-DD': { wins, losses, picks } }) and never recalculated again.
 const FROZEN_KEY = 'mde:frozen_history';
 function readFrozen() {
@@ -1847,12 +1847,13 @@ function pickOf(r) {
   return { key: r.v.main1x2.key, p: r.v.main1x2.p, ou: o };
 }
 
-// Result row for one finished match. `dynamic` = the match is from today: always re-run the engine with the CURRENT
-// sliders (the server's pre-kickoff pick is ignored so the slider can move today's results). Past matches that are
-// not frozen yet use the server's pre-kickoff pick if there is one, otherwise the engine with the current sliders,
-// and are then frozen by getFinishedMatches(). Never on guessed data (league-avg / h2h xG).
+// Result row for one finished match. It always uses the pick the server froze BEFORE kickoff, so moving a slider (or
+// re-tuning the model after the final whistle) can never change a result. Only older rows saved before picks existed fall
+// back to the browser model with the current sliders, and are then frozen by getFinishedMatches(). Never on guessed
+// data (league-avg / h2h xG). A match from today with no pre-kickoff pick is not counted at all.
 function frozenResult(fx, dynamic) {
-  if (!dynamic && validPickKey(fx.pick)) return resultFromPick(fx, fx.pick);
+  if (validPickKey(fx.pick)) return resultFromPick(fx, fx.pick);   // always the pick frozen BEFORE kickoff: sliders never rewrite results
+  if (dynamic) return null;                                          // today's match without a pre-kickoff pick: not counted (no hindsight)
   let f = fx;
   if (fx.xgSource === 'league-avg' || fx.xgSource === 'h2h') {
     f = Object.assign({}, fx, { home: Object.assign({}, fx.home, { xgFor: null }), away: Object.assign({}, fx.away, { xgFor: null }) });
@@ -2564,8 +2565,7 @@ async function loadDiscover() {
     }
 
     feed.innerHTML = posts.map(p => {
-      const isLiked = p.likes.includes(authState.profile ? authState.profile.username : '');
-      const isDisliked = p.dislikes.includes(authState.profile ? authState.profile.username : '');
+      const isLiked = !!p.isLiked, isDisliked = !!p.isDisliked;   // the server sends counts and my own vote only
       const dateStr = new Date(p.date).toLocaleDateString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
       
       const commentsHtml = (p.comments || []).map(c => `<div class="dc-comment"><b>${esc(c.user)}</b>: ${esc(c.text)}</div>`).join('');
@@ -2585,11 +2585,11 @@ async function loadDiscover() {
           <div class="dc-actions">
             <button class="dc-btn ${isLiked ? 'active' : ''}" onclick="likePost('${p.id}', 'like')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-              <span>${p.likes.length}</span>
+              <span>${p.likes | 0}</span>
             </button>
             <button class="dc-btn ${isDisliked ? 'active' : ''}" onclick="likePost('${p.id}', 'dislike')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2"/></svg>
-              <span>${p.dislikes.length}</span>
+              <span>${p.dislikes | 0}</span>
             </button>
             <button class="dc-btn" onclick="toggleComments('${p.id}')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
