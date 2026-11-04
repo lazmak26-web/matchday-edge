@@ -475,38 +475,50 @@ function todayStr() {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
+const BZZ_EVENT_PAGES = Math.max(2, Math.min(10, parseInt(process.env.BZZ_EVENT_PAGES, 10) || 6));   // the provider paginates; a busy day needs more than 2 pages
+let bzzLastPages = 1;
 let bzzIncomplete = false;   // true while the events list may be missing matches (a page failed, budget used up, provider down)
 async function fetchBzzoiroEvents() {
   if (!BZZOIRO_API_KEY) return [];
-  const eventsTtl = isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE;
+  const eventsTtl = (isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE) * (bzzLastPages > 2 ? 2 : 1);   // more pages cost more of the daily budget: refresh less often
   if (eventsCache.data && Date.now() - eventsCache.ts < eventsTtl) return eventsCache.data;
   if (!bzzBudgetOk()) { bzzIncomplete = true; return eventsCache.data || []; }
   if (eventsFetchInProgress) return eventsFetchInProgress;
   eventsFetchInProgress = (async () => {
     try {
-      // Fetch 2 pages of events (follows `next`); each page costs 1 request of the Bzzoiro budget.
+      // Fetch today's events page by page (follows `next`, up to BZZ_EVENT_PAGES); each page costs 1 request of the Bzzoiro budget.
       let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${todayStr()}&date_to=${todayStr()}`;
       const events = [];
-      let complete = true;
-      for (let page = 0; url && page < 2; page++) {
-        bzzCount();
-        const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' } });
-        if (!r.ok) { if (page === 0) throw new Error(`Events HTTP ${r.status}`); complete = false; break; }
+      let complete = true, pages = 0, total = null;
+      for (let page = 0; url && page < BZZ_EVENT_PAGES; page++) {
+        let r = null;
+        for (let attempt = 0; attempt < 2 && !(r && r.ok); attempt++) {   // one quick retry: a single hiccup must not drop a whole page of matches
+          if (attempt) await new Promise(ok => setTimeout(ok, 400));
+          bzzCount();
+          try { r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(10000) }); }
+          catch (e) { r = null; if (page === 0 && attempt === 1) throw e; }
+        }
+        if (!r || !r.ok) { if (page === 0) throw new Error(`Events HTTP ${r ? r.status : 'error'}`); complete = false; break; }
         const data = await r.json();
         const part = data.results || data.data || [];
         if (Array.isArray(part)) events.push(...part);
+        if (typeof data.count === 'number') total = data.count;
+        pages++;
         url = typeof data.next === 'string' && data.next ? data.next : null;
       }
-      const known = eventsCache.data || [];
+      bzzLastPages = pages;
+      if (url) { complete = false; console.log(`⚠️ Bzzoiro events: stopped after ${pages} pages with more to come (${events.length}${total != null ? ' of ' + total : ''}). Raise BZZ_EVENT_PAGES.`); }
+      else if (total != null && events.length < total) console.log(`⚠️ Bzzoiro events: ${events.length} of ${total} received.`);
+      const day = todayStr(), known = eventsCache.day === day ? (eventsCache.data || []) : [];   // never keep yesterday's list
       bzzIncomplete = !complete;
       if (!complete && known.length > events.length) {
         // A later page failed: keep the fuller list we already have and retry soon, instead of showing fewer matches.
         console.log(`⚠️ Bzzoiro events: a page failed (${events.length} < ${known.length} known). Keeping the previous list.`);
         eventsCache.ts = Date.now() - eventsTtl + 15 * 1000;
       } else if (Array.isArray(events) && events.length > 0) {
-        eventsCache.data = events; eventsCache.ts = Date.now();
+        eventsCache.data = events; eventsCache.ts = Date.now(); eventsCache.day = day;
       } else if (!eventsCache.data || !eventsCache.data.length) {
-        eventsCache.data = events; eventsCache.ts = Date.now();
+        eventsCache.data = events; eventsCache.ts = Date.now(); eventsCache.day = day;
       } else {
         eventsCache.ts = Date.now() - eventsTtl + 10 * 1000;
       }
@@ -548,6 +560,9 @@ async function fetchOdds() {
       const queue = valid.filter(ev => {
         const c = oddsByEvent.get(ev.id);
         if (!bzzBudgetOk()) return false;
+        const st = normalizeStatus(ev.status, ev.event_date);
+        if (st === 'finished' || st === 'canceled') return false;   // only pre-match prices are used: never spend budget on these
+        if (c && st === 'started') return false;
         if (!c) return true;
         return now - c.ts > (c.parsed ? ODDS_EVENT_TTL : ODDS_MISS_TTL);
       });
