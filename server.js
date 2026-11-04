@@ -509,6 +509,7 @@ function todayStr() {
 const BZZ_EVENT_PAGES = Math.max(2, Math.min(10, parseInt(process.env.BZZ_EVENT_PAGES, 10) || 6));   // the provider paginates (~10 per page): a busy day needs more than 2 pages
 let bzzLastPages = 1;
 const BZZ_RETRY_MS = 15 * 1000;   // how soon an incomplete / failed events fetch is retried
+let bzzTruncated = false;   // true when today has more event pages than BZZ_EVENT_PAGES: the rest is NOT shown
 let bzzIncomplete = false;   // true while the events list may be missing matches (a page failed, budget used up, provider down)
 async function fetchBzzoiroEvents() {
   if (!BZZOIRO_API_KEY) return [];
@@ -537,6 +538,7 @@ async function fetchBzzoiroEvents() {
       if (url && complete) console.log(`⚠️ Bzzoiro events: more than ${BZZ_EVENT_PAGES} pages today, the rest is NOT shown (raise BZZ_EVENT_PAGES)`);
       const day = todayStr(), known = eventsCache.day === day ? (eventsCache.data || []) : [];   // never keep yesterday's list as the fuller one
       bzzIncomplete = !complete;
+      bzzTruncated = !!(url && complete);
       // retryAt (not a shortened ts): the TTL differs between active (60 s) and idle (10 min) mode and can change before the retry is due.
       if (!complete && known.length > events.length) {
         // A later page failed: keep the fuller list we already have and retry soon, instead of showing fewer matches.
@@ -694,7 +696,7 @@ function feedHealth() {
   const day = todayStr();
   return {
     instance: INSTANCE_ID, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), shown: stableToday.count,
-    bzzEvents: (eventsCache.data || []).length, bzzPages: bzzLastPages, bzzIncomplete,
+    bzzEvents: (eventsCache.data || []).length, bzzPages: bzzLastPages, bzzIncomplete, bzzTruncated, bzzBudgetLeft: Math.max(0, BZZ_DAILY_BUDGET - bzzUsage.n),
     fdDegraded: !!API_KEY && (Date.now() < fdCache.errUntil || Date.now() < fdBlockedUntil || fdCache.day !== day)
   };
 }
@@ -1641,7 +1643,7 @@ app.get('/api/fixtures', dataLimiter, authMiddleware, requirePro, async (req, re
   try {
     const fixtures = await getFixturesWithForms();
     const teams = fixtures.filter(f => f.status === 'notstarted' || f.status === 'started').flatMap(f => [f.home, f.away]).filter(t => t.id);
-    res.json({ fixtures });
+    res.json({ fixtures, feed: feedHealth() });
     if (teams.length && !prefetchInProgress) ensureForms(teams).catch(e => console.error(e.message));
     const logoP = ensureLogos(fixtures.flatMap(f => [f.home, f.away]));
     if (logoP) logoP.catch(e => console.error('Logo fetch error:', e.message));
