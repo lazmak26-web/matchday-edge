@@ -46,10 +46,10 @@ function lambdas(fx, opts = {}) {
 // No real xG? The market itself carries goal expectations: fit Poisson rates so that the 1X2 (and over 2.5) probabilities
 // match the de-vigged bookmaker consensus, and read the most likely scoreline from them. Only used for the scoreline display,
 // never for p / EV (those stay 'market' only, so decisions are unchanged).
-const _mlCache = new Map();
+const _mlCache = new Map();   // insertion order = recency (LRU, max 500)
 function marketImpliedTop(mk) {
   const key = [mk.h, mk.d, mk.a, mk.over == null ? 'x' : mk.over].map(v => typeof v === 'number' ? v.toFixed(3) : v).join('|');
-  if (_mlCache.has(key)) return _mlCache.get(key);
+  if (_mlCache.has(key)) { const v = _mlCache.get(key); _mlCache.delete(key); _mlCache.set(key, v); return v; }   // LRU: a hit moves the key to the newest slot
   let best = null;
   for (let lh = 0.3; lh <= 3.5; lh += 0.1) for (let la = 0.3; la <= 3.5; la += 0.1) {
     const s = summarize(scoreMatrix(lh, la, -0.08));
@@ -57,8 +57,10 @@ function marketImpliedTop(mk) {
     if (mk.over != null) err += (s.over - mk.over) ** 2;
     if (!best || err < best.err) best = { err, top: s.top };
   }
-  if (_mlCache.size > 500) _mlCache.clear();
-  const top = best ? best.top : null; _mlCache.set(key, top); return top;
+  const top = best ? best.top : null;
+  _mlCache.set(key, top);
+  while (_mlCache.size > 500) _mlCache.delete(_mlCache.keys().next().value);   // drop only the oldest entries
+  return top;
 }
 
 function predict(fx, opts = {}) {
