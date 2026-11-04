@@ -147,6 +147,7 @@ button,select,input{font:inherit;color:inherit}
 .pm-stats b{font-size:14px}
 .pm-langs{display:flex;flex-wrap:wrap;gap:6px}
 .pm-langs button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--ink-2)}
+.pm-langs button.on{background:var(--brand-dim);color:var(--brand);border-color:var(--brand)}
 .pm-settings,.pm-logout{width:100%;border:0;border-radius:999px;padding:11px;font-weight:600;cursor:pointer;background:var(--soft);color:var(--ink)}
 .pm-logout{background:var(--bad-dim);color:var(--bad)}
 .ticker{display:none}
@@ -1267,9 +1268,10 @@ function cssVar(name, fallback) {
 }
 
 function localDateStr(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  // FIX 12: use UTC to match server's todayStr() (avoids matches disappearing around midnight UTC)
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
@@ -1747,7 +1749,7 @@ function __doSwitch(tab) {
 // Result row from the pick the server froze BEFORE kickoff. Legacy rows (saved before this change) fall back to the
 // browser model but never on guessed data (league-avg / h2h xG), so non-real matches are not counted.
 // ---- Frozen history -------------------------------------------------------------------------------------------
-// Once a day is over, its result is written to
+// TODAY's picks/results always follow the sliders (st.mw / st.mev). Once a day is over, its result is written to
 // localStorage 'mde:frozen_history' ({ 'YYYY-MM-DD': { wins, losses, picks } }) and never recalculated again.
 const FROZEN_KEY = 'mde:frozen_history';
 function readFrozen() {
@@ -1767,13 +1769,12 @@ function pickOf(r) {
   return { key: r.v.main1x2.key, p: r.v.main1x2.p, ou: o };
 }
 
-// Result row for one finished match. It always uses the pick the server froze BEFORE kickoff, so moving a slider (or
-// re-tuning the model after the final whistle) can never change a result. Only older rows saved before picks existed fall
-// back to the browser model with the current sliders, and are then frozen by getFinishedMatches(). Never on guessed
-// data (league-avg / h2h xG). A match from today with no pre-kickoff pick is not counted at all.
+// Result row for one finished match. `dynamic` = the match is from today: always re-run the engine with the CURRENT
+// sliders (the server's pre-kickoff pick is ignored so the slider can move today's results). Past matches that are
+// not frozen yet use the server's pre-kickoff pick if there is one, otherwise the engine with the current sliders,
+// and are then frozen by getFinishedMatches(). Never on guessed data (league-avg / h2h xG).
 function frozenResult(fx, dynamic) {
-  if (validPickKey(fx.pick)) return resultFromPick(fx, fx.pick);   // always the pick frozen BEFORE kickoff: sliders never rewrite results
-  if (dynamic) return null;                                          // today's match without a pre-kickoff pick: not counted (no hindsight)
+  if (!dynamic && validPickKey(fx.pick)) return resultFromPick(fx, fx.pick);
   let f = fx;
   if (fx.xgSource === 'league-avg' || fx.xgSource === 'h2h') {
     f = Object.assign({}, fx, { home: Object.assign({}, fx.home, { xgFor: null }), away: Object.assign({}, fx.away, { xgFor: null }) });
@@ -1783,7 +1784,10 @@ function frozenResult(fx, dynamic) {
 }
 
 function pickWon(r) {
-  const hs = r.fx.homeScore ?? 0, as = r.fx.awayScore ?? 0, k = r.v.main1x2.key;
+  // FIX 9: missing score = no verdict (do NOT treat as 0-0)
+  const hs = r.fx.homeScore, as = r.fx.awayScore;
+  if (!Number.isInteger(hs) || !Number.isInteger(as)) return null;
+  const k = r.v.main1x2.key;
   return (k === 'home' && hs > as) || (k === 'away' && as > hs) || (k === 'draw' && hs === as);
 }
 
@@ -1820,7 +1824,7 @@ function getFinishedMatches() {
   Object.keys(fresh).forEach(d => {
     if (dayHasOpenMatch(d)) return;
     const e = { wins: 0, losses: 0, picks: {} };
-    fresh[d].forEach(r => { if (pickWon(r)) e.wins++; else e.losses++; e.picks[String(r.fx.id)] = pickOf(r); });
+    fresh[d].forEach(r => { const w = pickWon(r); if (w === true) e.wins++; else if (w === false) e.losses++; else return; e.picks[String(r.fx.id)] = pickOf(r); });
     frozen[d] = e; dirty = true;
   });
   if (dirty) writeFrozen(frozen);
@@ -1838,7 +1842,8 @@ function getDailyTotals(fin) {
     const d = fxLocalDate(r.fx);
     if (d < today && frozen[d]) return;                 // frozen day: stored numbers win
     const m = seen[d] || (seen[d] = map[d] = { wins: 0, losses: 0 });
-    if (pickWon(r)) m.wins++; else m.losses++;
+    const w = pickWon(r);
+    if (w === true) m.wins++; else if (w === false) m.losses++;
   });
   return map;
 }
@@ -1991,17 +1996,21 @@ function renderHistory() {
 
   $('history-list').innerHTML = finished.map(r => {
     const fx = r.fx, v = r.v;
-    const hs = fx.homeScore ?? 0, as = fx.awayScore ?? 0;
+    // FIX 9d: null score → null verdict (badge hidden, not counted)
+    const hs = fx.homeScore, as = fx.awayScore;
     const pickKey = v.main1x2.key;
 
-    let botWon = false;
-    if (pickKey === 'home' && hs > as) botWon = true;
-    if (pickKey === 'away' && as > hs) botWon = true;
-    if (pickKey === 'draw' && hs === as) botWon = true;
+    let botWon = null;
+    if (Number.isInteger(hs) && Number.isInteger(as)) {
+      if (pickKey === 'home' && hs > as) botWon = true;
+      else if (pickKey === 'away' && as > hs) botWon = true;
+      else if (pickKey === 'draw' && hs === as) botWon = true;
+      else botWon = false;
+    }
 
     let ouRow = '';
     const ou = v.mainOU;
-    if (ou && ou.selection) {
+    if (ou && ou.selection && Number.isInteger(hs) && Number.isInteger(as)) {
       const goals = hs + as;
       const isOver = /^over/i.test(ou.selection);
       const ouWon = isOver ? goals > 2.5 : goals < 2.5;
@@ -2023,7 +2032,7 @@ function renderHistory() {
       </div>
       <div class="hc-footer">
         <span>${t.pick}: <strong>${esc(v.main1x2.sel)}</strong></span>
-        ${botWon ? `<span class="badge-win">${t.win}</span>` : `<span class="badge-loss">${t.loss}</span>`}
+        ${botWon === true ? `<span class="badge-win">${t.win}</span>` : botWon === false ? `<span class="badge-loss">${t.loss}</span>` : `<span class="pill">—</span>`}
       </div>
       ${ouRow}
     </div>`;
@@ -2070,7 +2079,7 @@ function updateChart(days, target) {
   let totalW = 0, totalL = 0;
 
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
     const key = localDateStr(d), tt = totals[key] || { wins: 0, losses: 0 };
     dateMap[key] = { wins: tt.wins, losses: tt.losses };
     totalW += tt.wins; totalL += tt.losses;
@@ -2134,7 +2143,9 @@ function applyServerPred(r, sp) {
   const fx = r.fx, H = fx.home, A = fx.away, v = r.v, d = sp.decision || {};
   // Sliders react instantly: re-run market weight + EV threshold here on the server's real model/market/prices (the server's safety verdict is reused as is).
   const rb = window.Reblend ? window.Reblend.evaluate(sp, st.mw, st.mev) : null;
-  const pr = rb ? Object.assign({}, sp.prediction, { p: rb.p, over: rb.over }) : sp.prediction;
+  // FIX 7: guard against rb.p being null
+  const safeP = (rb && rb.p) ? rb.p : sp.prediction.p;
+  const pr = rb ? Object.assign({}, sp.prediction, { p: safeP, over: rb.over ?? sp.prediction.over }) : sp.prediction;
   const tier = rb ? rb.tier : sp.tier, pick = rb ? rb.pick : d.pick;
   v.p = pr.p; v.source = (pr.source || '').replace('+', ' + ');
   v.main1x2 = [{ sel: H.name + ' Win', key: 'home', p: pr.p.h }, { sel: 'Draw', key: 'draw', p: pr.p.d }, { sel: A.name + ' Win', key: 'away', p: pr.p.a }].sort((x, y) => y.p - x.p)[0];
@@ -2142,7 +2153,7 @@ function applyServerPred(r, sp) {
   r.json.scoreline_prediction = { most_likely: pr.top || 'N/A', alternatives: [] };
   r.json.main_prediction = { selection: v.main1x2.sel, confidence: pctS(v.main1x2.p) };
   v.bestEv = rb ? rb.bestEv : (sp.bestEv != null ? sp.bestEv : null);
-  v.bet = null; v.noBet = null; r.json.best_bet_value = null;
+  v.bet = null; v.noBet = null; v.blockedEv = null; r.json.best_bet_value = null;
   if (v.started) return;
   if (tier === 'BET' && pick) {
     const k = pick, o = k.odds, b = o - 1, kel = b <= 0 ? 0 : Math.max(0, (k.p * b - (1 - k.p)) / b);
@@ -2355,7 +2366,8 @@ function applyPlanGate() {
   if (!isAdmin()) { adminUsers = []; const av = document.getElementById('view-admin'); if (av && av.classList.contains('active')) switchTab('signals'); }
   const lb = document.getElementById('menuLicBtn'); if (lb) lb.classList.toggle('hidden', isPro());
   document.body.classList.toggle('is-free', authState.loggedIn && !isPro());
-  if (authState.loggedIn && !isPro()) renderFreeSignals();
+  // FIX 10: reset throttle so free plan gets matches immediately
+  if (authState.loggedIn && !isPro()) { lpAppTs = 0; renderFreeSignals(); }
 }
 
 function renderFreeSignals() {
@@ -2368,7 +2380,7 @@ function renderFreeSignals() {
 function renderWeekly() {
   const t = tNow(), totals = getDailyTotals(), now = new Date(), days = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
     const key = localDateStr(d), tt = totals[key] || { wins: 0, losses: 0 };
     days.push({ key, label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), w: tt.wins, l: tt.losses });
   }
@@ -2474,7 +2486,8 @@ async function loadDiscover() {
     }
 
     feed.innerHTML = posts.map(p => {
-      const isLiked = !!p.isLiked, isDisliked = !!p.isDisliked;   // the server sends counts and my own vote only
+      const isLiked = p.likes.includes(authState.profile ? authState.profile.username : '');
+      const isDisliked = p.dislikes.includes(authState.profile ? authState.profile.username : '');
       const dateStr = new Date(p.date).toLocaleDateString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
       
       const commentsHtml = (p.comments || []).map(c => `<div class="dc-comment"><b>${esc(c.user)}</b>: ${esc(c.text)}</div>`).join('');
@@ -2494,11 +2507,11 @@ async function loadDiscover() {
           <div class="dc-actions">
             <button class="dc-btn ${isLiked ? 'active' : ''}" onclick="likePost('${p.id}', 'like')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-              <span>${p.likes | 0}</span>
+              <span>${p.likes.length}</span>
             </button>
             <button class="dc-btn ${isDisliked ? 'active' : ''}" onclick="likePost('${p.id}', 'dislike')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2"/></svg>
-              <span>${p.dislikes | 0}</span>
+              <span>${p.dislikes.length}</span>
             </button>
             <button class="dc-btn" onclick="toggleComments('${p.id}')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>

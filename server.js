@@ -105,7 +105,7 @@ const ODDS_DELAY = 150;
 
 const formCache = new Map();
 const fixturesCache = { data: null, ts: 0 };
-const eventsCache = { data: null, ts: 0 };
+const eventsCache = { data: null, ts: 0, retryAt: 0 };   // retryAt: when set, the cached list is only trusted until then (incomplete / failed fetch)
 const oddsCache = { data: null, ts: 0 };
 const historyCache = { data: null, ts: 0 };
 let prefetchInProgress = null;
@@ -475,55 +475,59 @@ function todayStr() {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
-const BZZ_EVENT_PAGES = Math.max(2, Math.min(10, parseInt(process.env.BZZ_EVENT_PAGES, 10) || 6));   // the provider paginates; a busy day needs more than 2 pages
+const BZZ_EVENT_PAGES = Math.max(2, Math.min(10, parseInt(process.env.BZZ_EVENT_PAGES, 10) || 6));   // the provider paginates (~10 per page): a busy day needs more than 2 pages
 let bzzLastPages = 1;
+const BZZ_RETRY_MS = 15 * 1000;   // how soon an incomplete / failed events fetch is retried
 let bzzIncomplete = false;   // true while the events list may be missing matches (a page failed, budget used up, provider down)
 async function fetchBzzoiroEvents() {
   if (!BZZOIRO_API_KEY) return [];
   const eventsTtl = (isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE) * (bzzLastPages > 2 ? 2 : 1);   // more pages cost more of the daily budget: refresh less often
-  if (eventsCache.data && Date.now() - eventsCache.ts < eventsTtl) return eventsCache.data;
+  if (eventsCache.data && (eventsCache.retryAt ? Date.now() < eventsCache.retryAt : Date.now() - eventsCache.ts < eventsTtl)) return eventsCache.data;
   if (!bzzBudgetOk()) { bzzIncomplete = true; return eventsCache.data || []; }
   if (eventsFetchInProgress) return eventsFetchInProgress;
   eventsFetchInProgress = (async () => {
     try {
-      // Fetch today's events page by page (follows `next`, up to BZZ_EVENT_PAGES); each page costs 1 request of the Bzzoiro budget.
+      // Fetch 2 pages of events (follows `next`); each page costs 1 request of the Bzzoiro budget.
       let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${todayStr()}&date_to=${todayStr()}`;
       const events = [];
-      let complete = true, pages = 0, total = null;
+      let complete = true, pages = 0;
       for (let page = 0; url && page < BZZ_EVENT_PAGES; page++) {
-        let r = null;
-        for (let attempt = 0; attempt < 2 && !(r && r.ok); attempt++) {   // one quick retry: a single hiccup must not drop a whole page of matches
-          if (attempt) await new Promise(ok => setTimeout(ok, 400));
-          bzzCount();
-          try { r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(10000) }); }
-          catch (e) { r = null; if (page === 0 && attempt === 1) throw e; }
-        }
-        if (!r || !r.ok) { if (page === 0) throw new Error(`Events HTTP ${r ? r.status : 'error'}`); complete = false; break; }
+        bzzCount();
+        // A hung request must not freeze every /api/fixtures call behind eventsFetchInProgress: give up after 15 s.
+        const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
+        if (!r.ok) { if (page === 0) throw new Error(`Events HTTP ${r.status}`); complete = false; break; }
         const data = await r.json();
         const part = data.results || data.data || [];
         if (Array.isArray(part)) events.push(...part);
-        if (typeof data.count === 'number') total = data.count;
         pages++;
         url = typeof data.next === 'string' && data.next ? data.next : null;
       }
       bzzLastPages = pages;
-      if (url) { complete = false; console.log(`⚠️ Bzzoiro events: stopped after ${pages} pages with more to come (${events.length}${total != null ? ' of ' + total : ''}). Raise BZZ_EVENT_PAGES.`); }
-      else if (total != null && events.length < total) console.log(`⚠️ Bzzoiro events: ${events.length} of ${total} received.`);
-      const day = todayStr(), known = eventsCache.day === day ? (eventsCache.data || []) : [];   // never keep yesterday's list
+      if (url && complete) console.log(`⚠️ Bzzoiro events: more than ${BZZ_EVENT_PAGES} pages today, the rest is NOT shown (raise BZZ_EVENT_PAGES)`);
+      const day = todayStr(), known = eventsCache.day === day ? (eventsCache.data || []) : [];   // never keep yesterday's list as the fuller one
       bzzIncomplete = !complete;
+      // retryAt (not a shortened ts): the TTL differs between active (60 s) and idle (10 min) mode and can change before the retry is due.
       if (!complete && known.length > events.length) {
         // A later page failed: keep the fuller list we already have and retry soon, instead of showing fewer matches.
         console.log(`⚠️ Bzzoiro events: a page failed (${events.length} < ${known.length} known). Keeping the previous list.`);
-        eventsCache.ts = Date.now() - eventsTtl + 15 * 1000;
-      } else if (Array.isArray(events) && events.length > 0) {
+        eventsCache.retryAt = Date.now() + BZZ_RETRY_MS;
+      } else if (events.length > 0 || !known.length) {
         eventsCache.data = events; eventsCache.ts = Date.now(); eventsCache.day = day;
-      } else if (!eventsCache.data || !eventsCache.data.length) {
-        eventsCache.data = events; eventsCache.ts = Date.now(); eventsCache.day = day;
+        // A partial list (a later page failed, nothing fuller known, e.g. right after a restart) must not live for the whole TTL
+        // (10 min when idle): that is what made the match count jump around (10 / 18 / 26) between refreshes. Retry shortly.
+        if (!complete) { console.log(`⚠️ Bzzoiro events: a page failed, showing ${events.length} for now, retrying in ${BZZ_RETRY_MS / 1000}s.`); eventsCache.retryAt = Date.now() + BZZ_RETRY_MS; }
+        else eventsCache.retryAt = 0;
       } else {
-        eventsCache.ts = Date.now() - eventsTtl + 10 * 1000;
+        eventsCache.retryAt = Date.now() + 10 * 1000;   // empty answer while we know matches: keep them, ask again in a moment
       }
       return eventsCache.data || [];
-    } catch (e) { bzzIncomplete = true; return eventsCache.data || []; }
+    } catch (e) {
+      // First page failed (HTTP error / timeout): keep the last good list, and back off a little instead of retrying on every request.
+      bzzIncomplete = true;
+      console.log(`⚠️ Bzzoiro events failed: ${e.message}. Keeping ${(eventsCache.data || []).length} known, retrying in ${BZZ_RETRY_MS / 1000}s.`);
+      if (eventsCache.data && eventsCache.data.length) eventsCache.retryAt = Date.now() + BZZ_RETRY_MS;
+      return eventsCache.data || [];
+    }
     finally { eventsFetchInProgress = null; }
   })();
   return eventsFetchInProgress;
