@@ -1,0 +1,9 @@
+.git
+.claude
+data
+tests
+node_modules
+npm-debug.log
+.env
+*.log
+logs.*

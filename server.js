@@ -237,7 +237,7 @@ function pickBetterStatus(a, b) {
    ═══════════════════════════════════════════════════════════ */
 async function apiGet(endpoint) {
   if (Date.now() < fdBlockedUntil) throw new Error('football-data cooling down after 429');
-  const r = await fetch(`${API_BASE}${endpoint}`, { headers: { 'X-Auth-Token': API_KEY || '' } });
+  const r = await fetch(`${API_BASE}${endpoint}`, { headers: { 'X-Auth-Token': API_KEY || '' }, signal: AbortSignal.timeout(15000) });
   if (r.status === 429) fdBlockedUntil = Date.now() + 65 * 1000;
   if (!r.ok) throw new Error(`API ${endpoint} → ${r.status}`);
   return r.json();
@@ -396,7 +396,7 @@ async function ensureBzzForms() {
         while (url) {
           if (stats.pages >= BZZ_FORM_MAX_PAGES || !bzzBudgetOk()) break outer;
           stats.pages++; bzzCount();
-          const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' } });
+          const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
           if (!r.ok) throw new Error(`Bzz forms HTTP ${r.status}`);
           const data = await r.json();
           events.push(...(data.results || data.data || []));
@@ -448,7 +448,7 @@ function cleanNameForSearch(name) {
 async function fetchLogoByName(name) {
   try {
     const searchName = cleanNameForSearch(name);
-    const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(searchName)}`);
+    const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(searchName)}`, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) {
       if (r.status === 429) return 'rate_limited';
       return undefined;
@@ -568,7 +568,7 @@ function parseBzzoiroOdds(oddsObj) {
 async function fetchEventOdds(eventId) {
   try {
     bzzCount();
-    const r = await fetch(`${BZZOIRO_API_BASE}/v2/events/${eventId}/odds/`, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}` } });
+    const r = await fetch(`${BZZOIRO_API_BASE}/v2/events/${eventId}/odds/`, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}` }, signal: AbortSignal.timeout(15000) });
     if (!r.ok) return null;
     const data = await r.json();
     return data.odds || data;
@@ -948,7 +948,7 @@ async function refreshHistoryResults() {
 
       for (let page = 0; url && page < 10; page++) {
         bzzCount();
-        const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' } });
+        const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
         if (!r.ok) throw new Error(`Results refresh HTTP ${r.status}`);
         const data = await r.json();
         for (const ev of (data.results || data.data || [])) {
@@ -980,7 +980,7 @@ loadSnapshots();
 async function keyauthRequest(params) {
   const url = new URL(KEYAUTH_BASE);
   Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
-  const r = await fetch(url.toString(), { method: 'GET' });
+  const r = await fetch(url.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error(`KeyAuth HTTP ${r.status}`);
   return r.json();
 }
