@@ -315,7 +315,8 @@ async function ensureForms(teams) {
    SEASON GOALS PER GAME FROM FOOTBALL-DATA.ORG (standings)
    ═══════════════════════════════════════════════════════════ */
 const FD_SEASON_TTL = 24 * 60 * 60 * 1000;
-const FD_SEASON_MISS_TTL = 60 * 60 * 1000;   // plan without access to that competition / error: retry later
+const FD_SEASON_MISS_TTL = 60 * 60 * 1000;
+const FD_SEASON_MAX_PER_RUN = 3, FD_SEASON_GAP = 7000;   // 3 calls, 7 s apart per run   // plan without access to that competition / error: retry later
 const fdSeasonCache = new Map();             // competition code -> { ts, ok, teams: Map }
 let fdSeasonInProgress = null;
 const fdSeasonMaps = () => [...fdSeasonCache.values()].filter(e => e.ok).map(e => e.teams);
@@ -327,6 +328,8 @@ function ensureFdSeasonStats() {
   const need = codes.filter(c => { const e = fdSeasonCache.get(c); return !e || now - e.ts > (e.ok ? FD_SEASON_TTL : FD_SEASON_MISS_TTL); });
   if (!need.length) return fdSeasonInProgress;
   if (fdSeasonInProgress) return fdSeasonInProgress;
+  if (prefetchInProgress || Date.now() < fdBlockedUntil) return null;   // team forms go first: free tier allows only 10 requests/min
+  need.length = Math.min(need.length, FD_SEASON_MAX_PER_RUN);
   fdSeasonInProgress = (async () => {
     try {
       for (const code of need) {
@@ -335,7 +338,7 @@ function ensureFdSeasonStats() {
           const d = await apiGet(`/competitions/${code}/standings`);
           fdSeasonCache.set(code, { ts: Date.now(), ok: true, teams: fdStats.parseStandings(d) });
         } catch (e) { fdSeasonCache.set(code, { ts: Date.now(), ok: false, teams: new Map() }); }
-        await new Promise(r => setTimeout(r, API_DELAY));
+        await new Promise(r => setTimeout(r, FD_SEASON_GAP));
       }
     } finally { fixturesCache.data = null; fdSeasonInProgress = null; }
   })();
@@ -1584,7 +1587,7 @@ app.post('/api/presence', presence.ping);
 app.get('/api/presence', presence.snapshot);
 
 const FORMS_WAIT_MS = Math.max(0, parseInt(process.env.FORMS_WAIT_MS, 10) || 8000);
-const ENGINE_MIN_BOOKS = Number.isFinite(parseInt(process.env.ENGINE_MIN_BOOKS, 10)) ? Math.max(1, parseInt(process.env.ENGINE_MIN_BOOKS, 10)) : 2;
+const ENGINE_MIN_BOOKS = Number.isFinite(parseInt(process.env.ENGINE_MIN_BOOKS, 10)) ? Math.max(1, parseInt(process.env.ENGINE_MIN_BOOKS, 10)) : 1;   // odds now come from one source (Bzzoiro): 2 would block every bet
 const ENGINE_MARKET_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_MARKET_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.7; })();
 const ENGINE_ELO_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_ELO_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 0.5 ? v : 0.15; })();
 const leagueAvgCache = { map: new Map(), ts: 0 };
