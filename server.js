@@ -194,7 +194,11 @@ const teamsMatchAny = (a, b) => teamsFuzzyMatch(a, b) || teamsLooseMatch(a, b);
 function sameMatch(a, b) {
   const ta = Date.parse(a.date + 'T' + (a.kickoff || '00:00') + ':00Z'), tb = Date.parse(b.date + 'T' + (b.kickoff || '00:00') + ':00Z');
   if (isNaN(ta) || isNaN(tb) || Math.abs(ta - tb) > 15 * 60 * 1000) return false;
-  return teamsMatchAny(a.home.name, b.home.name) || teamsMatchAny(a.away.name, b.away.name);
+  const h = teamsMatchAny(a.home.name, b.home.name), w = teamsMatchAny(a.away.name, b.away.name);
+  // One provider never lists the same match twice, so two fixtures from the SAME provider are one match only if BOTH teams match
+  // ("Inter" and "Inter Miami" kicking off together are two different matches). Across providers one common team is enough.
+  const bzz = x => String(x.id).startsWith('bzz_');
+  return bzz(a) === bzz(b) ? (h && w) : (h || w);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -471,27 +475,35 @@ function todayStr() {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
+let bzzIncomplete = false;   // true while the events list may be missing matches (a page failed, budget used up, provider down)
 async function fetchBzzoiroEvents() {
   if (!BZZOIRO_API_KEY) return [];
   const eventsTtl = isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE;
   if (eventsCache.data && Date.now() - eventsCache.ts < eventsTtl) return eventsCache.data;
-  if (!bzzBudgetOk()) return eventsCache.data || [];
+  if (!bzzBudgetOk()) { bzzIncomplete = true; return eventsCache.data || []; }
   if (eventsFetchInProgress) return eventsFetchInProgress;
   eventsFetchInProgress = (async () => {
     try {
       // Fetch 2 pages of events (follows `next`); each page costs 1 request of the Bzzoiro budget.
       let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${todayStr()}&date_to=${todayStr()}`;
       const events = [];
+      let complete = true;
       for (let page = 0; url && page < 2; page++) {
         bzzCount();
         const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' } });
-        if (!r.ok) { if (page === 0) throw new Error(`Events HTTP ${r.status}`); break; }
+        if (!r.ok) { if (page === 0) throw new Error(`Events HTTP ${r.status}`); complete = false; break; }
         const data = await r.json();
         const part = data.results || data.data || [];
         if (Array.isArray(part)) events.push(...part);
         url = typeof data.next === 'string' && data.next ? data.next : null;
       }
-      if (Array.isArray(events) && events.length > 0) {
+      const known = eventsCache.data || [];
+      bzzIncomplete = !complete;
+      if (!complete && known.length > events.length) {
+        // A later page failed: keep the fuller list we already have and retry soon, instead of showing fewer matches.
+        console.log(`⚠️ Bzzoiro events: a page failed (${events.length} < ${known.length} known). Keeping the previous list.`);
+        eventsCache.ts = Date.now() - eventsTtl + 15 * 1000;
+      } else if (Array.isArray(events) && events.length > 0) {
         eventsCache.data = events; eventsCache.ts = Date.now();
       } else if (!eventsCache.data || !eventsCache.data.length) {
         eventsCache.data = events; eventsCache.ts = Date.now();
@@ -499,7 +511,7 @@ async function fetchBzzoiroEvents() {
         eventsCache.ts = Date.now() - eventsTtl + 10 * 1000;
       }
       return eventsCache.data || [];
-    } catch (e) { return eventsCache.data || []; }
+    } catch (e) { bzzIncomplete = true; return eventsCache.data || []; }
     finally { eventsFetchInProgress = null; }
   })();
   return eventsFetchInProgress;
@@ -626,6 +638,36 @@ function dedupeFixtures(fixtures) {
   return result;
 }
 
+// The site shows TODAY's matches only, and the list must not wobble between refreshes. A feed that is momentarily incomplete
+// (a Bzzoiro page failed, football-data is cooling down after a 429) must not make matches vanish or a finished one go back to
+// "live": while the feed is degraded we keep what we already knew about today, once it is healthy again the list follows it exactly.
+let stableToday = { day: null, map: new Map(), count: -1 };
+function stabilizeToday(fresh) {
+  const day = todayStr();
+  if (stableToday.day !== day) stableToday = { day, map: new Map(), count: -1 };
+  const fdDegraded = !!API_KEY && (Date.now() < fdCache.errUntil || Date.now() < fdBlockedUntil || fdCache.day !== day);
+  const degraded = bzzIncomplete || fdDegraded;
+  let list = fresh.filter(f => f.date === day || f.status === 'started');
+  if (degraded) {
+    const seen = new Set(list.map(f => f.id));
+    for (const [id, pf] of stableToday.map) if (!seen.has(id)) list.push(pf);
+    list = dedupeFixtures(list);
+  }
+  for (const f of list) {
+    const pf = stableToday.map.get(f.id);
+    if (pf && pf.status === 'finished' && f.status !== 'finished' && Number.isInteger(pf.homeScore) && Number.isInteger(pf.awayScore)) {
+      f.status = 'finished'; f.homeScore = pf.homeScore; f.awayScore = pf.awayScore;
+    }
+  }
+  if (!degraded) stableToday.map = new Map();
+  for (const f of list) stableToday.map.set(f.id, f);
+  if (list.length !== stableToday.count) {
+    console.log(`📋 Fixtures today: ${list.length} (feed ${fresh.length}${degraded ? ', feed degraded: kept known matches' : ''})`);
+    stableToday.count = list.length;
+  }
+  return list;
+}
+
 async function getFixtures() {
   if (fixturesCache.data && Date.now() - fixturesCache.ts < FIXTURES_TTL) return fixturesCache.data;
   if (fixturesFetchInProgress) return fixturesFetchInProgress;
@@ -749,8 +791,9 @@ async function getFixtures() {
       const deduped = dedupeFixtures(fixtures);
       deduped.forEach(f => { f.big = (isBigTeam(f.home.name) ? 1 : 0) + (isBigTeam(f.away.name) ? 1 : 0); });
       try { recordSnapshots(deduped); } catch (e) { console.error('Snapshot error:', e.message); }
-      fixturesCache.data = deduped; fixturesCache.ts = Date.now(); lastFixtures = deduped;
-      return deduped;
+      const list = stabilizeToday(deduped);
+      fixturesCache.data = list; fixturesCache.ts = Date.now(); lastFixtures = list;
+      return list;
     } finally { fixturesFetchInProgress = null; }
   })();
   return fixturesFetchInProgress;
@@ -982,6 +1025,9 @@ function makeLimiter({ windowMs, max, message, maxKeys = 50000 }) {
   };
 }
 const loginLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
+const otpLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
+const licenseLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
+const adminLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
 const registerLimiter = makeLimiter({ windowMs: 60 * 60 * 1000, max: 8, message: 'Too many sign-ups from this network. Try again later.' });
 const apiLimiter = makeLimiter({ windowMs: 60 * 1000, max: 240, message: 'Too many requests. Slow down.' });
 const dataLimiter = makeLimiter({ windowMs: 60 * 1000, max: 60, message: 'Too many requests. Slow down.' });
@@ -1247,7 +1293,7 @@ app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) =
   }
 });
 
-app.post('/api/auth/verify-otp', loginLimiter, (req, res) => {
+app.post('/api/auth/verify-otp', otpLimiter, (req, res) => {
   const body = req.body || {};
   const email = String(body.email || '').trim().toLowerCase();
   const code = String(body.code || '').replace(/\D/g, '');
@@ -1262,7 +1308,7 @@ app.post('/api/auth/verify-otp', loginLimiter, (req, res) => {
   startSession(res, { kind: 'local', username: email });
 });
 
-app.post('/api/auth/resend-otp', loginLimiter, async (req, res) => {
+app.post('/api/auth/resend-otp', otpLimiter, async (req, res) => {
   const email = String((req.body || {}).email || '').trim().toLowerCase();
   if (!OTP_ENABLED || !users.has(email) || !otps.has(email)) return res.status(400).json({ error: 'Please log in again to get a new code.' });
   const o = await sendOtp(email);
@@ -1297,7 +1343,7 @@ app.get('/api/admin/stats', authMiddleware, requireAdmin, (req, res) => {
   });
 });
 
-app.post('/api/admin/plan', loginLimiter, (req, res) => {
+app.post('/api/admin/plan', adminLimiter, (req, res) => {
   const tok = process.env.ADMIN_TOKEN;
   if (!tok) return res.status(404).end();
   const a = Buffer.from(String(req.headers['x-admin-token'] || '')), b = Buffer.from(tok);
@@ -1305,7 +1351,7 @@ app.post('/api/admin/plan', loginLimiter, (req, res) => {
   const { email, plan, days } = req.body || {};
   const u = users.get(String(email || '').trim().toLowerCase());
   if (!u) return res.status(404).json({ error: 'No such account' });
-  if (plan === 'pro') { u.plan = 'pro'; u.planUntil = Number(days) > 0 ? Date.now() + Number(days) * 86400000 : null; }
+  if (plan === 'pro') { u.plan = 'pro'; u.planUntil = Number(days) > 0 ? Date.now() + Math.min(Number(days), 3650) * 86400000 : null; }
   else { u.plan = 'free'; u.planUntil = null; }
   saveUsersSoon();
   res.json({ ok: true, email: u.email, plan: u.plan, planUntil: u.planUntil });
@@ -1339,7 +1385,7 @@ function adminOk(req) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-app.post('/api/admin/license', loginLimiter, (req, res) => {
+app.post('/api/admin/license', adminLimiter, (req, res) => {
   const ok = adminOk(req);
   if (ok === null) return res.status(404).end();
   if (!ok) return res.status(403).json({ error: 'Forbidden' });
@@ -1359,11 +1405,12 @@ app.post('/api/admin/license', loginLimiter, (req, res) => {
 async function keyauthLicense(key, sessionid, hwid) {
   return keyauthRequest({ type: 'license', key, hwid, sessionid, name: KEYAUTH_NAME, ownerid: KEYAUTH_OWNERID, secret: KEYAUTH_SECRET });
 }
-app.post('/api/license/activate', loginLimiter, authMiddleware, async (req, res) => {
+app.post('/api/license/activate', licenseLimiter, authMiddleware, async (req, res) => {
   const sess = sessions.get(req.authToken);
   if (!sess || sess.kind !== 'local') return res.status(400).json({ error: 'This login is already Premium.' });
   const u = users.get(sess.username);
   if (!u) return res.status(404).json({ error: 'Account not found' });
+  if (u.plan === 'pro' && !u.planUntil) return res.status(400).json({ error: 'Your account already has lifetime access. Your key was not used.' });
   const fKey = 'lic:' + sess.username;
   const f = userFails.get(fKey);
   if (f && f.n >= 8 && Date.now() - f.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
@@ -1430,25 +1477,23 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   if (uf && uf.n >= 8 && Date.now() - uf.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
   if (username.includes('@')) return localLogin(res, username.trim().toLowerCase(), password, uKey);
   if (!AUTH_CONFIGURED) return res.status(503).json({ error: 'Login is temporarily unavailable.' });
-  try {
-    const init = await keyauthInit();
-    if (!init.success) throw new Error(init.message || 'Init failed');
-    const sessionid = init.sessionid;
-
-    const login = await keyauthLogin(username, password, sessionid, hwid);
-    if (!login.success) throw new Error(login.message || 'Invalid username or password');
-
-    userFails.delete(uKey);
-    const subs = (login.info && login.info.subscriptions) || [];
-    const exp = Math.max(0, ...subs.map(x => Number(x.expiry) || 0));
-    const sx = { kind: 'keyauth', keyauthSessionId: sessionid, username };
-    if (exp > 0) { if (exp * 1000 > Date.UTC(2090, 0, 1)) sx.lifetime = true; else sx.expiry = exp * 1000; }
-    startSession(res, sx);
-  } catch (e) {
+  const unavailable = () => res.status(503).json({ error: 'Login service is temporarily unavailable. Please try again.' });
+  let init, login;
+  try { init = await keyauthInit(); } catch (e) { return unavailable(); }
+  if (!init || !init.success) return unavailable();
+  const sessionid = init.sessionid;
+  try { login = await keyauthLogin(username, password, sessionid, hwid); } catch (e) { return unavailable(); }
+  if (!login || !login.success) {
     const f = userFails.get(uKey) || { n: 0, t: Date.now() };
     f.n++; f.t = Date.now(); userFails.set(uKey, f);
-    res.status(401).json({ error: e.message });
+    return res.status(401).json({ error: String((login && login.message) || 'Invalid username or password').slice(0, 200) });
   }
+  userFails.delete(uKey);
+  const subs = (login.info && login.info.subscriptions) || [];
+  const exp = Math.max(0, ...subs.map(x => Number(x.expiry) || 0));
+  const sx = { kind: 'keyauth', keyauthSessionId: sessionid, username };
+  if (exp > 0) { if (exp * 1000 > Date.UTC(2090, 0, 1)) sx.lifetime = true; else sx.expiry = exp * 1000; }
+  startSession(res, sx);
 });
 
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
@@ -1646,22 +1691,28 @@ try {
 const discoverSaver = makeSaver('Discover', () => writeAtomic(DISCOVER_FILE, JSON.stringify([...discoverPosts.values()])), 1000);
 const saveDiscoverSoon = discoverSaver.soon;
 
-const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// Uploaded images live next to the other data files (a persistent disk), not inside the app folder that every deploy replaces.
+const UPLOADS_DIR = path.join(path.dirname(HISTORY_FILE), 'uploads');
+const LEGACY_UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');   // images uploaded before this change keep working
+try { fs.mkdirSync(UPLOADS_DIR, { recursive: true }); } catch (e) { console.error('Uploads folder error:', e.message); }
+const IMAGE_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+app.use('/uploads', express.static(UPLOADS_DIR, {
+  dotfiles: 'deny', index: false, maxAge: '7d',
+  setHeaders(res) { res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox"); }
+}));
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, crypto.randomBytes(8).toString('hex') + ext);
+    cb(null, crypto.randomBytes(8).toString('hex') + (IMAGE_EXT[file.mimetype] || '.jpg'));
   }
 });
 const upload = multer({ 
   storage, 
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only images are allowed'));
+    if (IMAGE_EXT[file.mimetype]) cb(null, true);
+    else cb(new Error('Only JPG, PNG, WebP or GIF images are allowed'));
   }
 });
 
@@ -1713,18 +1764,29 @@ function settleMatch(m) {
 }
 
 // Visible to every logged-in user (Pro and Free). Shared matches get their live status/score refreshed on each read.
+// What a viewer may see of a post: counts and their own vote. Voter e-mails never leave the server.
+const discoverView = (p, match, me) => ({
+  id: p.id, text: p.text, image: p.image, match: match || null, date: p.date, comments: p.comments || [],
+  likes: (p.likes || []).length, dislikes: (p.dislikes || []).length,
+  isLiked: (p.likes || []).includes(me), isDisliked: (p.dislikes || []).includes(me)
+});
+
+// Visible to every logged-in user (Pro and Free). Shared matches get their live status/score refreshed on each read.
 app.get('/api/discover', authMiddleware, (req, res) => {
+  const me = sessions.get(req.authToken).username;
   const posts = [...discoverPosts.values()].sort((a, b) => b.date - a.date).map(p => {
-    if (!p.match) return p;
+    if (!p.match) return discoverView(p, null, me);
     const m = settleMatch(p.match);
     if (m.result && !p.match.result) { p.match = m; saveDiscoverSoon(); }   // keep the final result forever
-    return m === p.match ? p : Object.assign({}, p, { match: m });
+    return discoverView(p, m, me);
   });
   res.json({ posts });
 });
 
 app.post('/api/discover', authMiddleware, requireAdmin, (req, res) => {
   const { text, image, matchId } = req.body || {};
+  const img = String(image || '').trim();
+  if (img && !/^(\/uploads\/[a-f0-9]{16}\.(jpg|png|webp|gif)|https:\/\/[^\s"'<>]{1,480})$/i.test(img)) return res.status(400).json({ error: 'Invalid image URL.' });
   let match = null;
   if (matchId != null && matchId !== '') {
     const f = findFixture(matchId);
@@ -1732,12 +1794,12 @@ app.post('/api/discover', authMiddleware, requireAdmin, (req, res) => {
     if ([...discoverPosts.values()].some(p => p.match && String(p.match.id) === String(f.id))) return res.status(409).json({ error: 'This match is already on Discover.' });
     match = matchCard(f); match.pick = pickFor(f);
   }
-  if (!text && !image && !match) return res.status(400).json({ error: 'Post must have text, an image or a match.' });
+  if (!text && !img && !match) return res.status(400).json({ error: 'Post must have text, an image or a match.' });
   const id = crypto.randomBytes(8).toString('hex');
-  const post = { id, text: String(text || '').slice(0, 1000), image: String(image || '').slice(0, 500), match, date: Date.now(), likes: [], dislikes: [], comments: [] };
+  const post = { id, text: String(text || '').slice(0, 1000), image: img, match, date: Date.now(), likes: [], dislikes: [], comments: [] };
   discoverPosts.set(id, post);
   saveDiscoverSoon();
-  res.json({ ok: true, post });
+  res.json({ ok: true, post: discoverView(post, match, sessions.get(req.authToken).username) });
 });
 
 // Admin: delete a post (POST, because the global method guard rejects DELETE with 405)
@@ -1747,9 +1809,9 @@ app.post('/api/discover/:id/delete', authMiddleware, requireAdmin, (req, res) =>
   discoverPosts.delete(p.id);
   saveDiscoverSoon();
   if (typeof p.image === 'string' && p.image.startsWith('/uploads/')) {
-    const file = path.join(UPLOADS_DIR, path.basename(p.image));
+    const name = path.basename(p.image);
     const stillUsed = [...discoverPosts.values()].some(o => o.image === p.image);
-    if (!stillUsed && path.dirname(file) === UPLOADS_DIR) fs.unlink(file, () => {});
+    if (!stillUsed) for (const dir of [UPLOADS_DIR, LEGACY_UPLOADS_DIR]) fs.unlink(path.join(dir, name), () => {});
   }
   res.json({ ok: true });
 });
