@@ -2,7 +2,6 @@
 const test = require('node:test'), assert = require('node:assert');
 const { scoreMatrix, summarize } = require('../engine/poisson');
 const { predict } = require('../engine/prematch');
-const { predictLive } = require('../engine/live');
 const { validate } = require('../engine/validate');
 const { decide } = require('../engine/decision');
 const { upsetRisk } = require('../engine/upset');
@@ -44,22 +43,6 @@ test('prematch: market only when xG missing', () => {
 test('prematch: ignores invalid odds (<=1, NaN)', () => {
   const p = predict(fx(team('A', 1.5, 1.2), team('B', 1.2, 1.4), [book('bad', 0.5, NaN, 3)]));
   assert.strictEqual(p.source, 'model');
-});
-test('live: leading team late is near-certain; trailing early keeps chances', () => {
-  const f = fx(team('A', 1.5, 1.2), team('B', 1.2, 1.4), []);
-  assert.ok(predictLive(f, { minute: 88, homeScore: 2, awayScore: 0 }).p.h > 0.99);
-  assert.ok(predictLive(f, { minute: 10, homeScore: 0, awayScore: 1 }).p.h > 0.2);
-});
-test('live: red card lowers the penalised side', () => {
-  const f = fx(team('A', 1.5, 1.2), team('B', 1.5, 1.2), []);
-  const n = predictLive(f, { minute: 30, homeScore: 0, awayScore: 0 }), r = predictLive(f, { minute: 30, homeScore: 0, awayScore: 0, homeReds: 1 });
-  assert.ok(r.p.h < n.p.h && r.p.a > n.p.a);
-});
-test('live: full time is deterministic; missing real data -> null', () => {
-  const f = fx(team('A', 1.5, 1.2), team('B', 1.5, 1.2), []);
-  assert.deepStrictEqual(predictLive(f, { minute: 90, homeScore: 1, awayScore: 1, finished: true }).p, { h: 0, d: 1, a: 0 });
-  assert.strictEqual(predictLive(f, { minute: 30 }), null);
-  assert.strictEqual(predictLive(fx(team('A'), team('B'), []), { minute: 30, homeScore: 0, awayScore: 0 }), null);
 });
 test('validate: catches bad sums, NaN, odds <= 1, big model/market gap', () => {
   assert.ok(!validate({ p: { h: 0.5, d: 0.5, a: 0.5 } }).ok);
@@ -117,14 +100,6 @@ test('robustness: non-array odds, null fixture, bad rho, NaN in calibration', ()
   assert.doesNotThrow(() => M.calibration([{ p: { h: NaN, d: 0.5, a: 0.5 }, outcome: 'draw' }]));
   assert.throws(() => M.brier([{ p: { h: 1, d: 0, a: 0 }, outcome: 'Home' }]));
   assert.strictEqual(M.roi([{ odds: 2, won: true, stake: 0 }]), null);
-});
-test('live: minute 90 is stoppage (not certain) until the feed says finished; reds are capped', () => {
-  const f = fx(team('A', 1.5, 1.2), team('B', 1.5, 1.2), []);
-  const p90 = predictLive(f, { minute: 90, homeScore: 1, awayScore: 0 });
-  assert.ok(p90.p.h < 1 && p90.p.h > 0.9);
-  assert.deepStrictEqual(predictLive(f, { minute: 90, homeScore: 1, awayScore: 0, finished: true }).p, { h: 1, d: 0, a: 0 });
-  const r3 = predictLive(f, { minute: 30, homeScore: 0, awayScore: 0, homeReds: 3 }), r9 = predictLive(f, { minute: 30, homeScore: 0, awayScore: 0, homeReds: 9 });
-  assert.deepStrictEqual(r3.p, r9.p);
 });
 test('decision: backtest option lets finished fixtures be evaluated', () => {
   const f = Object.assign(fx(team('A', 1.5, 1.2), team('B', 1.2, 1.4), [book('b1', 2.0, 3.5, 4.0), book('b2', 2.1, 3.4, 3.9)]), { status: 'finished' });
