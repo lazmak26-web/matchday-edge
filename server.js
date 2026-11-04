@@ -660,6 +660,15 @@ function dedupeFixtures(fixtures) {
 // The site shows TODAY's matches only, and the list must not wobble between refreshes. A feed that is momentarily incomplete
 // (a Bzzoiro page failed, football-data is cooling down after a 429) must not make matches vanish or a finished one go back to
 // "live": while the feed is degraded we keep what we already knew about today, once it is healthy again the list follows it exactly.
+const INSTANCE_ID = crypto.randomBytes(3).toString('hex'), STARTED_AT = Date.now();   // tells apart restarts and several server copies answering the same site
+function feedHealth() {
+  const day = todayStr();
+  return {
+    instance: INSTANCE_ID, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), shown: stableToday.count,
+    bzzEvents: (eventsCache.data || []).length, bzzPages: bzzLastPages, bzzIncomplete,
+    fdDegraded: !!API_KEY && (Date.now() < fdCache.errUntil || Date.now() < fdBlockedUntil || fdCache.day !== day)
+  };
+}
 let stableToday = { day: null, map: new Map(), count: -1 };
 function stabilizeToday(fresh) {
   const day = todayStr();
@@ -1619,7 +1628,7 @@ app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) 
       return engineServe.item(f, { marketWeight: mw, eloWeight: ENGINE_ELO_WEIGHT, eloBook, decide: dOpts, maxGap: ENGINE_MAX_GAP });
     });
     const xgCounts = {}; for (const f of fixtures) { const k = f.xgSource || 'none'; xgCounts[k] = (xgCounts[k] || 0) + 1; }
-    res.json({ predictions: out, meta: { minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, apiFootball: afOdds.stats(), xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
+    res.json({ predictions: out, meta: { feed: feedHealth(), minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, apiFootball: afOdds.stats(), xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
   } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
 });
 
