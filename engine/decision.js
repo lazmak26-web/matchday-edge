@@ -2,11 +2,17 @@
 // BET / NO BET gate. Defaults to NO BET unless every condition holds. Reasons are always returned.
 const { validate } = require('./validate');
 const { upsetRisk } = require('./upset');
+const oddsCore = require('./odds');
 const DEFAULTS = { minEV: 0.045, minBooks: 2, maxOdds: 6, minProb: 0.12, maxGap: 0.2 };
 
 // Best real bookmaker price per outcome. One stale/wrong price must not create a fake edge: ignore prices > 25% above the median (3+ books) or above the lower of 2 books.
 function bestPrices(fx) {
   const out = {}, books = fx && Array.isArray(fx.odds) ? fx.odds : [];
+  // 4+ books: statistical outlier filter (odds.js). Fewer books: the median/lower-price caps below.
+  if (books.filter(b => b && b.home > 1 && b.draw > 1 && b.away > 1).length >= 4) {
+    const c = oddsCore.consensus(books);
+    if (c) { for (const [k, key] of [['h', 'home'], ['d', 'draw'], ['a', 'away']]) if (c.best[key]) out[k] = { key, odds: c.best[key].odds, book: c.best[key].book }; return out; }
+  }
   for (const [k, key] of [['h', 'home'], ['d', 'draw'], ['a', 'away']]) {
     const vals = books.map(b => b && b[key]).filter(x => x > 1).sort((x, y) => x - y);
     const ref = vals.length >= 3 ? (vals.length % 2 ? vals[vals.length >> 1] : (vals[vals.length / 2 - 1] + vals[vals.length / 2]) / 2) : vals.length === 2 ? vals[0] : null;
@@ -29,7 +35,7 @@ function decide(fx, pred, opts = {}) {
   const pick = [], prices = bestPrices(fx);
   for (const k of ['h', 'd', 'a']) {
     const pr = prices[k];
-    if (pr) pick.push({ key: pr.key, odds: pr.odds, book: pr.book, p: pred.p[k], ev: pred.p[k] * (pr.odds - 1) - (1 - pred.p[k]) });
+    if (pr) pick.push({ key: pr.key, odds: pr.odds, book: pr.book, p: pred.p[k], ev: pred.p[k] * (pr.odds - 1) - (1 - pred.p[k]), kelly: oddsCore.kelly(pred.p[k], pr.odds) });
   }
   pick.sort((a, b) => b.ev - a.ev);
   const top = pick[0];

@@ -2,19 +2,16 @@
 // Independent pre-match engine. Uses ONLY real inputs on the fixture; missing inputs => null, never a guess.
 const { scoreMatrix, summarize } = require('./poisson');
 const elo = require('./elo');
+const oddsCore = require('./odds');
 const isNum = x => typeof x === 'number' && isFinite(x);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const LEAGUE_AVG = 1.35, HOME_ADV = 1.11; // same constants as the legacy browser model
 
 function market(odds) {
-  if (!Array.isArray(odds)) return null;
-  const books = odds.filter(b => b && [b.home, b.draw, b.away].every(o => isNum(o) && o > 1));
-  if (!books.length) return null;
-  let h = 0, d = 0, a = 0, ov = 0, nOu = 0;
-  for (const b of books) { const i = [1 / b.home, 1 / b.draw, 1 / b.away], s = i[0] + i[1] + i[2]; h += i[0] / s; d += i[1] / s; a += i[2] / s; }
-  for (const b of odds) if (b && isNum(b.over25) && isNum(b.under25) && b.over25 > 1 && b.under25 > 1) { ov += (1 / b.over25) / (1 / b.over25 + 1 / b.under25); nOu++; }
-  const n = books.length;
-  return { h: h / n, d: d / n, a: a / n, over: nOu ? ov / nOu : null, n };
+  // Sharpness-weighted, outlier-filtered consensus of the de-vigged books (see odds.js). Same return shape as before.
+  const c = oddsCore.consensus(odds);
+  if (!c) return null;
+  return { h: c.fair.h, d: c.fair.d, a: c.fair.a, over: c.ou ? c.ou.over : null, n: c.n, margin: c.margin, used: c.used, dropped: c.dropped };
 }
 
 // Raw goals of the last few matches are a very noisy estimate (5 games: one 5-0 turns a normal team into a monster).
