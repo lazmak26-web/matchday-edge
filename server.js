@@ -11,6 +11,7 @@ const API_BASE = 'https://api.football-data.org/v4';
 
 const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
 const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
+const oddsApi = require('./oddsapi');
 const fdStats = require('./fdstats');
 
 /* ═══════════════════════════════════════════════════════════
@@ -655,8 +656,10 @@ function estimateXGForFixture(fixture) {
   fixture.xgSource = 'league-avg'; fixture.dataQuality = 'very-low';
 }
 
-function mergeOdds(base) {
-  return base ? [base] : [];
+// Bzzoiro price (if any) + extra real books from The Odds API (cache only, no request here). Both teams must match.
+function mergeOdds(base, home, away) {
+  const extra = home && away ? oddsApi.booksFor(home, away, teamsMatchAny) : [];
+  return (base ? [base] : []).concat(extra);
 }
 
 // Well-known clubs / national teams: their matches are shown first (fixture.big = 0, 1 or 2 famous teams).
@@ -810,7 +813,7 @@ async function getFixtures() {
             ga5: af?.ga5 ?? null,
             formN: af?.n ?? null
           },
-          odds: mergeOdds(oddsMap.get(normalizeTeamKey(ev.home_team, ev.away_team))),
+          odds: mergeOdds(oddsMap.get(normalizeTeamKey(ev.home_team, ev.away_team)), ev.home_team, ev.away_team),
           h2h: ev.head_to_head || null,
           sources: fdMatch ? ['bzz', 'fd'] : ['bzz']
         };
@@ -835,7 +838,7 @@ async function getFixtures() {
           awayScore: m.score?.fullTime?.away ?? 0,
           home: { id: m.homeTeam.id, name: m.homeTeam.name, logo: m.homeTeam.crest || cachedLogo(m.homeTeam.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null },
           away: { id: m.awayTeam.id, name: m.awayTeam.name, logo: m.awayTeam.crest || cachedLogo(m.awayTeam.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null },
-          odds: mergeOdds(odds),
+          odds: mergeOdds(odds, m.homeTeam.name, m.awayTeam.name),
           sources: odds ? ['fd', 'bzz'] : ['fd']
         };
         if (fixture.status === 'finished' && (m.score?.fullTime?.home == null || m.score?.fullTime?.away == null)) fixture.status = 'started';
@@ -1103,6 +1106,8 @@ app.use('/api/', (req, res, next) => {
 
 app.use(express.json({ limit: '10kb' }));
 app.use(pageLimiter);
+// The same pure odds core runs in the browser (sharp weighting, outlier filter, best price), so the Value Board matches the server engine.
+app.get('/odds-core.js', (req, res) => { res.type('application/javascript').set('Cache-Control', 'public, max-age=300').sendFile(path.join(__dirname, 'engine', 'odds.js')); });
 app.use(express.static(path.join(__dirname, 'public'), {
   extensions: ['html'], dotfiles: 'deny', index: 'index.html',
   // static assets that rarely change are cached for a week; pages and our own scripts/styles always revalidate (ETag) so updates show up at once
@@ -1681,6 +1686,8 @@ async function backgroundTick() {
       if (teams.length) ensureForms(teams).catch(e => console.error(e.message));
     }
     ensureBzzForms();
+    // Second odds source (no-op without ODDS_API_KEY). New prices => drop the fixtures cache so the next request uses them.
+    if (await oddsApi.refresh(fixtures).catch(() => 0)) fixturesCache.data = null;
     await refreshHistoryResults();
   } catch (e) { console.error('Background tick error:', e.message); }
 }
