@@ -1930,17 +1930,35 @@ function checkMatchStarts(fixtures) {
   if (changed) saveBells(bells);
 }
 
+// ONE list for everything on the Signals page: the dashboard numbers, the profile counter and the cards all come from it,
+// so they can never disagree. Finished/canceled matches are out, and a fixture id can only appear once.
+function visibleResults() {
+  const seen = new Set();
+  return (st.results || []).filter(r => {
+    if (!r || !r.fx || r.fx.status === 'finished' || r.fx.status === 'canceled') return false;
+    const id = String(r.fx.id);
+    if (seen.has(id)) return false;
+    seen.add(id); return true;
+  });
+}
 function renderSignals() {
   renderProfile();
   if (!isPro()) { renderFreeSignals(); return; }
-  const shown = st.results.filter(r => r.fx.status !== 'finished' && r.fx.status !== 'canceled'); // exactly the match cards below
+  const lang = localStorage.getItem('mde:lang') || 'en';
+  const t = translations[lang] || translations.en;
+  const cardList = visibleResults()
+    .sort((a, b) => (Number(isPinned(b.fx.id)) - Number(isPinned(a.fx.id))) || ((b.fx.big || 0) - (a.fx.big || 0)) || (Number(b.v.started) - Number(a.v.started)) || (fxDateTime(a.fx) - fxDateTime(b.fx)));
+  const rendered = [];   // the results whose card was really built: the dashboard counts THESE, not the raw list
+  let failed = 0;
+  const cardHTMLs = cardList.map(r => {
+    try { const h = buildCard(r, t); if (h) { rendered.push(r); return h; } } catch (e) { console.error('renderSignals: broken card', r && r.fx && r.fx.id, e); }
+    failed++; return '';
+  });
+  const shown = rendered;
   const upcoming = shown.filter(r => !r.v.started);
   const bets = upcoming.filter(r => r.v.bet);
   const withOdds = shown.filter(r => r.fx.odds && r.fx.odds.length > 0).length;
   const best = bets.length ? Math.max(...bets.map(r => r.v.bet.ev)) : null;
-
-  const lang = localStorage.getItem('mde:lang') || 'en';
-  const t = translations[lang] || translations.en;
 
   $('stats').innerHTML = `
     <div class="stat-item"><div class="stat-value">${shown.length}</div><div class="stat-label">${t.matches}</div></div>
@@ -1949,12 +1967,20 @@ function renderSignals() {
     <div class="stat-item"><div class="stat-value">${best!=null?sgn(best):'—'}</div><div class="stat-label">${t.best_ev_short}</div></div>
   `;
 
-  const cardList = st.results
-    .filter(r => r.fx.status !== 'finished' && r.fx.status !== 'canceled')
-    .sort((a, b) => (Number(isPinned(b.fx.id)) - Number(isPinned(a.fx.id))) || ((b.fx.big || 0) - (a.fx.big || 0)) || (Number(b.v.started) - Number(a.v.started)) || (fxDateTime(a.fx) - fxDateTime(b.fx)));
-  // One broken fixture (missing odds, missing scoreline...) must not stop the other cards from rendering.
-  const cardsHTML = cardList.map(r => {
-    try {
+  // One broken fixture (missing odds, missing scoreline...) must not stop the other cards from rendering, and it is never hidden silently: it is counted in `failed`.
+  const note = [];
+  if (failed) note.push(`${failed} match card(s) could not be displayed`);
+  if (st.feedDegraded) note.push('The data feed is incomplete right now: some of today\'s matches may be missing. The list updates by itself.');
+  const noteHTML = note.length ? `<div class="empty-state" style="grid-column:1/-1;padding:10px 14px;text-align:left;font-size:13px">⚠️ ${esc(note.join(' · '))}</div>` : '';
+  const cardsHTML = cardHTMLs.join('');
+  $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + `<div class="empty-state">${t.no_upcoming}</div>`));
+  const inDom = $('cards').querySelectorAll('article.match').length;
+  if (inDom !== rendered.length) console.warn('Signals: dashboard counts', rendered.length, 'but', inDom, 'cards are in the page');
+}
+
+function buildCard(r, t) {
+  {
+    {
       const { fx, json, v } = r, H = fx.home, A = fx.away;
       const mostLikely = json?.scoreline_prediction?.most_likely;
       const scoreHTML = mostLikely != null ? `<b class="kv-score">${esc(mostLikely)}</b>` : NA;
@@ -1993,12 +2019,8 @@ function renderSignals() {
       </div>
       ${valueHTML}
     </article>`;
-    } catch (e) {
-      console.error('renderSignals: skipped a broken card', r?.fx?.id, e);
-      return '';
     }
-  }).join('');
-  $('cards').innerHTML = cardsHTML || `<div class="empty-state">${t.no_upcoming}</div>`;
+  }
 }
 
 function renderHistory() {
@@ -2302,6 +2324,8 @@ async function pollFeedInner() {
     if (!data.fixtures) return;
 
     checkMatchStarts(data.fixtures);
+    const fdeg = !!(data.feed && (data.feed.bzzIncomplete || data.feed.bzzTruncated || data.feed.fdDegraded));
+    const fdChanged = fdeg !== !!st.feedDegraded; st.feedDegraded = fdeg;
 
     const newHash = JSON.stringify(data.fixtures.map(f => ({ id: f.id, status: f.status, h: f.homeScore ?? 'null', a: f.awayScore ?? 'null', hl: f.home && f.home.logo, al: f.away && f.away.logo, o: f.odds && f.odds[0] ? [f.odds[0].home, f.odds[0].draw, f.odds[0].away].join() : '', hf: f.home && f.home.form, af: f.away && f.away.form })));
     if (newHash !== lastHash) {
@@ -2314,7 +2338,7 @@ async function pollFeedInner() {
       lastHash = newHash;
       $('live-status').className = 'live-status is-live';
       $('live-text').textContent = 'LIVE';
-    }
+    } else if (fdChanged) renderSignals();   // same matches, but the feed health changed: refresh the warning
   } catch (e) {}
 }
 
@@ -2344,7 +2368,7 @@ function renderProfile() {
   $('pmUid').textContent = p.uid || '—';
   $('pmPlan').textContent = isPro() ? 'Pro' : 'Free';
   $('pmLeft').textContent = timeLeftText();
-  $('pmSignals').textContent = isPro() ? (st.results || []).filter(r => !r.v.started && r.v.bet).length : 0;
+  $('pmSignals').textContent = isPro() ? visibleResults().filter(r => !r.v.started && r.v.bet).length : 0;
   $('pmSince').textContent = p.since ? new Date(p.since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
 }
 
