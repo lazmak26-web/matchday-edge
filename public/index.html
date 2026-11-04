@@ -1976,6 +1976,17 @@ function renderSignals() {
   $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + `<div class="empty-state">${t.no_upcoming}</div>`));
   const inDom = $('cards').querySelectorAll('article.match').length;
   if (inDom !== rendered.length) console.warn('Signals: dashboard counts', rendered.length, 'but', inDom, 'cards are in the page');
+  syncStatsFromCards();
+  // The count-up animation (fx.js) runs ~0.9 s after a render: re-check once it is over so nothing can leave a stale number on screen.
+  clearTimeout(window.__statSync); window.__statSync = setTimeout(syncStatsFromCards, 1200);
+}
+// The cards on screen are the truth: the first three dashboard numbers are read back from them, so "Matches" can never differ from what the person counts.
+function syncStatsFromCards() {
+  const box = $('stats'), grid = $('cards'); if (!box || !grid) return;
+  const vals = box.querySelectorAll('.stat-value'); if (vals.length < 3) return;
+  const cards = Array.from(grid.querySelectorAll('article.match'));
+  const n = [cards.length, cards.filter(c => c.dataset.odds === '1').length, cards.filter(c => c.classList.contains('is-value')).length];
+  n.forEach((v, i) => { if (vals[i].textContent.trim() !== String(v)) { console.warn('Signals: stat', i, 'showed', vals[i].textContent.trim(), 'but the page has', v); vals[i].textContent = String(v); } });
 }
 
 function buildCard(r, t) {
@@ -1996,7 +2007,7 @@ function buildCard(r, t) {
         <div class="vb-meta"><span>${t.kelly}: ${esc(bv.quarter_kelly ?? '—')}</span><span class="pill ${riskClass(bv.risk_level)}">${esc(bv.risk_level ?? '—')}</span></div>
       </div>` : '';
 
-      return `<article data-fx="${esc(fx.id)}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
+      return `<article data-fx="${esc(fx.id)}" data-odds="${fx.odds && fx.odds.length ? 1 : 0}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
       <div class="m-top">
         <div class="m-league">${esc(fx.league)}</div>
         <div class="m-top-right">
