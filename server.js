@@ -475,12 +475,13 @@ function todayStr() {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
-const BZZ_EVENT_PAGES = Math.max(1, parseInt(process.env.BZZ_EVENT_PAGES, 10) || 2);
+const BZZ_EVENT_PAGES = Math.max(2, Math.min(10, parseInt(process.env.BZZ_EVENT_PAGES, 10) || 6));   // the provider paginates (~10 per page): a busy day needs more than 2 pages
+let bzzLastPages = 1;
 const BZZ_RETRY_MS = 15 * 1000;   // how soon an incomplete / failed events fetch is retried
 let bzzIncomplete = false;   // true while the events list may be missing matches (a page failed, budget used up, provider down)
 async function fetchBzzoiroEvents() {
   if (!BZZOIRO_API_KEY) return [];
-  const eventsTtl = isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE;
+  const eventsTtl = (isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE) * (bzzLastPages > 2 ? 2 : 1);   // more pages cost more of the daily budget: refresh less often
   if (eventsCache.data && (eventsCache.retryAt ? Date.now() < eventsCache.retryAt : Date.now() - eventsCache.ts < eventsTtl)) return eventsCache.data;
   if (!bzzBudgetOk()) { bzzIncomplete = true; return eventsCache.data || []; }
   if (eventsFetchInProgress) return eventsFetchInProgress;
@@ -489,7 +490,7 @@ async function fetchBzzoiroEvents() {
       // Fetch 2 pages of events (follows `next`); each page costs 1 request of the Bzzoiro budget.
       let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${todayStr()}&date_to=${todayStr()}`;
       const events = [];
-      let complete = true;
+      let complete = true, pages = 0;
       for (let page = 0; url && page < BZZ_EVENT_PAGES; page++) {
         bzzCount();
         // A hung request must not freeze every /api/fixtures call behind eventsFetchInProgress: give up after 15 s.
@@ -498,10 +499,12 @@ async function fetchBzzoiroEvents() {
         const data = await r.json();
         const part = data.results || data.data || [];
         if (Array.isArray(part)) events.push(...part);
+        pages++;
         url = typeof data.next === 'string' && data.next ? data.next : null;
       }
+      bzzLastPages = pages;
       if (url && complete) console.log(`⚠️ Bzzoiro events: more than ${BZZ_EVENT_PAGES} pages today, the rest is NOT shown (raise BZZ_EVENT_PAGES)`);
-      const known = eventsCache.data || [];
+      const day = todayStr(), known = eventsCache.day === day ? (eventsCache.data || []) : [];   // never keep yesterday's list as the fuller one
       bzzIncomplete = !complete;
       // retryAt (not a shortened ts): the TTL differs between active (60 s) and idle (10 min) mode and can change before the retry is due.
       if (!complete && known.length > events.length) {
@@ -509,7 +512,7 @@ async function fetchBzzoiroEvents() {
         console.log(`⚠️ Bzzoiro events: a page failed (${events.length} < ${known.length} known). Keeping the previous list.`);
         eventsCache.retryAt = Date.now() + BZZ_RETRY_MS;
       } else if (events.length > 0 || !known.length) {
-        eventsCache.data = events; eventsCache.ts = Date.now();
+        eventsCache.data = events; eventsCache.ts = Date.now(); eventsCache.day = day;
         // A partial list (a later page failed, nothing fuller known, e.g. right after a restart) must not live for the whole TTL
         // (10 min when idle): that is what made the match count jump around (10 / 18 / 26) between refreshes. Retry shortly.
         if (!complete) { console.log(`⚠️ Bzzoiro events: a page failed, showing ${events.length} for now, retrying in ${BZZ_RETRY_MS / 1000}s.`); eventsCache.retryAt = Date.now() + BZZ_RETRY_MS; }
@@ -561,6 +564,9 @@ async function fetchOdds() {
       const queue = valid.filter(ev => {
         const c = oddsByEvent.get(ev.id);
         if (!bzzBudgetOk()) return false;
+        const st = normalizeStatus(ev.status, ev.event_date);
+        if (st === 'finished' || st === 'canceled') return false;   // only pre-match prices are used: never spend budget on these
+        if (c && st === 'started') return false;
         if (!c) return true;
         return now - c.ts > (c.parsed ? ODDS_EVENT_TTL : ODDS_MISS_TTL);
       });
