@@ -18,7 +18,7 @@
     if (isNum(c.eloWeight) && c.eloWeight > 0 && c.elo) p = mix(c.elo, p, c.eloWeight);
     const sum = p.h + p.d + p.a; p = { h: p.h / sum, d: p.d / sum, a: p.a / sum };
     const over = isNum(c.overModel) && isNum(c.overMarket) ? w * c.overMarket + (1 - w) * c.overModel : pr.over;
-    const lim = it.limits || {}, maxOdds = isNum(lim.maxOdds) ? lim.maxOdds : 6, minProb = isNum(lim.minProb) ? lim.minProb : 0.12;
+    const lim = it.limits || {}, maxOdds = isNum(lim.maxOdds) ? lim.maxOdds : 6, minProb = isNum(lim.minProb) ? lim.minProb : 0.12, maxEV = isNum(lim.maxEV) ? lim.maxEV : 0.15;
     const picks = [];
     for (const k of ['h', 'd', 'a']) {
       const pz = it.prices && it.prices[k];
@@ -29,6 +29,7 @@
     if (!top) reasons.push('no valid odds');
     else {
       if (top.ev < ev0) reasons.push('edge ' + (top.ev * 100).toFixed(1) + '% below the ' + (ev0 * 100).toFixed(1) + '% threshold');
+      if (top.ev > maxEV) reasons.push('edge ' + (top.ev * 100).toFixed(0) + '% is too large to be credible (likely a wrong price or data error)');
       if (top.odds > maxOdds) reasons.push('odds ' + top.odds + ' too high (variance)');
       if (top.p < minProb) reasons.push('probability too low');
     }

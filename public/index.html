@@ -147,6 +147,7 @@ button,select,input{font:inherit;color:inherit}
 .pm-stats b{font-size:14px}
 .pm-langs{display:flex;flex-wrap:wrap;gap:6px}
 .pm-langs button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--ink-2)}
+.pm-langs button.on{background:var(--brand-dim);color:var(--brand);border-color:var(--brand)}
 .pm-settings,.pm-logout{width:100%;border:0;border-radius:999px;padding:11px;font-weight:600;cursor:pointer;background:var(--soft);color:var(--ink)}
 .pm-logout{background:var(--bad-dim);color:var(--bad)}
 .ticker{display:none}
@@ -245,6 +246,7 @@ button,select,input{font:inherit;color:inherit}
 .vb-meta{font-size:12px;color:var(--ink-2)}
 .lp-lock{position:relative;cursor:pointer;border-radius:16px}
 .lp-lock .tiles{filter:blur(7px);opacity:.75;pointer-events:none;user-select:none;-webkit-user-select:none}
+.match.is-locked .m-top,.match.is-locked .m-teams{filter:blur(7px);opacity:.7;pointer-events:none;user-select:none;-webkit-user-select:none}
 .lp-unlock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;border:0;cursor:pointer;font-weight:600;font-size:13px;color:var(--on-brand);background:var(--brand);padding:10px 18px;border-radius:999px;transition:transform .2s}
 .lp-lock:hover .lp-unlock{transform:translate(-50%,-50%) scale(1.06)}
 .hc-card{padding:16px;border-radius:22px}
@@ -465,19 +467,6 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 .match{transition:none}
 @media (hover:hover){.match:hover{transform:none}}
 
-/* ===== Ticket press motion (click / tap on match cards) ===== */
-.match,.hc-card{transform:perspective(1000px);transform-style:preserve-3d;-webkit-tap-highlight-color:transparent;
-  transition:transform .6s cubic-bezier(.23,1,.32,1),box-shadow .6s ease}
-.match::after,.hc-card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:10;
-  background:linear-gradient(115deg,transparent 0%,transparent 40%,rgba(255,255,255,.1) 45%,rgba(255,255,255,.3) 50%,rgba(255,255,255,.1) 55%,transparent 60%,transparent 100%);
-  background-size:250% 250%;background-position:100% 100%;mix-blend-mode:overlay;
-  transition:background-position .6s cubic-bezier(.23,1,.32,1)}
-.match:active,.hc-card:active{transform:perspective(1000px) rotateX(15deg) rotateY(-5deg) scale(.98)}
-.match:active::after,.hc-card:active::after{background-position:0% 0%}
-.match .kv,.match .vb,.hc-card .hc-footer{transition:transform .2s ease,opacity .2s ease}
-.match:active .kv,.match:active .vb,.hc-card:active .hc-footer{transform:translateY(5px) rotateZ(2deg);opacity:.8}
-@media (prefers-reduced-motion:reduce){.match,.hc-card{transition:none}.match:active,.hc-card:active{transform:none}}
-
 .globe-bg { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
 .globe-stage { position:absolute; left:50%; top:auto; bottom:0; width:min(max(140vw,120vh),2600px); aspect-ratio:1; transform:translate(-50%,58%); opacity:0; transition:opacity 2s ease; }
 .globe-bg.is-ready .globe-stage { opacity:.55; }
@@ -525,7 +514,6 @@ html.lenis, html.lenis body { height:auto; }
 #cookieBar .cb-row{display:flex;flex-wrap:wrap;gap:10px}
 #cookieBar .cb-btn{flex:1 1 140px;padding:11px 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--soft);color:var(--ink);font-weight:600;font-size:14px;cursor:pointer}
 .perf-note{font-size:12.5px;color:var(--text-sub);margin:10px 2px 0}
-
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 /* Discover Feed Styles */
@@ -549,72 +537,6 @@ html.lenis, html.lenis body { height:auto; }
 .dc-comment-input { display: flex; gap: 8px; margin-top: 4px; }
 .dc-comment-input input { flex: 1; padding: 8px 12px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--soft); color: var(--ink); font-size: 13px; }
 .dc-comment-input button { background: var(--brand); color: #fff; border: 0; border-radius: 99px; padding: 0 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
-
-/* ===== Glow card (rotating border) — themed to the site palette ===== */
-@property --gc-a{syntax:"<angle>";inherits:false;initial-value:0deg}
-@keyframes gcSpin{to{--gc-a:360deg}}
-.plan-card,.pf-card{
-  position:relative;overflow:hidden;display:flex;flex-direction:column;gap:16px;padding:20px;
-  color:var(--ink);border:1px solid var(--line);border-radius:20px;
-  background-color:var(--card);
-  background-image:
-    radial-gradient(at 0% 64%,color-mix(in srgb,var(--brand) 30%,transparent) 0,transparent 85%),
-    radial-gradient(at 41% 94%,color-mix(in srgb,var(--brand) 22%,transparent) 0,transparent 85%),
-    radial-gradient(at 100% 99%,color-mix(in srgb,var(--brand-2) 16%,transparent) 0,transparent 85%);
-  box-shadow:0 -16px 24px 0 color-mix(in srgb,var(--brand-2) 16%,transparent) inset,var(--shadow);
-  -webkit-backdrop-filter:none;backdrop-filter:none;transition:transform .3s}
-.plan-card{max-width:460px;padding:24px}
-.plan-card::after,.pf-card::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:2;
-  background:conic-gradient(from var(--gc-a),transparent 0 62%,var(--brand) 82%,var(--brand-2) 94%,transparent 100%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask-composite:exclude;
-  animation:gcSpin 6s linear infinite}
-.pf-card>*{position:relative;z-index:1}
-@media (hover:hover){.pf-card:hover,.plan-card:hover{transform:translateY(-2px)}}
-@media (prefers-reduced-motion:reduce){.plan-card::after,.pf-card::before{animation:none}}
-.plan-name{font-size:16px;font-weight:700;color:var(--ink)}
-.plan-price{margin:0}.plan-price b{font-size:44px;line-height:1}
-.plan-note{margin:0;font-size:11.5px;color:var(--ink-3)}
-.gc-line{width:100%;height:1.5px;border:0;margin:0;background:var(--line)}
-.plan-feats{margin:0;gap:8px;font-size:13px}
-.plan-feats li{display:flex;align-items:center;gap:8px}
-.plan-feats li::before{content:"\2713";flex:none;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--brand);color:var(--on-brand);font-size:10px;font-weight:800;margin:0}
-.btn-tg.plan-tg{padding:10px;font-size:13px;color:var(--on-brand);border:0;border-radius:999px;
-  background:linear-gradient(0deg,var(--brand-2),var(--brand));box-shadow:inset 0 -2px 25px -4px rgba(255,255,255,.55)}
-.btn-tg.plan-tg svg{color:var(--on-brand)}
-.plan-card .btn-main{margin-top:0!important}
-/* performance */
-.pf-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.pf-title{display:flex;align-items:center;gap:8px;min-width:0}
-.pf-title h3{margin:0;font-size:14px;font-weight:600;color:var(--ink)}
-.pf-ico{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--grad)}
-.pf-ico svg{width:16px;height:16px;stroke:#fff;fill:none}
-.pf-live{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:999px;background:var(--good-dim);color:var(--good);font-size:12px;font-weight:500}
-.pf-live i{width:6px;height:6px;border-radius:50%;background:var(--good);animation:pfPulse 1.6s infinite}
-@keyframes pfPulse{50%{opacity:.35}}
-.pf-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.pf-stat{background:var(--soft);border-radius:12px;padding:12px}
-.pf-stat.hero{grid-column:1/-1}
-.pf-lbl{margin:0;font-size:12px;font-weight:500;color:var(--ink-3)}
-.pf-val{margin:2px 0 0;font-size:24px;font-weight:700;color:var(--ink);line-height:1.2}
-.pf-track{height:8px;border-radius:99px;background:var(--line);margin-top:10px;overflow:hidden}
-.pf-track .perf-fill{background:var(--grad);width:0}
-.pf-mini{display:flex;gap:10px}
-.pf-mini .pf-stat{flex:1;text-align:center}
-.pf-mini .pf-lbl{text-transform:uppercase;font-size:11px;font-weight:700;letter-spacing:.03em}
-.pf-mini .pf-val{font-size:20px}
-.pf-chart{height:260px;position:relative;border-radius:12px;background:var(--soft);padding:12px;overflow:hidden}
-.pf-select{appearance:none;-webkit-appearance:none;background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2386868B' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m2 5 5 5 5-5'/%3E%3C/svg%3E") no-repeat right 8px center;border:1px solid var(--line-2);border-radius:999px;padding:5px 28px 5px 12px;font-size:12px;font-weight:600;color:var(--ink-2);cursor:pointer;outline:none}
-@media (max-width:520px){.pf-stats{grid-template-columns:1fr 1fr}.pf-stat.hero,.pf-stats .pf-stat:last-child{grid-column:1/-1}}
-.pf-day{padding:16px;gap:12px}
-.pf-day::before{animation:none!important}
-.pf-day .pf-mini .pf-stat{padding:8px}.pf-day .pf-mini .pf-val{font-size:18px}
-#weeklyTop{margin-bottom:0}
-/* compact legal footer */
-.disclaimer{max-width:52ch;margin:24px auto 0;padding:0 16px;font-size:10.5px;line-height:1.45;opacity:.75}
-.site-footer{margin:10px auto 96px;font-size:10.5px;line-height:1.45}
-.site-footer nav{gap:2px 12px;margin-bottom:4px}
-.site-footer p{margin:0}
 </style>
 <link rel="stylesheet" href="/demo-arena.css">
 <link rel="stylesheet" href="/fx.css">
@@ -775,58 +697,59 @@ html.lenis, html.lenis body { height:auto; }
     <div id="view-performance" class="tab-view">
       <section style="margin-top:24px;">
         <div class="section-head"><div class="section-label">📈 <span data-i18n="bot_stats">Bot Stats</span></div><h2 data-i18n="perf_overview">Performance Overview</h2></div>
-
-        <div class="pf-card" style="margin-bottom:16px;">
-          <div class="pf-head">
-            <div class="pf-title"><div class="pf-ico"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div><h3 data-i18n="win_rate_today">Today's Win Rate</h3></div>
-            <span class="pf-live"><i></i>Live</span>
+        <div class="perf-grid">
+          <div class="perf-card hero">
+            <div class="perf-val" id="perf-winrate" style="color:#10B981;">0%</div>
+            <div class="perf-lbl" data-i18n="win_rate_today">Today's Win Rate</div>
+            <div class="perf-track"><div class="perf-fill" id="perf-bar"></div></div>
           </div>
-          <div class="pf-stats">
-            <div class="pf-stat hero">
-              <p class="pf-lbl" data-i18n="win_rate_today">Today's Win Rate</p>
-              <p class="pf-val perf-val" id="perf-winrate" style="color:#10B981;font-size:34px;letter-spacing:0">0%</p>
-              <div class="pf-track"><div class="perf-fill" id="perf-bar"></div></div>
-            </div>
-            <div class="pf-stat">
-              <p class="pf-lbl" data-i18n="wins">Wins</p>
-              <p class="pf-val" id="perf-wins" style="color:#10b981;">0</p>
-            </div>
-            <div class="pf-stat">
-              <p class="pf-lbl" data-i18n="losses">Losses</p>
-              <p class="pf-val" id="perf-losses" style="color:#f43f5e;">0</p>
-            </div>
-            <div class="pf-stat">
-              <p class="pf-lbl" data-i18n="total_picks">Total Picks</p>
-              <p class="pf-val" id="perf-total">0</p>
-            </div>
+          <div class="perf-card">
+            <div class="perf-val" id="perf-wins" style="color:var(--good);">0</div>
+            <div class="perf-lbl" data-i18n="wins">Wins</div>
           </div>
-        </div>
-
-        <div class="pf-card">
-          <div class="pf-head">
-            <div class="pf-title"><div class="pf-ico"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div><h3 data-i18n="perf_history">Performance History</h3></div>
-            <select id="chartRange" class="pf-select">
-              <option value="7" data-i18n="last_7">Last 7 Days</option>
-              <option value="30" data-i18n="last_30">Last 30 Days</option>
-            </select>
+          <div class="perf-card">
+            <div class="perf-val" id="perf-losses" style="color:var(--bad);">0</div>
+            <div class="perf-lbl" data-i18n="losses">Losses</div>
           </div>
-          <div class="pf-mini">
-            <div class="pf-stat"><p class="pf-lbl" data-i18n="period_wins">Period Wins</p><p class="pf-val" id="chartTotalWins" style="color:#10b981;">0</p></div>
-            <div class="pf-stat"><p class="pf-lbl" data-i18n="period_losses">Period Losses</p><p class="pf-val" id="chartTotalLosses" style="color:#f43f5e;">0</p></div>
-          </div>
-          <div class="pf-chart">
-            <canvas id="perfChart" role="img" aria-label="Chart of wins and losses over the selected period"></canvas>
+          <div class="perf-card">
+            <div class="perf-val" id="perf-total" style="color:var(--ink-2);">0</div>
+            <div class="perf-lbl" data-i18n="total_picks">Total Picks</div>
           </div>
         </div>
 
         <p class="perf-note" data-i18n="perf_note">Results of our own model's past picks. Past performance does not guarantee future results.</p>
+        <div class="chart-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:16px; font-weight:800; color:var(--ink);" data-i18n="perf_history">Performance History</h3>
+            <select id="chartRange" class="settings-select" style="width:auto; margin:0; padding:4px 8px;">
+              <option value="7" data-i18n="last_7">Last 7 Days</option>
+              <option value="30" data-i18n="last_30">Last 30 Days</option>
+            </select>
+          </div>
+
+          <div style="display:flex; gap:16px; margin-bottom:16px;">
+            <div style="flex:1; background:var(--soft); padding:12px; border-radius:12px; text-align:center;">
+               <div style="font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase;" data-i18n="period_wins">Period Wins</div>
+               <div id="chartTotalWins" style="font-size:20px; font-weight:800; color:var(--good);">0</div>
+            </div>
+            <div style="flex:1; background:var(--soft); padding:12px; border-radius:12px; text-align:center;">
+               <div style="font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase;" data-i18n="period_losses">Period Losses</div>
+               <div id="chartTotalLosses" style="font-size:20px; font-weight:800; color:var(--bad);">0</div>
+            </div>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="perfChart" role="img" aria-label="Chart of wins and losses over the selected period"></canvas>
+          </div>
+        </div>
+
       </section>
     </div>
 
     <div id="view-weekly" class="tab-view">
       <section style="margin-top:24px;">
         <div class="section-head"><div><div class="section-label">📅 <span data-i18n="nav_weekly">Weekly Stats</span></div><h2 data-i18n="weekly_h">Last 7 days</h2></div></div>
-        <div id="weeklyTop"></div>
+        <div class="perf-grid" id="weeklyTop"></div>
         <p class="perf-note" data-i18n="perf_note">Results of our own model's past picks. Past performance does not guarantee future results.</p>
         <div class="history-grid" id="weeklyDays" style="margin-top:16px;"></div>
       </section>
@@ -843,6 +766,14 @@ html.lenis, html.lenis body { height:auto; }
         <input type="search" class="auth-input" id="adminSearch" placeholder="Search email…" autocomplete="off" aria-label="Search email" style="margin:16px 0 12px">
         <div class="adm-wrap"><table class="adm-table"><thead><tr><th>#</th><th>Email</th><th>Plan</th><th>Expires</th><th>Joined</th></tr></thead><tbody id="adminRows"></tbody></table></div>
         <p class="perf-note" id="adminMsg"></p>
+      </section>
+      <section style="margin-top:32px;" id="adminTracking">
+        <div class="section-head"><div><div class="section-label">🛡️ Admin only</div><h2>Pick tracking</h2></div>
+          <button class="hide-btn" type="button" onclick="loadTracking()">Refresh</button></div>
+        <div class="perf-grid" id="trkTotals"></div>
+        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Day</th><th>Bets W/L</th><th>Bets units</th><th>1X2 W/L</th><th>1X2 units</th><th>O/U W/L</th><th>O/U units</th></tr></thead><tbody id="trkDays"></tbody></table></div>
+        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Match</th><th>Score</th><th>Value bet</th><th>1X2 pick</th><th>Over/Under 2.5</th></tr></thead><tbody id="trkRows"></tbody></table></div>
+        <p class="perf-note" id="trkNote"></p>
       </section>
     </div>
 
@@ -1048,7 +979,7 @@ html.lenis, html.lenis body { height:auto; }
 </a>
 
 <script src="reblend.js"></script>
-<script>document.addEventListener("touchstart",function(){},{passive:true});</script>
+<script src="/odds-core.js"></script>
 <script>
 (function () {
   var d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
@@ -1349,9 +1280,10 @@ function cssVar(name, fallback) {
 }
 
 function localDateStr(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  // FIX 12: use UTC to match server's todayStr() (avoids matches disappearing around midnight UTC)
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
@@ -1626,7 +1558,17 @@ const Engine = (() => {
   const devig = odds => { const inv = odds.map(o => 1 / o), s = inv.reduce((a, b) => a + b, 0); return { fair: inv.map(x => x / s), margin: s - 1 }; };
   const okOdds = x => isNum(x) && x > 1;
 
+  // Sharp-weighted, outlier-filtered consensus from /odds-core.js (same code as the server engine). Falls back to the plain average below if it did not load.
   function marketView(odds){
+    if (window.OddsCore) {
+      const c = window.OddsCore.consensus(odds);
+      if (!c) return null;
+      const b = c.best, m = x => (x ? { o: x.odds, book: x.book } : { o: 0 });
+      return { fair: c.fair, margin: c.margin, best: { home: m(b.home), draw: m(b.draw), away: m(b.away), over: m(b.over), under: m(b.under) }, ou: c.ou, nBooks: c.n, dropped: c.dropped };
+    }
+    return marketViewPlain(odds);
+  }
+  function marketViewPlain(odds){
     const books = (odds || []).filter(b => b && okOdds(b.home) && okOdds(b.draw) && okOdds(b.away));
     if (!books.length) return null;
     let h = 0, d = 0, a = 0, m = 0;
@@ -1755,7 +1697,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const NA = '<span class="na">N/A</span>';
 
-const st = { fixtures: [], mw: 0.7, mev: 0.045, results: [] };
+const st = { fixtures: [], mw: 0.85, mev: 0.045, results: [] };
 
 const pct1 = x => (x * 100).toFixed(1) + '%';
 const sgn = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(2) + '%';
@@ -1821,7 +1763,7 @@ function __doSwitch(tab) {
   if (window.__globePause) window.__globePause(250);
   if (tab === 'weekly') renderWeekly();
   if (tab === 'unlock') renderUnlock();
-  if (tab === 'admin') loadAdmin();
+  if (tab === 'admin') { loadAdmin(); loadTracking(); }
   if (tab === 'discover') loadDiscover();
   if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
 }
@@ -1864,7 +1806,10 @@ function frozenResult(fx, dynamic) {
 }
 
 function pickWon(r) {
-  const hs = r.fx.homeScore ?? 0, as = r.fx.awayScore ?? 0, k = r.v.main1x2.key;
+  // FIX 9: missing score = no verdict (do NOT treat as 0-0)
+  const hs = r.fx.homeScore, as = r.fx.awayScore;
+  if (!Number.isInteger(hs) || !Number.isInteger(as)) return null;
+  const k = r.v.main1x2.key;
   return (k === 'home' && hs > as) || (k === 'away' && as > hs) || (k === 'draw' && hs === as);
 }
 
@@ -1901,7 +1846,7 @@ function getFinishedMatches() {
   Object.keys(fresh).forEach(d => {
     if (dayHasOpenMatch(d)) return;
     const e = { wins: 0, losses: 0, picks: {} };
-    fresh[d].forEach(r => { if (pickWon(r)) e.wins++; else e.losses++; e.picks[String(r.fx.id)] = pickOf(r); });
+    fresh[d].forEach(r => { const w = pickWon(r); if (w === true) e.wins++; else if (w === false) e.losses++; else return; e.picks[String(r.fx.id)] = pickOf(r); });
     frozen[d] = e; dirty = true;
   });
   if (dirty) writeFrozen(frozen);
@@ -1919,7 +1864,8 @@ function getDailyTotals(fin) {
     const d = fxLocalDate(r.fx);
     if (d < today && frozen[d]) return;                 // frozen day: stored numbers win
     const m = seen[d] || (seen[d] = map[d] = { wins: 0, losses: 0 });
-    if (pickWon(r)) m.wins++; else m.losses++;
+    const w = pickWon(r);
+    if (w === true) m.wins++; else if (w === false) m.losses++;
   });
   return map;
 }
@@ -1994,17 +1940,35 @@ function checkMatchStarts(fixtures) {
   if (changed) saveBells(bells);
 }
 
+// ONE list for everything on the Signals page: the dashboard numbers, the profile counter and the cards all come from it,
+// so they can never disagree. Finished/canceled matches are out, and a fixture id can only appear once.
+function visibleResults() {
+  const seen = new Set();
+  return (st.results || []).filter(r => {
+    if (!r || !r.fx || r.fx.status === 'finished' || r.fx.status === 'canceled') return false;
+    const id = String(r.fx.id);
+    if (seen.has(id)) return false;
+    seen.add(id); return true;
+  });
+}
 function renderSignals() {
   renderProfile();
   if (!isPro()) { renderFreeSignals(); return; }
-  const shown = st.results.filter(r => r.fx.status !== 'finished' && r.fx.status !== 'canceled'); // exactly the match cards below
+  const lang = localStorage.getItem('mde:lang') || 'en';
+  const t = translations[lang] || translations.en;
+  const cardList = visibleResults()
+    .sort((a, b) => (Number(isPinned(b.fx.id)) - Number(isPinned(a.fx.id))) || ((b.fx.big || 0) - (a.fx.big || 0)) || (Number(b.v.started) - Number(a.v.started)) || (fxDateTime(a.fx) - fxDateTime(b.fx)));
+  const rendered = [];   // the results whose card was really built: the dashboard counts THESE, not the raw list
+  let failed = 0;
+  const cardHTMLs = cardList.map(r => {
+    try { const h = buildCard(r, t); if (h) { rendered.push(r); return h; } } catch (e) { console.error('renderSignals: broken card', r && r.fx && r.fx.id, e); }
+    failed++; return '';
+  });
+  const shown = rendered;
   const upcoming = shown.filter(r => !r.v.started);
   const bets = upcoming.filter(r => r.v.bet);
   const withOdds = shown.filter(r => r.fx.odds && r.fx.odds.length > 0).length;
   const best = bets.length ? Math.max(...bets.map(r => r.v.bet.ev)) : null;
-
-  const lang = localStorage.getItem('mde:lang') || 'en';
-  const t = translations[lang] || translations.en;
 
   $('stats').innerHTML = `
     <div class="stat-item"><div class="stat-value">${shown.length}</div><div class="stat-label">${t.matches}</div></div>
@@ -2013,17 +1977,47 @@ function renderSignals() {
     <div class="stat-item"><div class="stat-value">${best!=null?sgn(best):'—'}</div><div class="stat-label">${t.best_ev_short}</div></div>
   `;
 
-  const cardList = st.results
-    .filter(r => r.fx.status !== 'finished' && r.fx.status !== 'canceled')
-    .sort((a, b) => (Number(isPinned(b.fx.id)) - Number(isPinned(a.fx.id))) || ((b.fx.big || 0) - (a.fx.big || 0)) || (Number(b.v.started) - Number(a.v.started)) || (fxDateTime(a.fx) - fxDateTime(b.fx)));
-  $('cards').innerHTML = cardList.length ? cardList.map(r => {
-    const { fx, json, v } = r, H = fx.home, A = fx.away;
-    const scoreHTML = `<b class="kv-score">${esc(json.scoreline_prediction.most_likely)}</b>`;
-    const mx = v.p ? Math.max(v.p.h, v.p.d, v.p.a) : null;
-    const tile = (cls, label, val) => `<div class="tile ${cls} ${v.p && val === mx ? 'top' : ''}"><i>${label}</i><b>${v.p ? pct1(val) : '-'}</b></div>`;
-    let probHTML = `<div class="tiles">${tile('t-h', t.home, v.p ? v.p.h : 0)}${tile('t-d', t.draw, v.p ? v.p.d : 0)}${tile('t-a', t.away, v.p ? v.p.a : 0)}</div>`;
+  // One broken fixture (missing odds, missing scoreline...) must not stop the other cards from rendering, and it is never hidden silently: it is counted in `failed`.
+  const note = [];
+  if (failed) note.push(`${failed} match card(s) could not be displayed`);
+  if (st.feedDegraded) note.push('The data feed is incomplete right now: some of today\'s matches may be missing. The list updates by itself.');
+  const noteHTML = note.length ? `<div class="empty-state" style="grid-column:1/-1;padding:10px 14px;text-align:left;font-size:13px">⚠️ ${esc(note.join(' · '))}</div>` : '';
+  const cardsHTML = cardHTMLs.join('');
+  $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + `<div class="empty-state">${t.no_upcoming}</div>`));
+  const inDom = $('cards').querySelectorAll('article.match').length;
+  if (inDom !== rendered.length) console.warn('Signals: dashboard counts', rendered.length, 'but', inDom, 'cards are in the page');
+  syncStatsFromCards();
+  // The count-up animation (fx.js) runs ~0.9 s after a render: re-check once it is over so nothing can leave a stale number on screen.
+  clearTimeout(window.__statSync); window.__statSync = setTimeout(syncStatsFromCards, 1200);
+}
+// The cards on screen are the truth: the first three dashboard numbers are read back from them, so "Matches" can never differ from what the person counts.
+function syncStatsFromCards() {
+  const box = $('stats'), grid = $('cards'); if (!box || !grid) return;
+  const vals = box.querySelectorAll('.stat-value'); if (vals.length < 3) return;
+  const cards = Array.from(grid.querySelectorAll('article.match'));
+  const n = [cards.length, cards.filter(c => c.dataset.odds === '1').length, cards.filter(c => c.classList.contains('is-value')).length];
+  n.forEach((v, i) => { if (vals[i].textContent.trim() !== String(v)) { console.warn('Signals: stat', i, 'showed', vals[i].textContent.trim(), 'but the page has', v); vals[i].textContent = String(v); } });
+}
 
-    return `<article data-fx="${esc(fx.id)}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
+function buildCard(r, t) {
+  {
+    {
+      const { fx, json, v } = r, H = fx.home, A = fx.away;
+      const mostLikely = json?.scoreline_prediction?.most_likely;
+      const scoreHTML = mostLikely != null ? `<b class="kv-score">${esc(mostLikely)}</b>` : NA;
+      const mx = v.p ? Math.max(v.p.h, v.p.d, v.p.a) : null;
+      const tile = (cls, label, val) => `<div class="tile ${cls} ${v.p && val === mx ? 'top' : ''}"><i>${label}</i><b>${v.p ? pct1(val) : '-'}</b></div>`;
+      let probHTML = `<div class="tiles">${tile('t-h', t.home, v.p ? v.p.h : 0)}${tile('t-d', t.draw, v.p ? v.p.d : 0)}${tile('t-a', t.away, v.p ? v.p.a : 0)}</div>`;
+
+      const bv = json?.best_bet_value;
+      const bvOdds = Number(bv?.bookmaker_odds);
+      const valueHTML = (v.bet && bv) ? `<div class="vb">
+        <div class="vb-head"><span class="vb-tag">${t.value_bet}</span><span class="vb-ev">${esc(bv.expected_value ?? '—')} EV</span></div>
+        <div class="vb-body"><span class="vb-sel">${esc(bv.selection ?? '—')}</span><span class="vb-price">${Number.isFinite(bvOdds) ? bvOdds.toFixed(2) : '—'}</span></div>
+        <div class="vb-meta"><span>${t.kelly}: ${esc(bv.quarter_kelly ?? '—')}</span><span class="pill ${riskClass(bv.risk_level)}">${esc(bv.risk_level ?? '—')}</span></div>
+      </div>` : '';
+
+      return `<article data-fx="${esc(fx.id)}" data-odds="${fx.odds && fx.odds.length ? 1 : 0}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
       <div class="m-top">
         <div class="m-league">${esc(fx.league)}</div>
         <div class="m-top-right">
@@ -2044,13 +2038,10 @@ function renderSignals() {
         <div class="kv-row"><span>${t.pick_1x2}</span><b>${v.main1x2 ? esc(v.main1x2.sel) + ' (' + pctS(v.main1x2.p) + ')' : NA}</b></div>
         <div class="kv-row"><span>${t.over_under}</span><div>${v.mainOU ? `<b>${esc(v.mainOU.selection)}</b><em>${esc(v.mainOU.confidence)}</em>` : NA}</div></div>
       </div>
-      ${v.bet ? `<div class="vb">
-        <div class="vb-head"><span class="vb-tag">${t.value_bet}</span><span class="vb-ev">${esc(json.best_bet_value.expected_value)} EV</span></div>
-        <div class="vb-body"><span class="vb-sel">${esc(json.best_bet_value.selection)}</span><span class="vb-price">${json.best_bet_value.bookmaker_odds.toFixed(2)}</span></div>
-        <div class="vb-meta"><span>${t.kelly}: ${esc(json.best_bet_value.quarter_kelly)}</span><span class="pill ${riskClass(json.best_bet_value.risk_level)}">${esc(json.best_bet_value.risk_level)}</span></div>
-      </div>` : ''}
+      ${valueHTML}
     </article>`;
-  }).join('') : `<div class="empty-state">${t.no_upcoming}</div>`;
+    }
+  }
 }
 
 function renderHistory() {
@@ -2072,17 +2063,21 @@ function renderHistory() {
 
   $('history-list').innerHTML = finished.map(r => {
     const fx = r.fx, v = r.v;
-    const hs = fx.homeScore ?? 0, as = fx.awayScore ?? 0;
+    // FIX 9d: null score → null verdict (badge hidden, not counted)
+    const hs = fx.homeScore, as = fx.awayScore;
     const pickKey = v.main1x2.key;
 
-    let botWon = false;
-    if (pickKey === 'home' && hs > as) botWon = true;
-    if (pickKey === 'away' && as > hs) botWon = true;
-    if (pickKey === 'draw' && hs === as) botWon = true;
+    let botWon = null;
+    if (Number.isInteger(hs) && Number.isInteger(as)) {
+      if (pickKey === 'home' && hs > as) botWon = true;
+      else if (pickKey === 'away' && as > hs) botWon = true;
+      else if (pickKey === 'draw' && hs === as) botWon = true;
+      else botWon = false;
+    }
 
     let ouRow = '';
     const ou = v.mainOU;
-    if (ou && ou.selection) {
+    if (ou && ou.selection && Number.isInteger(hs) && Number.isInteger(as)) {
       const goals = hs + as;
       const isOver = /^over/i.test(ou.selection);
       const ouWon = isOver ? goals > 2.5 : goals < 2.5;
@@ -2104,7 +2099,7 @@ function renderHistory() {
       </div>
       <div class="hc-footer">
         <span>${t.pick}: <strong>${esc(v.main1x2.sel)}</strong></span>
-        ${botWon ? `<span class="badge-win">${t.win}</span>` : `<span class="badge-loss">${t.loss}</span>`}
+        ${botWon === true ? `<span class="badge-win">${t.win}</span>` : botWon === false ? `<span class="badge-loss">${t.loss}</span>` : `<span class="pill">—</span>`}
       </div>
       ${ouRow}
     </div>`;
@@ -2151,7 +2146,7 @@ function updateChart(days, target) {
   let totalW = 0, totalL = 0;
 
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
     const key = localDateStr(d), tt = totals[key] || { wins: 0, losses: 0 };
     dateMap[key] = { wins: tt.wins, losses: tt.losses };
     totalW += tt.wins; totalL += tt.losses;
@@ -2192,7 +2187,7 @@ function updateChart(days, target) {
       labels: labels,
       datasets: [
         { label: t.wins, data: winsArray, backgroundColor: '#10B981', borderRadius: 4 },
-        { label: t.losses, data: lossesArray, backgroundColor: '#F43F5E', borderRadius: 4 }
+        { label: t.losses, data: lossesArray, backgroundColor: '#E11D48', borderRadius: 4 }
       ]
     },
     options: {
@@ -2215,7 +2210,9 @@ function applyServerPred(r, sp) {
   const fx = r.fx, H = fx.home, A = fx.away, v = r.v, d = sp.decision || {};
   // Sliders react instantly: re-run market weight + EV threshold here on the server's real model/market/prices (the server's safety verdict is reused as is).
   const rb = window.Reblend ? window.Reblend.evaluate(sp, st.mw, st.mev) : null;
-  const pr = rb ? Object.assign({}, sp.prediction, { p: rb.p, over: rb.over }) : sp.prediction;
+  // FIX 7: guard against rb.p being null
+  const safeP = (rb && rb.p) ? rb.p : sp.prediction.p;
+  const pr = rb ? Object.assign({}, sp.prediction, { p: safeP, over: rb.over ?? sp.prediction.over }) : sp.prediction;
   const tier = rb ? rb.tier : sp.tier, pick = rb ? rb.pick : d.pick;
   v.p = pr.p; v.source = (pr.source || '').replace('+', ' + ');
   v.main1x2 = [{ sel: H.name + ' Win', key: 'home', p: pr.p.h }, { sel: 'Draw', key: 'draw', p: pr.p.d }, { sel: A.name + ' Win', key: 'away', p: pr.p.a }].sort((x, y) => y.p - x.p)[0];
@@ -2223,8 +2220,9 @@ function applyServerPred(r, sp) {
   r.json.scoreline_prediction = { most_likely: pr.top || 'N/A', alternatives: [] };
   r.json.main_prediction = { selection: v.main1x2.sel, confidence: pctS(v.main1x2.p) };
   v.bestEv = rb ? rb.bestEv : (sp.bestEv != null ? sp.bestEv : null);
-  v.bet = null; v.noBet = null; r.json.best_bet_value = null;
+  v.bet = null; v.noBet = null; v.blockedEv = null; v.why = null; r.json.best_bet_value = null;
   if (v.started) return;
+  v.why = (rb ? rb.reasons : d.reasons) || null;
   if (tier === 'BET' && pick) {
     const k = pick, o = k.odds, b = o - 1, kel = b <= 0 ? 0 : Math.max(0, (k.p * b - (1 - k.p)) / b);
     const sel = k.key === 'home' ? H.name + ' to Win' : k.key === 'away' ? A.name + ' to Win' : 'Draw';
@@ -2296,9 +2294,19 @@ function updateFilterPreview() {
     const top = [...cnt.values()].sort((a, b) => b.n - a.n).slice(0, 4).map(e => `${e.n}× ${esc(e.ex)}`).join('<br>');
     note = ` · ${blocked.length} price(s) pass your EV filter but were hidden by the safety check:<br>${top}`;
   }
-  else if (!bets.length && topAny != null) note = ` · best available EV ${sgn(topAny)} (below ${(st.mev * 100).toFixed(1)}%)`;
+  else if (!bets.length && topAny != null) {
+    if (topAny < st.mev) note = ` · best available EV ${sgn(topAny)} (below ${(st.mev * 100).toFixed(1)}%)`;
+    else {
+      // some raw edge is above the slider but the engine refused it: say why instead of claiming it is "below" the threshold
+      const cnt = new Map();
+      up.filter(r => r.v.bestEv != null && r.v.bestEv >= st.mev && r.v.why && r.v.why.length).forEach(r => r.v.why.forEach(x => { const k = String(x).replace(/\d+(\.\d+)?/g, '#'); const e = cnt.get(k) || { n: 0, ex: x }; e.n++; cnt.set(k, e); }));
+      const top = [...cnt.values()].sort((a, b) => b.n - a.n).slice(0, 4).map(e => `${e.n}× ${esc(e.ex)}`).join('<br>');
+      note = ` · best raw EV ${sgn(topAny)} was NOT flagged by the safety rules:<br>${top}`;
+    }
+  }
   const gm = st.gateMeta;
-  const dbg = gm ? `<br><small>server: forms ${gm.bzzForms && typeof gm.bzzForms === 'object' ? gm.bzzForms.covered + '/' + gm.bzzForms.need + ' teams, ' + gm.bzzForms.events + ' events, ' + gm.bzzForms.pages + ' pages' + (gm.bzzForms.error ? ', error: ' + esc(gm.bzzForms.error) : '') : esc(String(gm.bzzForms))} · xG ${esc(JSON.stringify(gm.xgSources))} · minBooks ${gm.minBooks}</small>` : (blocked.length ? '<br><small>server: old version (no diagnostics)</small>' : '');
+  const fd0 = gm && gm.feed, feedTxt = fd0 ? `<br><small>feed: server ${esc(fd0.instance)} · up ${fd0.uptimeSec}s · ${fd0.shown} matches · Bzzoiro ${fd0.bzzEvents} events (${fd0.bzzPages} pages${fd0.bzzIncomplete ? ', INCOMPLETE' : ''})${fd0.fdDegraded ? ' · football-data DOWN' : ''}</small>` : '';
+  const dbg = gm ? feedTxt + `<br><small>server: forms ${gm.bzzForms && typeof gm.bzzForms === 'object' ? gm.bzzForms.covered + '/' + gm.bzzForms.need + ' teams, ' + gm.bzzForms.events + ' events, ' + gm.bzzForms.pages + ' pages' + (gm.bzzForms.error ? ', error: ' + esc(gm.bzzForms.error) : '') : esc(String(gm.bzzForms))} · xG ${esc(JSON.stringify(gm.xgSources))} · minBooks ${gm.minBooks}<br>football-data season stats: ${gm.fdSeason ? gm.fdSeason.teams + ' teams · ' + gm.fdSeason.competitions + ' competitions' : 'n/a (old server)'}</small>` : (blocked.length ? '<br><small>server: old version (no diagnostics)</small>' : '');
   const mOnly = up.filter(r => r.v.source === 'market').length;
   const estNote = (est ? ` · ${est} with estimated xG (low-quality model)` : '') + (mOnly ? ` · ${mOnly} match(es) use market prices only (no real xG), so the sliders cannot change them` : '') + dbg;
   el.innerHTML = withOdds
@@ -2347,6 +2355,8 @@ async function pollFeedInner() {
     if (!data.fixtures) return;
 
     checkMatchStarts(data.fixtures);
+    const fdeg = !!(data.feed && (data.feed.bzzIncomplete || data.feed.bzzTruncated || data.feed.fdDegraded));
+    const fdChanged = fdeg !== !!st.feedDegraded; st.feedDegraded = fdeg;
 
     const newHash = JSON.stringify(data.fixtures.map(f => ({ id: f.id, status: f.status, h: f.homeScore ?? 'null', a: f.awayScore ?? 'null', hl: f.home && f.home.logo, al: f.away && f.away.logo, o: f.odds && f.odds[0] ? [f.odds[0].home, f.odds[0].draw, f.odds[0].away].join() : '', hf: f.home && f.home.form, af: f.away && f.away.form })));
     if (newHash !== lastHash) {
@@ -2359,7 +2369,7 @@ async function pollFeedInner() {
       lastHash = newHash;
       $('live-status').className = 'live-status is-live';
       $('live-text').textContent = 'LIVE';
-    }
+    } else if (fdChanged) renderSignals();   // same matches, but the feed health changed: refresh the warning
   } catch (e) {}
 }
 
@@ -2389,7 +2399,7 @@ function renderProfile() {
   $('pmUid').textContent = p.uid || '—';
   $('pmPlan').textContent = isPro() ? 'Pro' : 'Free';
   $('pmLeft').textContent = timeLeftText();
-  $('pmSignals').textContent = isPro() ? (st.results || []).filter(r => !r.v.started && r.v.bet).length : 0;
+  $('pmSignals').textContent = isPro() ? visibleResults().filter(r => !r.v.started && r.v.bet).length : 0;
   $('pmSince').textContent = p.since ? new Date(p.since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
 }
 
@@ -2429,6 +2439,24 @@ async function loadAdmin() {
     renderAdmin();
   } catch (e) { $('adminMsg').textContent = 'Could not load admin data (' + e.message + ').'; }
 }
+const trkMark = (w) => w == null ? '' : w ? '✅' : '❌';
+const trkUnits = u => (u > 0 ? '+' : '') + Number(u || 0).toFixed(2);
+async function loadTracking() {
+  if (!isAdmin()) return;
+  const note = $('trkNote'); note.textContent = 'Loading…';
+  try {
+    const r = await fetch('/api/admin/tracking', { headers: { 'Authorization': 'Bearer ' + authState.token } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const card = (lbl, t) => `<div class="perf-card"><div class="perf-val" style="color:${t.win >= t.loss ? 'var(--good)' : 'var(--bad, #f87171)'}">${t.win}W / ${t.loss}L</div><div class="perf-lbl">${lbl} · ${t.winRate == null ? '—' : (t.winRate * 100).toFixed(1) + '%'} · ${trkUnits(t.units)}u${t.roi == null ? '' : ' (ROI ' + (t.roi * 100).toFixed(1) + '%)'}</div></div>`;
+    const b = d.totals.bets;
+    $('trkTotals').innerHTML = card('Value bets (BET)', b) + `<div class="perf-card"><div class="perf-val">${b.clv == null ? '—' : (b.clv > 0 ? '+' : '') + (b.clv * 100).toFixed(1) + '%'}</div><div class="perf-lbl">CLV · ${b.clvN} bets · positive = beating the closing line</div></div>` + card('1X2 (top pick)', d.totals.x12) + card('Over/Under 2.5', d.totals.ou);
+    const wl = t => t.n ? `${t.win}W-${t.loss}L` : '—';
+    $('trkDays').innerHTML = (d.days || []).map(x => `<tr><td>${esc(x.date)}</td><td>${wl(x.bets)}</td><td>${x.bets.priced ? trkUnits(x.bets.units) : '—'}</td><td>${wl(x.x12)}</td><td>${x.x12.priced ? trkUnits(x.x12.units) : '—'}</td><td>${wl(x.ou)}</td><td>${x.ou.priced ? trkUnits(x.ou.units) : '—'}</td></tr>`).join('') || '<tr><td colspan="7">No finished tracked matches yet.</td></tr>';
+    $('trkRows').innerHTML = (d.matches || []).map(m => `<tr><td>${esc(m.match)}<br><small style="color:var(--ink-3)">${esc(m.date)} ${esc(m.kickoff || '')}</small></td><td>${esc(m.score)}</td><td>${m.bet ? trkMark(m.bet.won) + ' ' + esc(m.bet.pick) + ' @' + Number(m.bet.odds).toFixed(2) + (m.bet.clv == null ? '' : ' · CLV ' + (m.bet.clv * 100).toFixed(1) + '%') : '—'}</td><td>${m.x12 ? trkMark(m.x12.won) + ' ' + esc(m.x12.pick) + (m.x12.odds ? ' @' + Number(m.x12.odds).toFixed(2) : '') : '—'}</td><td>${m.ou ? trkMark(m.ou.won) + ' ' + esc(m.ou.pick) + (m.ou.odds ? ' @' + Number(m.ou.odds).toFixed(2) : '') : '—'}</td></tr>`).join('');
+    note.textContent = d.note || '';
+  } catch (e) { note.textContent = 'Could not load tracking (' + e.message + ').'; }
+}
 document.getElementById('adminSearch').addEventListener('input', renderAdmin);
 
 function applyPlanGate() {
@@ -2436,7 +2464,8 @@ function applyPlanGate() {
   if (!isAdmin()) { adminUsers = []; const av = document.getElementById('view-admin'); if (av && av.classList.contains('active')) switchTab('signals'); }
   const lb = document.getElementById('menuLicBtn'); if (lb) lb.classList.toggle('hidden', isPro());
   document.body.classList.toggle('is-free', authState.loggedIn && !isPro());
-  if (authState.loggedIn && !isPro()) renderFreeSignals();
+  // FIX 10: reset throttle so free plan gets matches immediately
+  if (authState.loggedIn && !isPro()) { lpAppTs = 0; renderFreeSignals(); }
 }
 
 function renderFreeSignals() {
@@ -2449,37 +2478,26 @@ function renderFreeSignals() {
 function renderWeekly() {
   const t = tNow(), totals = getDailyTotals(), now = new Date(), days = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
     const key = localDateStr(d), tt = totals[key] || { wins: 0, losses: 0 };
     days.push({ key, label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), w: tt.wins, l: tt.losses });
   }
   const W = days.reduce((a, d) => a + d.w, 0), L = days.reduce((a, d) => a + d.l, 0), tot = W + L, rate = tot ? Math.round(W / tot * 100) : 0;
-  const ICO = '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>';
-  $('weeklyTop').innerHTML = `<div class="pf-card">
-    <div class="pf-head"><div class="pf-title"><div class="pf-ico">${ICO}</div><h3>${t.win_rate}</h3></div><span class="pf-live"><i></i>7d</span></div>
-    <div class="pf-stats">
-      <div class="pf-stat hero"><p class="pf-lbl">${t.win_rate}</p><p class="pf-val" style="color:#10B981;font-size:34px">${rate}%</p><div class="pf-track"><div class="perf-fill" style="width:${rate}%"></div></div></div>
-      <div class="pf-stat"><p class="pf-lbl">${t.wins}</p><p class="pf-val" style="color:#10b981">${W}</p></div>
-      <div class="pf-stat"><p class="pf-lbl">${t.losses}</p><p class="pf-val" style="color:#f43f5e">${L}</p></div>
-      <div class="pf-stat"><p class="pf-lbl">${t.total_picks}</p><p class="pf-val">${tot}</p></div>
-    </div></div>`;
+  $('weeklyTop').innerHTML = `<div class="perf-card hero"><div class="perf-val" style="color:#10B981">${rate}%</div><div class="perf-lbl">${t.win_rate}</div><div class="perf-track"><div class="perf-fill" style="width:${rate}%"></div></div></div>
+    <div class="perf-card"><div class="perf-val" style="color:var(--good)">${W}</div><div class="perf-lbl">${t.wins}</div></div>
+    <div class="perf-card"><div class="perf-val" style="color:var(--bad)">${L}</div><div class="perf-lbl">${t.losses}</div></div>
+    <div class="perf-card"><div class="perf-val" style="color:var(--ink-2)">${tot}</div><div class="perf-lbl">${t.total_picks}</div></div>`;
   $('weeklyDays').innerHTML = days.map(d => {
     const n = d.w + d.l, pc = n ? Math.round(d.w / n * 100) : 0;
-    return `<div class="pf-card pf-day">
-      <div class="pf-head"><div class="pf-title"><h3>${esc(d.label)}</h3></div><span class="pf-lbl">${n} ${t.total_picks}</span></div>
-      <div class="pf-mini">
-        <div class="pf-stat"><p class="pf-lbl">${t.wins}</p><p class="pf-val" style="color:#10b981">${d.w}</p></div>
-        <div class="pf-stat"><p class="pf-lbl">${t.losses}</p><p class="pf-val" style="color:#f43f5e">${d.l}</p></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px"><div class="pf-track" style="flex:1;margin:0"><div class="perf-fill" style="width:${pc}%"></div></div>${n ? `<span class="${pc >= 50 ? 'badge-win' : 'badge-loss'}">${pc}%</span>` : '<span class="pf-lbl">—</span>'}</div>
-    </div>`;
+    return `<div class="hc-card"><div class="hc-header"><span>${esc(d.label)}</span><span>${n} ${t.total_picks}</span></div>
+      <div class="hc-footer"><span><strong>${d.w}</strong> ${t.wins} · <strong>${d.l}</strong> ${t.losses}</span>${n ? `<span class="${pc >= 50 ? 'badge-win' : 'badge-loss'}">${pc}%</span>` : '<span>—</span>'}</div></div>`;
   }).join('');
 }
 
 function renderUnlock() {
   const t = tNow(), p = authState.profile || {};
   const status = isPro() ? `<div class="pill good" style="display:inline-block;margin-bottom:12px">✓ ${t.plan_active}${p.planUntil ? ' · ' + new Date(p.planUntil).toLocaleDateString('en-GB') : ''}</div>` : '';
-  $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p><hr class="gc-line">
+  $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p>
     <ul class="plan-feats">${[t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5].map(f => `<li>${esc(f)}</li>`).join('')}</ul>
     <a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${isPro() ? t.plan_renew : t.plan_get}</span></a>
     ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:10px" onclick="openLicenseModal()">🔑 ${t.lic_have}</button>`}
@@ -2515,7 +2533,7 @@ function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
     const mid = live
       ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">LIVE</span>`
       : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-vs">VS</span>`;
-    return `<article class="match ${live ? 'is-live-card' : ''}">
+    return `<article class="match ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
       <div class="m-top"><div class="m-league">${esc(fx.league)}</div></div>
       <div class="m-teams">
         <div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(fx.home.name)}</div></div>
@@ -2539,6 +2557,8 @@ async function loadPublicFixtures(mode) {
     const r = await fetch('/api/public/fixtures');
     if (!r.ok) return;
     const data = await r.json();
+    // The plan/login can change while this request is in flight (page load): a Pro user must never get the public list (it includes finished matches) painted over the Pro cards.
+    if (app ? (!authState.loggedIn || isPro()) : authState.loggedIn) return;
     const list = (data.fixtures || []).sort((a, b) => ((b.big || 0) - (a.big || 0)) || (fxDateTime(a) - fxDateTime(b)));
     const h = JSON.stringify(list.map(f => [f.id, f.status, f.homeScore, f.awayScore, f.home.logo, f.away.logo]));
     if (app) { lpAppList = list; if (h !== lpAppHash) { lpAppHash = h; renderLanding(list, 'cards', "switchTab('unlock')"); } }
@@ -2787,7 +2807,7 @@ setInterval(async () => {
 }, 30000);
 </script>
 
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="vendor/gsap.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   var hdr=document.querySelector('.app-header'),tick=false;

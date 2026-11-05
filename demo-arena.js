@@ -346,14 +346,28 @@ class DemoStore {
       payout: toDH(p.payoutC), score: p.result ? `${p.result.h}-${p.result.a}` : null, voidReason: p.voidReason
     };
   }
-  listPredictions(userKey, { filter = 'all', offset = 0, limit = 20 } = {}) {
+  static inFilter(p, filter, now) {
+    if (filter === 'won' || filter === 'lost' || filter === 'void') return p.status === filter;
+    if (filter === 'active') return p.status === 'pending' && p.kickoffMs <= now;
+    if (filter === 'pending') return p.status === 'pending' && p.kickoffMs > now;
+    return true;
+  }
+  // One pass over the wallet: the requested page, its total, and the per-filter counts (used by /api/demo/predictions).
+  listPredictionsWithCounts(userKey, { filter = 'all', offset = 0, limit = 20 } = {}) {
+    const counts = { all: 0, active: 0, pending: 0, won: 0, lost: 0, void: 0 };
     const w = this.s.wallets[userKey], now = this.now();
-    if (!w) return { items: [], total: 0 };
-    let list = w.predIds.map(id => this.s.predictions[id]).filter(Boolean).reverse();
-    if (filter === 'won' || filter === 'lost' || filter === 'void') list = list.filter(p => p.status === filter);
-    else if (filter === 'active') list = list.filter(p => p.status === 'pending' && p.kickoffMs <= now);
-    else if (filter === 'pending') list = list.filter(p => p.status === 'pending' && p.kickoffMs > now);
-    return { items: list.slice(offset, offset + limit).map(p => this.pub(p, now)), total: list.length };
+    if (!w) return { items: [], total: 0, counts };
+    const all = w.predIds.map(id => this.s.predictions[id]).filter(Boolean).reverse();
+    const picked = [];
+    for (const p of all) {
+      for (const k of Object.keys(counts)) if (this.constructor.inFilter(p, k, now)) counts[k]++;
+      if (this.constructor.inFilter(p, filter, now)) picked.push(p);
+    }
+    return { items: picked.slice(offset, offset + limit).map(p => this.pub(p, now)), total: picked.length, counts };
+  }
+  listPredictions(userKey, opts = {}) {
+    const { items, total } = this.listPredictionsWithCounts(userKey, opts);
+    return { items, total };
   }
   listTransactions(userKey, { offset = 0, limit = 30 } = {}) {
     const w = this.s.wallets[userKey];
@@ -525,8 +539,8 @@ function create(deps) {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20)), offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     // Free: the 20 most recent predictions. Pro: the full, paginated history.
     const FREE_CAP = 20;
-    const r = store.listPredictions(d.key, { filter, offset: pro ? offset : 0, limit: pro ? limit : Math.min(limit, FREE_CAP) });
-    const counts = { all: store.listPredictions(d.key, { filter: 'all', limit: 0 }).total, active: store.listPredictions(d.key, { filter: 'active', limit: 0 }).total, pending: store.listPredictions(d.key, { filter: 'pending', limit: 0 }).total, won: store.listPredictions(d.key, { filter: 'won', limit: 0 }).total, lost: store.listPredictions(d.key, { filter: 'lost', limit: 0 }).total, void: store.listPredictions(d.key, { filter: 'void', limit: 0 }).total };
+    const r = store.listPredictionsWithCounts(d.key, { filter, offset: pro ? offset : 0, limit: pro ? limit : Math.min(limit, FREE_CAP) });
+    const counts = r.counts;
     res.json({ items: r.items, total: r.total, counts, limited: !pro && r.total > FREE_CAP, freeCap: FREE_CAP, plan: d.plan, serverTime: clock() });
   }));
 

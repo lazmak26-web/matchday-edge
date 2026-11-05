@@ -11,7 +11,8 @@ const API_BASE = 'https://api.football-data.org/v4';
 
 const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
 const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
-const { normalizeTeamKey, teamsMatchAny, samePairing, dedupeFixtures } = require('./matching');
+const oddsApi = require('./oddsapi');
+const fdStats = require('./fdstats');
 
 /* ═══════════════════════════════════════════════════════════
    KEYAUTH CONFIG
@@ -79,34 +80,34 @@ setInterval(() => {
 /* ═══════════════════════════════════════════════════════════
    CACHE & CONCURRENCY
    ═══════════════════════════════════════════════════════════ */
+// Low Bzzoiro quota (BZZ_DAILY_BUDGET <= 1000, e.g. 200/day): refresh far less often so the quota lasts the whole day.
+const BZZ_LOW = (parseInt(process.env.BZZ_DAILY_BUDGET, 10) || 5500) <= 1000;
 const FORM_TTL = 60 * 60 * 1000;
 const FIXTURES_TTL = 20 * 1000;
-const EVENTS_TTL_ACTIVE = 60 * 1000;
-const EVENTS_TTL_IDLE = 10 * 60 * 1000;
+const EVENTS_TTL_ACTIVE = BZZ_LOW ? 30 * 60 * 1000 : 60 * 1000;
+const EVENTS_TTL_IDLE = BZZ_LOW ? 60 * 60 * 1000 : 10 * 60 * 1000;
 const FD_TTL_ACTIVE = 60 * 1000;
 const FD_TTL_IDLE = 10 * 60 * 1000;
 const ODDS_TTL = 60 * 1000;
-const ODDS_EVENT_TTL = 10 * 60 * 1000;
-const ODDS_MISS_TTL = 3 * 60 * 1000;
-const ODDS_MISS_TTL_FAR = 20 * 60 * 1000;   // no odds yet and kick-off is more than 3h away: no point asking every 3 minutes
-const FETCH_TIMEOUT_MS = 10 * 1000;          // no outgoing request may hang forever
+const ODDS_EVENT_TTL = BZZ_LOW ? 6 * 60 * 60 * 1000 : 10 * 60 * 1000;
+const ODDS_MISS_TTL = BZZ_LOW ? 60 * 60 * 1000 : 3 * 60 * 1000;
 const FORM_MISS_TTL = 10 * 60 * 1000;
 const HISTORY_TTL = 5 * 60 * 1000;
 
-const CONCURRENCY = 1;
+const CONCURRENCY = 2;
 const ODDS_CONCURRENCY = 3;
-// football-data.org free plan = 10 requests/minute. The old burst (2 workers, 400ms apart) hit the limit after ~10 teams, and the 429 cool-down then
-// blocked the football-data MATCHES request too. One request every 6.5s stays under the limit. Paid plan: set FD_FORMS_DELAY_MS=400.
-const API_DELAY = Math.max(0, parseInt(process.env.FD_FORMS_DELAY_MS, 10) || 6500);
+const API_DELAY = 400;
 const ODDS_DELAY = 150;
 
 const formCache = new Map();
 const fixturesCache = { data: null, ts: 0 };
+const eventsCache = { data: null, ts: 0, retryAt: 0 };   // retryAt: when set, the cached list is only trusted until then (incomplete / failed fetch)
 const oddsCache = { data: null, ts: 0 };
 const historyCache = { data: null, ts: 0 };
 let prefetchInProgress = null;
 let oddsFetchInProgress = null;
 let fixturesFetchInProgress = null;
+let eventsFetchInProgress = null;
 
 const fdCache = { data: null, ts: 0, day: null, errUntil: 0 };
 let fdInProgress = null;
@@ -115,34 +116,29 @@ const oddsByEvent = new Map();
 let lastFixtures = null;
 
 const BZZ_DAILY_BUDGET = parseInt(process.env.BZZ_DAILY_BUDGET, 10) || 5500;
+if (BZZ_LOW) console.log(`🐢 Low Bzzoiro quota mode (${BZZ_DAILY_BUDGET}/day): slower refresh of events, odds, forms and results.`);
 const bzzUsage = { day: null, n: 0 };
 function bzzRoll() { const d = new Date().toISOString().slice(0, 10); if (bzzUsage.day !== d) { bzzUsage.day = d; bzzUsage.n = 0; } }
 function bzzCount() { bzzRoll(); bzzUsage.n++; if (bzzUsage.n % 100 === 0) console.log(`📈 Bzzoiro requests today: ${bzzUsage.n}/${BZZ_DAILY_BUDGET}`); }
 function bzzBudgetOk() { bzzRoll(); return bzzUsage.n < BZZ_DAILY_BUDGET; }
 
-// One client for every Bzzoiro call (timeout, 429 cool-down, request counting) and one feed for today's events (see bzzoiro.js).
-const bzzoiro = require('./bzzoiro');
-const bzzClient = bzzoiro.create({ base: BZZOIRO_API_BASE, key: BZZOIRO_API_KEY, count: bzzCount, timeoutMs: FETCH_TIMEOUT_MS });
-const bzzEvents = bzzoiro.createEventsFeed({
-  client: bzzClient, today: () => todayStr(), isActive: () => isActive(), budgetOk: () => bzzBudgetOk(),
-  ttlActiveMs: EVENTS_TTL_ACTIVE, ttlIdleMs: EVENTS_TTL_IDLE,
-  maxPages: Math.max(1, parseInt(process.env.BZZ_EVENTS_MAX_PAGES, 10) || 10)
-});
-
 function isActive() {
   if (!lastFixtures) return true;
   const now = Date.now();
   return lastFixtures.some(f => {
-    if (f.status === 'started') {
-      // a match stuck in "started" for hours (finished without a score, postponed...) must not keep the fast refresh rate on all day
-      const t = new Date(f.date + 'T' + f.kickoff + ':00Z').getTime();
-      return isNaN(t) || now - t < 5 * 60 * 60 * 1000;
-    }
+    if (f.status === 'started') return true;
     if (f.status !== 'notstarted') return false;
     const t = new Date(f.date + 'T' + f.kickoff + ':00Z').getTime();
     return !isNaN(t) && t - now < 15 * 60 * 1000;
   });
 }
+
+/* ═══════════════════════════════════════════════════════════
+   TEAM ALIASES & MATCHING  (matching.js, covered by tests/matching.test.js)
+   Same match = same kick-off (+-15 min) AND (one team named exactly the same OR both teams loosely match).
+   "One similar team" alone is NOT enough: Manchester City v Everton and Manchester United v Fulham at 15:00 used to become one match.
+   ═══════════════════════════════════════════════════════════ */
+const { normalizeTeamKey, teamsFuzzyMatch, teamsMatchAny, samePairing, dedupeFixtures } = require('./matching');
 
 /* ═══════════════════════════════════════════════════════════
    STATUS NORMALIZATION
@@ -187,7 +183,7 @@ function pickBetterStatus(a, b) {
    ═══════════════════════════════════════════════════════════ */
 async function apiGet(endpoint) {
   if (Date.now() < fdBlockedUntil) throw new Error('football-data cooling down after 429');
-  const r = await fetch(`${API_BASE}${endpoint}`, { headers: { 'X-Auth-Token': API_KEY || '' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  const r = await fetch(`${API_BASE}${endpoint}`, { headers: { 'X-Auth-Token': API_KEY || '' }, signal: AbortSignal.timeout(15000) });
   if (r.status === 429) fdBlockedUntil = Date.now() + 65 * 1000;
   if (!r.ok) throw new Error(`API ${endpoint} → ${r.status}`);
   return r.json();
@@ -206,7 +202,6 @@ async function fetchFdMatches() {
       fdCache.data = d.matches || []; fdCache.ts = Date.now(); fdCache.day = day;
     } catch (e) {
       fdCache.errUntil = Date.now() + 60 * 1000;
-      console.error('football-data matches: ' + e.message);
     } finally { fdInProgress = null; }
     return fdCache.day === day && fdCache.data ? fdCache.data : [];
   })();
@@ -263,13 +258,47 @@ async function ensureForms(teams) {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   SEASON GOALS PER GAME FROM FOOTBALL-DATA.ORG (standings)
+   ═══════════════════════════════════════════════════════════ */
+const FD_SEASON_TTL = 24 * 60 * 60 * 1000;
+const FD_SEASON_MISS_TTL = 60 * 60 * 1000;
+const FD_SEASON_MAX_PER_RUN = 3, FD_SEASON_GAP = 7000;   // 3 calls, 7 s apart per run   // plan without access to that competition / error: retry later
+const fdSeasonCache = new Map();             // competition code -> { ts, ok, teams: Map }
+let fdSeasonInProgress = null;
+const fdSeasonMaps = () => [...fdSeasonCache.values()].filter(e => e.ok).map(e => e.teams);
+
+function ensureFdSeasonStats() {
+  if (!API_KEY) return null;
+  const codes = [...new Set((fdCache.data || []).map(m => m.competition && m.competition.code).filter(Boolean))];
+  const now = Date.now();
+  const need = codes.filter(c => { const e = fdSeasonCache.get(c); return !e || now - e.ts > (e.ok ? FD_SEASON_TTL : FD_SEASON_MISS_TTL); });
+  if (!need.length) return fdSeasonInProgress;
+  if (fdSeasonInProgress) return fdSeasonInProgress;
+  if (prefetchInProgress || Date.now() < fdBlockedUntil) return null;   // team forms go first: free tier allows only 10 requests/min
+  need.length = Math.min(need.length, FD_SEASON_MAX_PER_RUN);
+  fdSeasonInProgress = (async () => {
+    try {
+      for (const code of need) {
+        if (Date.now() < fdBlockedUntil) break;
+        try {
+          const d = await apiGet(`/competitions/${code}/standings`);
+          fdSeasonCache.set(code, { ts: Date.now(), ok: true, teams: fdStats.parseStandings(d) });
+        } catch (e) { fdSeasonCache.set(code, { ts: Date.now(), ok: false, teams: new Map() }); }
+        await new Promise(r => setTimeout(r, FD_SEASON_GAP));
+      }
+    } finally { fixturesCache.data = null; fdSeasonInProgress = null; }
+  })();
+  return fdSeasonInProgress;
+}
+
+/* ═══════════════════════════════════════════════════════════
    TEAM FORMS FROM BZZOIRO RESULTS
    ═══════════════════════════════════════════════════════════ */
-const BZZ_FORM_TTL = 6 * 60 * 60 * 1000;
+const BZZ_FORM_TTL = BZZ_LOW ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000;
 const BZZ_FORM_RETRY = 10 * 60 * 1000;
 const BZZ_FORM_DAYS = Math.max(7, parseInt(process.env.BZZ_FORM_DAYS, 10) || 30);
 const BZZ_FORM_GAMES = Math.min(15, Math.max(5, parseInt(process.env.BZZ_FORM_GAMES, 10) || 8));
-const BZZ_FORM_MAX_PAGES = Math.max(1, parseInt(process.env.BZZ_FORM_MAX_PAGES, 10) || 80);
+const BZZ_FORM_MAX_PAGES = Math.max(1, parseInt(process.env.BZZ_FORM_MAX_PAGES, 10) || (BZZ_LOW ? 25 : 80));
 const bzzFormCache = { map: new Map(), ts: 0 };
 let bzzFormInProgress = null;
 
@@ -303,7 +332,7 @@ async function ensureBzzForms() {
   if (!bzzBudgetOk()) return null;
   if (bzzFormInProgress) return bzzFormInProgress;
   const need = new Set();
-  for (const ev of bzzEvents.peek()) { if (ev && ev.home_team) need.add(teamNameKey(ev.home_team)); if (ev && ev.away_team) need.add(teamNameKey(ev.away_team)); }
+  for (const ev of eventsCache.data || []) { if (ev && ev.home_team) need.add(teamNameKey(ev.home_team)); if (ev && ev.away_team) need.add(teamNameKey(ev.away_team)); }
   bzzFormInProgress = (async () => {
     const stats = { need: need.size, teams: 0, covered: 0, events: 0, pages: 0, days: 0, error: null, at: new Date().toISOString() };
     try {
@@ -311,18 +340,16 @@ async function ensureBzzForms() {
       const finished = ev => normalizeStatus(ev.status, ev.event_date) === 'finished';
       outer: for (let d = 0; d <= BZZ_FORM_DAYS; d++) {
         const day = dateDaysAgo(d);
-        let url = `/v2/events/?date_from=${day}&date_to=${day}`;
+        let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${day}&date_to=${day}`;
         stats.days++;
         while (url) {
-          if (stats.pages >= BZZ_FORM_MAX_PAGES || !bzzBudgetOk() || bzzClient.cooling()) break outer;
-          stats.pages++;
-          let data;
-          try { data = await bzzClient.get(url); }
-          catch (e) { stats.error = e.message; break outer; }   // keep the pages already paid for instead of throwing them all away
-          const part = data && (data.results || data.data);
-          if (Array.isArray(part)) events.push(...part);
-          const next = data && typeof data.next === 'string' && data.next ? data.next : null;
-          url = next ? bzzClient.follow(next) : null;
+          if (stats.pages >= BZZ_FORM_MAX_PAGES || !bzzBudgetOk()) break outer;
+          stats.pages++; bzzCount();
+          const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
+          if (!r.ok) throw new Error(`Bzz forms HTTP ${r.status}`);
+          const data = await r.json();
+          events.push(...(data.results || data.data || []));
+          url = typeof data.next === 'string' && data.next ? data.next : null;
         }
         if (need.size && d >= 1) {
           const m = buildBzzFormMap(events, finished);
@@ -331,8 +358,7 @@ async function ensureBzzForms() {
       }
       const map = buildBzzFormMap(events, finished);
       stats.events = events.length; stats.teams = map.size; stats.covered = [...need].filter(k => map.has(k)).length;
-      if (stats.error) for (const [k, v] of bzzFormCache.map) if (!map.has(k)) map.set(k, v);   // incomplete run: never drop teams we already knew
-      if (map.size) { bzzFormCache.map = map; bzzFormCache.ts = stats.error ? Date.now() - BZZ_FORM_TTL + BZZ_FORM_RETRY : Date.now(); }
+      if (map.size) { bzzFormCache.map = map; bzzFormCache.ts = Date.now(); }
       else bzzFormCache.ts = Date.now() - BZZ_FORM_TTL + BZZ_FORM_RETRY;
     } catch (e) {
       stats.error = e.message;
@@ -371,7 +397,7 @@ function cleanNameForSearch(name) {
 async function fetchLogoByName(name) {
   try {
     const searchName = cleanNameForSearch(name);
-    const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(searchName)}`);
+    const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(searchName)}`, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) {
       if (r.status === 429) return 'rate_limited';
       return undefined;
@@ -422,7 +448,65 @@ function todayStr() {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
-function fetchBzzoiroEvents() { return bzzEvents.get(); }
+const BZZ_EVENT_PAGES = Math.max(2, Math.min(10, parseInt(process.env.BZZ_EVENT_PAGES, 10) || 6));   // the provider paginates (~10 per page): a busy day needs more than 2 pages
+let bzzLastPages = 1;
+const BZZ_RETRY_MS = 15 * 1000;   // how soon an incomplete / failed events fetch is retried
+let bzzTruncated = false;   // true when today has more event pages than BZZ_EVENT_PAGES: the rest is NOT shown
+let bzzIncomplete = false;   // true while the events list may be missing matches (a page failed, budget used up, provider down)
+async function fetchBzzoiroEvents() {
+  if (!BZZOIRO_API_KEY) return [];
+  const eventsTtl = (isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE) * (bzzLastPages > 2 ? 2 : 1);   // more pages cost more of the daily budget: refresh less often
+  if (eventsCache.data && (eventsCache.retryAt ? Date.now() < eventsCache.retryAt : Date.now() - eventsCache.ts < eventsTtl)) return eventsCache.data;
+  if (!bzzBudgetOk()) { bzzIncomplete = true; return eventsCache.data || []; }
+  if (eventsFetchInProgress) return eventsFetchInProgress;
+  eventsFetchInProgress = (async () => {
+    try {
+      // Fetch 2 pages of events (follows `next`); each page costs 1 request of the Bzzoiro budget.
+      let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${todayStr()}&date_to=${todayStr()}`;
+      const events = [];
+      let complete = true, pages = 0;
+      for (let page = 0; url && page < BZZ_EVENT_PAGES; page++) {
+        bzzCount();
+        // A hung request must not freeze every /api/fixtures call behind eventsFetchInProgress: give up after 15 s.
+        const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
+        if (!r.ok) { if (page === 0) throw new Error(`Events HTTP ${r.status}`); complete = false; break; }
+        const data = await r.json();
+        const part = data.results || data.data || [];
+        if (Array.isArray(part)) events.push(...part);
+        pages++;
+        url = typeof data.next === 'string' && data.next ? data.next : null;
+      }
+      bzzLastPages = pages;
+      if (url && complete) console.log(`⚠️ Bzzoiro events: more than ${BZZ_EVENT_PAGES} pages today, the rest is NOT shown (raise BZZ_EVENT_PAGES)`);
+      const day = todayStr(), known = eventsCache.day === day ? (eventsCache.data || []) : [];   // never keep yesterday's list as the fuller one
+      bzzIncomplete = !complete;
+      bzzTruncated = !!(url && complete);
+      // retryAt (not a shortened ts): the TTL differs between active (60 s) and idle (10 min) mode and can change before the retry is due.
+      if (!complete && known.length > events.length) {
+        // A later page failed: keep the fuller list we already have and retry soon, instead of showing fewer matches.
+        console.log(`⚠️ Bzzoiro events: a page failed (${events.length} < ${known.length} known). Keeping the previous list.`);
+        eventsCache.retryAt = Date.now() + BZZ_RETRY_MS;
+      } else if (events.length > 0 || !known.length) {
+        eventsCache.data = events; eventsCache.ts = Date.now(); eventsCache.day = day;
+        // A partial list (a later page failed, nothing fuller known, e.g. right after a restart) must not live for the whole TTL
+        // (10 min when idle): that is what made the match count jump around (10 / 18 / 26) between refreshes. Retry shortly.
+        if (!complete) { console.log(`⚠️ Bzzoiro events: a page failed, showing ${events.length} for now, retrying in ${BZZ_RETRY_MS / 1000}s.`); eventsCache.retryAt = Date.now() + BZZ_RETRY_MS; }
+        else eventsCache.retryAt = 0;
+      } else {
+        eventsCache.retryAt = Date.now() + 10 * 1000;   // empty answer while we know matches: keep them, ask again in a moment
+      }
+      return eventsCache.data || [];
+    } catch (e) {
+      // First page failed (HTTP error / timeout): keep the last good list, and back off a little instead of retrying on every request.
+      bzzIncomplete = true;
+      console.log(`⚠️ Bzzoiro events failed: ${e.message}. Keeping ${(eventsCache.data || []).length} known, retrying in ${BZZ_RETRY_MS / 1000}s.`);
+      if (eventsCache.data && eventsCache.data.length) eventsCache.retryAt = Date.now() + BZZ_RETRY_MS;
+      return eventsCache.data || [];
+    }
+    finally { eventsFetchInProgress = null; }
+  })();
+  return eventsFetchInProgress;
+}
 
 function parseBzzoiroOdds(oddsObj) {
   if (!oddsObj) return null;
@@ -434,20 +518,12 @@ function parseBzzoiroOdds(oddsObj) {
 
 async function fetchEventOdds(eventId) {
   try {
-    const data = await bzzClient.get(`/v2/events/${encodeURIComponent(eventId)}/odds/`);
+    bzzCount();
+    const r = await fetch(`${BZZOIRO_API_BASE}/v2/events/${eventId}/odds/`, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}` }, signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return null;
+    const data = await r.json();
     return data.odds || data;
   } catch (e) { return null; }
-}
-
-// Odds are only asked for matches that have NOT started. Finished / live matches never get new pre-match odds, so asking again only burned the
-// daily budget (and once it was used up the whole match list froze). Matches without odds are retried less often while kick-off is far away.
-function oddsRefreshDue(ev, cached, now) {
-  if (normalizeStatus(ev.status, ev.event_date) !== 'notstarted') return false;
-  if (!cached) return true;
-  if (cached.parsed) return now - cached.ts > ODDS_EVENT_TTL;
-  const kickoff = new Date(ev.event_date).getTime();
-  const far = !isNaN(kickoff) && kickoff - now > 3 * 60 * 60 * 1000;
-  return now - cached.ts > (far ? ODDS_MISS_TTL_FAR : ODDS_MISS_TTL);
 }
 
 async function fetchOdds() {
@@ -458,12 +534,19 @@ async function fetchOdds() {
     const oddsMap = new Map();
     try {
       const events = await fetchBzzoiroEvents();
-      const valid = events.filter(ev => ev && ev.home_team && ev.away_team);
+      const valid = events.filter(ev => ev.home_team && ev.away_team);
       const now = Date.now();
-      const queue = valid.filter(ev => oddsRefreshDue(ev, oddsByEvent.get(ev.id), now));
+      const queue = valid.filter(ev => {
+        const c = oddsByEvent.get(ev.id);
+        if (!bzzBudgetOk()) return false;
+        const st = normalizeStatus(ev.status, ev.event_date);
+        if (st === 'finished' || st === 'canceled') return false;   // only pre-match prices are used: never spend budget on these
+        if (c && st === 'started') return false;
+        if (!c) return true;
+        return now - c.ts > (c.parsed ? ODDS_EVENT_TTL : ODDS_MISS_TTL);
+      });
       const workers = Array.from({ length: ODDS_CONCURRENCY }, async () => {
         while (queue.length) {
-          if (!bzzBudgetOk() || bzzClient.cooling()) { queue.length = 0; break; }   // budget / rate limit checked per request, not once per batch
           const ev = queue.shift();
           const raw = await fetchEventOdds(ev.id);
           const parsed = parseBzzoiroOdds(raw);
@@ -498,6 +581,12 @@ async function fetchOdds() {
 function estimateXGForFixture(fixture) {
   const H = fixture.home, A = fixture.away;
   if (H.xgFor != null && A.xgFor != null) { fixture.xgSource = 'direct'; fixture.dataQuality = 'high'; return; }
+  const ss = fdStats.seasonFor(fdSeasonMaps(), H.name, A.name, teamsFuzzyMatch);
+  if (ss) {
+    H.xgFor = ss.home.gf; H.xgAgainst = ss.home.ga; H.formN = ss.home.n;
+    A.xgFor = ss.away.gf; A.xgAgainst = ss.away.ga; A.formN = ss.away.n;
+    fixture.xgSource = 'season'; fixture.dataQuality = fixture.odds?.length ? 'high' : 'medium'; return;
+  }
   if (H.gf5 != null && A.gf5 != null) {
     H.xgFor = H.gf5 / 5; H.xgAgainst = H.ga5 / 5; A.xgFor = A.gf5 / 5; A.xgAgainst = A.ga5 / 5;
     fixture.xgSource = 'forms'; fixture.dataQuality = fixture.odds?.length ? 'medium' : 'low'; return;
@@ -511,13 +600,58 @@ function estimateXGForFixture(fixture) {
   fixture.xgSource = 'league-avg'; fixture.dataQuality = 'very-low';
 }
 
-// Odds come from Bzzoiro only (one bookmaker per match, book = 'Bzzoiro'); football-data.org's free plan has no odds.
-const mergeOdds = base => (base ? [base] : []);
+// Bzzoiro price (if any) + extra real books from The Odds API (cache only, no request here). Both teams must match.
+function mergeOdds(base, home, away) {
+  const extra = home && away ? oddsApi.booksFor(home, away, teamsMatchAny) : [];
+  return (base ? [base] : []).concat(extra);
+}
 
 // Well-known clubs / national teams: their matches are shown first (fixture.big = 0, 1 or 2 famous teams).
 const BIG_TEAMS = /\b(real madrid|barcelona|atl[eé]tico madrid|sevilla|valencia|villarreal|real sociedad|athletic club|manchester (united|city)|liverpool|chelsea|arsenal|tottenham|newcastle|aston villa|west ham|bayern|dortmund|leverkusen|rb leipzig|juventus|inter(?! miami)|milan|napoli|roma|lazio|atalanta|fiorentina|paris saint|psg|marseille|lyon|monaco|lille|benfica|porto|sporting cp|sporting lisbon|ajax|psv|feyenoord|celtic|rangers|galatasaray|fenerbah[cç]e|be[sş]ikta[sş]|olympiacos|shakhtar|dynamo kyiv|al[ -]hilal|al[ -]nassr|al[ -]ittihad|al[ -]ahli|inter miami|boca juniors|river plate|flamengo|palmeiras|wydad|raja casablanca|al ahly|zamalek|brazil|argentina|france|england|spain|germany|portugal|italy|netherlands|belgium|croatia|morocco|usa|mexico|japan)\b/i;
 const YOUTH_OR_WOMEN = /\b(u-?\d{2}|women|w|ii|b|reserves?|youth)\b/i;
 const isBigTeam = n => { n = String(n || ''); return BIG_TEAMS.test(n) && !YOUTH_OR_WOMEN.test(n); };
+
+// fixtureQuality / dedupeFixtures: see matching.js
+
+// The site shows TODAY's matches only, and the list must not wobble between refreshes. A feed that is momentarily incomplete
+// (a Bzzoiro page failed, football-data is cooling down after a 429) must not make matches vanish or a finished one go back to
+// "live": while the feed is degraded we keep what we already knew about today, once it is healthy again the list follows it exactly.
+const INSTANCE_ID = crypto.randomBytes(3).toString('hex'), STARTED_AT = Date.now();   // tells apart restarts and several server copies answering the same site
+function feedHealth() {
+  const day = todayStr();
+  return {
+    instance: INSTANCE_ID, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), shown: stableToday.count,
+    bzzEvents: (eventsCache.data || []).length, bzzPages: bzzLastPages, bzzIncomplete, bzzTruncated, bzzBudgetLeft: Math.max(0, BZZ_DAILY_BUDGET - bzzUsage.n),
+    fdDegraded: !!API_KEY && (Date.now() < fdCache.errUntil || Date.now() < fdBlockedUntil || fdCache.day !== day)
+  };
+}
+let stableToday = { day: null, map: new Map(), count: -1 };
+function stabilizeToday(fresh) {
+  const day = todayStr();
+  if (stableToday.day !== day) stableToday = { day, map: new Map(), count: -1 };
+  const fdDegraded = !!API_KEY && (Date.now() < fdCache.errUntil || Date.now() < fdBlockedUntil || fdCache.day !== day);
+  const degraded = bzzIncomplete || fdDegraded;
+  let list = fresh.filter(f => f.date === day || f.status === 'started');
+  if (degraded) {
+    const seen = new Set(list.map(f => f.id));
+    // Only keep matches that are still going to be played / are live. Finished and canceled ones must not come back from the cache.
+    for (const [id, pf] of stableToday.map) if (!seen.has(id) && pf.status !== 'finished' && pf.status !== 'canceled') list.push(pf);
+    list = dedupeFixtures(list);
+  }
+  for (const f of list) {
+    const pf = stableToday.map.get(f.id);
+    if (pf && pf.status === 'finished' && f.status !== 'finished' && Number.isInteger(pf.homeScore) && Number.isInteger(pf.awayScore)) {
+      f.status = 'finished'; f.homeScore = pf.homeScore; f.awayScore = pf.awayScore;
+    }
+  }
+  if (!degraded) stableToday.map = new Map();
+  for (const f of list) stableToday.map.set(f.id, f);
+  if (list.length !== stableToday.count) {
+    console.log(`📋 Fixtures today: ${list.length} (feed ${fresh.length}${degraded ? ', feed degraded: kept known matches' : ''})`);
+    stableToday.count = list.length;
+  }
+  return list;
+}
 
 async function getFixtures() {
   if (fixturesCache.data && Date.now() - fixturesCache.ts < FIXTURES_TTL) return fixturesCache.data;
@@ -528,11 +662,10 @@ async function getFixtures() {
       const eventsP = fetchBzzoiroEvents().catch(() => []);
       const fdP = API_KEY ? fetchFdMatches() : Promise.resolve([]);
 
-      // Stale-while-revalidate: once odds are cached, the fixtures request never waits for the per-event odds refresh (it finishes in the
-      // background and invalidates fixturesCache). Only the very first load, with no odds yet, waits for it.
       let oddsMap = oddsCache.data;
-      if (!oddsMap) oddsMap = await fetchOdds().catch(() => new Map());
-      else if (Date.now() - oddsCache.ts > ODDS_TTL) fetchOdds().catch(() => {});
+      if (!oddsMap || Date.now() - oddsCache.ts > ODDS_TTL) {
+        oddsMap = await fetchOdds().catch(() => oddsMap || new Map());
+      }
       if (!oddsMap) oddsMap = new Map();
 
       const [bzzEvents, fdMatches] = await Promise.all([eventsP, fdP]);
@@ -546,13 +679,19 @@ async function getFixtures() {
         const kickoff = new Date(ev.event_date);
         if (isNaN(kickoff.getTime())) continue;
 
-        // Same pairing AND same kick-off (+-15 min; a team cannot play twice at once). One exactly-equal team name is enough proof,
-        // loose similarity must hold for BOTH teams (see matching.js): "Man City" must never swallow "Man United".
         let fdMatch = null;
         for (const m of fdMatches) {
           if (usedFdIds.has(m.id)) continue;
-          if (Math.abs(Date.parse(m.utcDate) - kickoff.getTime()) > 15 * 60 * 1000) continue;
-          if (samePairing(ev.home_team, ev.away_team, m.homeTeam.name, m.awayTeam.name)) { fdMatch = m; usedFdIds.add(m.id); break; }
+          if (teamsMatchAny(ev.home_team, m.homeTeam.name) && teamsMatchAny(ev.away_team, m.awayTeam.name)) {
+            fdMatch = m; usedFdIds.add(m.id); break;
+          }
+        }
+        if (!fdMatch) {   // different spellings: same kick-off + same pairing (one team named exactly the same, or both similar)
+          for (const m of fdMatches) {
+            if (usedFdIds.has(m.id)) continue;
+            if (Math.abs(Date.parse(m.utcDate) - kickoff.getTime()) > 15 * 60 * 1000) continue;
+            if (samePairing(ev.home_team, ev.away_team, m.homeTeam.name, m.awayTeam.name)) { fdMatch = m; usedFdIds.add(m.id); break; }
+          }
         }
 
         const hf = (fdMatch ? formCache.get(fdMatch.homeTeam.id)?.data : null) || bzzFormCache.map.get(teamNameKey(ev.home_team)) || null;
@@ -601,7 +740,7 @@ async function getFixtures() {
             ga5: af?.ga5 ?? null,
             formN: af?.n ?? null
           },
-          odds: mergeOdds(oddsMap.get(normalizeTeamKey(ev.home_team, ev.away_team))),
+          odds: mergeOdds(oddsMap.get(normalizeTeamKey(ev.home_team, ev.away_team)), ev.home_team, ev.away_team),
           h2h: ev.head_to_head || null,
           sources: fdMatch ? ['bzz', 'fd'] : ['bzz']
         };
@@ -626,7 +765,7 @@ async function getFixtures() {
           awayScore: m.score?.fullTime?.away ?? 0,
           home: { id: m.homeTeam.id, name: m.homeTeam.name, logo: m.homeTeam.crest || cachedLogo(m.homeTeam.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null },
           away: { id: m.awayTeam.id, name: m.awayTeam.name, logo: m.awayTeam.crest || cachedLogo(m.awayTeam.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null },
-          odds: mergeOdds(odds),
+          odds: mergeOdds(odds, m.homeTeam.name, m.awayTeam.name),
           sources: odds ? ['fd', 'bzz'] : ['fd']
         };
         if (fixture.status === 'finished' && (m.score?.fullTime?.home == null || m.score?.fullTime?.away == null)) fixture.status = 'started';
@@ -637,8 +776,9 @@ async function getFixtures() {
       const deduped = dedupeFixtures(fixtures);
       deduped.forEach(f => { f.big = (isBigTeam(f.home.name) ? 1 : 0) + (isBigTeam(f.away.name) ? 1 : 0); });
       try { recordSnapshots(deduped); } catch (e) { console.error('Snapshot error:', e.message); }
-      fixturesCache.data = deduped; fixturesCache.ts = Date.now(); lastFixtures = deduped;
-      return deduped;
+      const list = stabilizeToday(deduped);
+      fixturesCache.data = list; fixturesCache.ts = Date.now(); lastFixtures = list;
+      return list;
     } finally { fixturesFetchInProgress = null; }
   })();
   return fixturesFetchInProgress;
@@ -649,7 +789,7 @@ async function getFixtures() {
    ═══════════════════════════════════════════════════════════ */
 const HISTORY_FILE = process.env.HISTORY_FILE || path.join(__dirname, 'data', 'history.json');
 const HISTORY_KEEP_DAYS = 60;
-const RESULTS_REFRESH_TTL = 5 * 60 * 1000;
+const RESULTS_REFRESH_TTL = BZZ_LOW ? 60 * 60 * 1000 : 5 * 60 * 1000;
 const snapshotStore = new Map();
 let resultsRefreshInProgress = null;
 const enginePre = require('./engine/prematch');
@@ -657,14 +797,23 @@ const enginePre = require('./engine/prematch');
 // Frozen pre-match pick: computed server-side from REAL inputs only (engine returns null when xG is a league-avg/h2h guess
 // and there is no market). It is refreshed while the match is 'notstarted' and never touched again after kickoff,
 // so Performance / Weekly / Chart no longer change when the user moves a slider or the model is retuned.
-function freezePick(f) {
+function freezePick(f, prevPick) {
   try {
     const lg = getLeagueAvgs();
     const fx = lg.has(f.league) ? Object.assign({}, f, { leagueAvg: lg.get(f.league) }) : f;
     const pred = enginePre.predict(fx, { marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, eloBook: getEloBook() });
     if (!pred || !pred.p) return null;
     const best = [['home', pred.p.h], ['draw', pred.p.d], ['away', pred.p.a]].sort((x, y) => y[1] - x[1])[0];
-    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), source: pred.source, at: Date.now() };
+    // The REAL value-bet decision (same gate as the site) is frozen too, so tracking measures the bets users were actually shown.
+    // firstOdds/firstAt = the price when this bet was first flagged (what a user could have taken); CLV compares it with the closing price.
+    let bet = null;
+    const dec = require('./engine/decision').decide(fx, pred, { minBooks: ENGINE_MIN_BOOKS, maxGap: ENGINE_MAX_GAP, maxEV: ENGINE_MAX_EV });
+    if (dec.action === 'BET' && dec.pick) {
+      const pb = prevPick && prevPick.bet && prevPick.bet.key === dec.pick.key ? prevPick.bet : null;
+      bet = { key: dec.pick.key, odds: dec.pick.odds, book: dec.pick.book, p: +dec.pick.p.toFixed(4), ev: +dec.pick.ev.toFixed(4),
+        firstOdds: pb ? (pb.firstOdds || pb.odds) : dec.pick.odds, firstAt: pb ? (pb.firstAt || pb.at || Date.now()) : Date.now(), at: Date.now() };
+    }
+    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), ouP: pred.over == null ? null : +Math.max(pred.over, 1 - pred.over).toFixed(4), source: pred.source, bet, at: Date.now() };
   } catch (e) { console.error('freezePick error:', e.message); return null; }
 }
 
@@ -699,14 +848,14 @@ function recordSnapshots(fixtures) {
 
     if (!prev) {
       if (f.status !== 'notstarted') continue;
-      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: JSON.parse(JSON.stringify(f.odds || [])), pick: freezePick(f) }));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: JSON.parse(JSON.stringify(f.odds || [])), pick: freezePick(f, null) }));
       changed = true;
       continue;
     }
 
     if (prev.status === 'notstarted' && f.status === 'notstarted') {
       const open = prev.openOdds || JSON.parse(JSON.stringify(prev.odds || []));
-      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: open, pick: freezePick(f) || prev.pick || null }));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: open, pick: freezePick(f, prev.pick) || prev.pick || null }));
       changed = true;
       continue;
     }
@@ -737,14 +886,17 @@ async function refreshHistoryResults() {
   if (!unfinished.length) { historyCache.ts = Date.now(); return; }
 
   resultsRefreshInProgress = (async () => {
-    let changed = false;
     try {
       const oldest = unfinished.reduce((m, f) => (f.date < m ? f.date : m), todayStr());
       const dateFrom = oldest < dateDaysAgo(14) ? dateDaysAgo(14) : oldest;
-      let url = `/v2/events/?date_from=${dateFrom}&date_to=${todayStr()}`;
+      let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${dateFrom}&date_to=${todayStr()}`;
+      let changed = false;
 
-      for (let page = 0; url && page < 10; page++) {
-        const data = await bzzClient.get(url);
+      for (let page = 0; url && page < (BZZ_LOW ? 3 : 10); page++) {
+        bzzCount();
+        const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
+        if (!r.ok) throw new Error(`Results refresh HTTP ${r.status}`);
+        const data = await r.json();
         for (const ev of (data.results || data.data || [])) {
           const snap = snapshotStore.get(`bzz_${ev.id}`);
           if (!snap || snap.status === 'finished') continue;
@@ -755,13 +907,13 @@ async function refreshHistoryResults() {
           snap.awayScore = ev.away_score;
           changed = true;
         }
-        url = typeof data.next === 'string' && data.next ? bzzClient.follow(data.next) : null;
+        url = typeof data.next === 'string' && data.next ? data.next : null;
       }
+      if (changed) saveSnapshotsSoon();
       historyCache.ts = Date.now();
     } catch (e) {
-      console.error('Results refresh: ' + e.message);
-      historyCache.ts = Date.now() - RESULTS_REFRESH_TTL + 60 * 1000;   // retry in 1 min, not on every /api/history request
-    } finally { if (changed) saveSnapshotsSoon(); resultsRefreshInProgress = null; }
+      console.error(e.message);
+    } finally { resultsRefreshInProgress = null; }
   })();
   return resultsRefreshInProgress;
 }
@@ -774,7 +926,7 @@ loadSnapshots();
 async function keyauthRequest(params) {
   const url = new URL(KEYAUTH_BASE);
   Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
-  const r = await fetch(url.toString(), { method: 'GET' });
+  const r = await fetch(url.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error(`KeyAuth HTTP ${r.status}`);
   return r.json();
 }
@@ -867,6 +1019,9 @@ function makeLimiter({ windowMs, max, message, maxKeys = 50000 }) {
   };
 }
 const loginLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
+const otpLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
+const licenseLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
+const adminLimiter = makeLimiter({ windowMs: 10 * 60 * 1000, max: 10, message: 'Too many attempts. Try again in a few minutes.' });
 const registerLimiter = makeLimiter({ windowMs: 60 * 60 * 1000, max: 8, message: 'Too many sign-ups from this network. Try again later.' });
 const apiLimiter = makeLimiter({ windowMs: 60 * 1000, max: 240, message: 'Too many requests. Slow down.' });
 const dataLimiter = makeLimiter({ windowMs: 60 * 1000, max: 60, message: 'Too many requests. Slow down.' });
@@ -887,6 +1042,8 @@ app.use('/api/', (req, res, next) => {
 
 app.use(express.json({ limit: '10kb' }));
 app.use(pageLimiter);
+// The same pure odds core runs in the browser (sharp weighting, outlier filter, best price), so the Value Board matches the server engine.
+app.get('/odds-core.js', (req, res) => { res.type('application/javascript').set('Cache-Control', 'public, max-age=300').sendFile(path.join(__dirname, 'engine', 'odds.js')); });
 app.use(express.static(path.join(__dirname, 'public'), {
   extensions: ['html'], dotfiles: 'deny', index: 'index.html',
   // static assets that rarely change are cached for a week; pages and our own scripts/styles always revalidate (ETag) so updates show up at once
@@ -1042,7 +1199,9 @@ function isAdminSession(sess) {
   if (!sess || sess.kind !== 'local' || sess.username !== ADMIN_EMAIL) return false;
   const u = users.get(sess.username);
   if (!u || u.verified === false) return false;
-  return OTP_ENABLED || process.env.ADMIN_ALLOW_NO_OTP === '1';
+  // Admin needs real email OTP. Without RESEND_API_KEY anyone could sign up with the admin e-mail first, so admin is refused.
+  // The only bypass is for the automated tests (NODE_ENV=test), never in production.
+  return OTP_ENABLED || (process.env.NODE_ENV === 'test' && process.env.ADMIN_ALLOW_NO_OTP === '1');
 }
 function requireAdmin(req, res, next) {
   if (isAdminSession(sessions.get(req.authToken))) return next();
@@ -1132,7 +1291,7 @@ app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) =
   }
 });
 
-app.post('/api/auth/verify-otp', loginLimiter, (req, res) => {
+app.post('/api/auth/verify-otp', otpLimiter, (req, res) => {
   const body = req.body || {};
   const email = String(body.email || '').trim().toLowerCase();
   const code = String(body.code || '').replace(/\D/g, '');
@@ -1147,7 +1306,7 @@ app.post('/api/auth/verify-otp', loginLimiter, (req, res) => {
   startSession(res, { kind: 'local', username: email });
 });
 
-app.post('/api/auth/resend-otp', loginLimiter, async (req, res) => {
+app.post('/api/auth/resend-otp', otpLimiter, async (req, res) => {
   const email = String((req.body || {}).email || '').trim().toLowerCase();
   if (!OTP_ENABLED || !users.has(email) || !otps.has(email)) return res.status(400).json({ error: 'Please log in again to get a new code.' });
   const o = await sendOtp(email);
@@ -1175,14 +1334,14 @@ app.get('/api/admin/users', dataLimiter, authMiddleware, requireAdmin, (req, res
 });
 
 // ✅ New Admin Endpoint for Live Visitors & Total Visits
-app.get('/api/admin/stats', authMiddleware, requireAdmin, (req, res) => {
+app.get('/api/admin/stats', dataLimiter, authMiddleware, requireAdmin, (req, res) => {
   res.json({
     liveUsers: activeUsers.size,
     totalVisits: totalVisits
   });
 });
 
-app.post('/api/admin/plan', loginLimiter, (req, res) => {
+app.post('/api/admin/plan', adminLimiter, (req, res) => {
   const tok = process.env.ADMIN_TOKEN;
   if (!tok) return res.status(404).end();
   const a = Buffer.from(String(req.headers['x-admin-token'] || '')), b = Buffer.from(tok);
@@ -1190,7 +1349,7 @@ app.post('/api/admin/plan', loginLimiter, (req, res) => {
   const { email, plan, days } = req.body || {};
   const u = users.get(String(email || '').trim().toLowerCase());
   if (!u) return res.status(404).json({ error: 'No such account' });
-  if (plan === 'pro') { u.plan = 'pro'; u.planUntil = Number(days) > 0 ? Date.now() + Number(days) * 86400000 : null; }
+  if (plan === 'pro') { u.plan = 'pro'; u.planUntil = Number(days) > 0 ? Date.now() + Math.min(Number(days), 3650) * 86400000 : null; }
   else { u.plan = 'free'; u.planUntil = null; }
   saveUsersSoon();
   res.json({ ok: true, email: u.email, plan: u.plan, planUntil: u.planUntil });
@@ -1224,7 +1383,7 @@ function adminOk(req) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-app.post('/api/admin/license', loginLimiter, (req, res) => {
+app.post('/api/admin/license', adminLimiter, (req, res) => {
   const ok = adminOk(req);
   if (ok === null) return res.status(404).end();
   if (!ok) return res.status(403).json({ error: 'Forbidden' });
@@ -1244,11 +1403,12 @@ app.post('/api/admin/license', loginLimiter, (req, res) => {
 async function keyauthLicense(key, sessionid, hwid) {
   return keyauthRequest({ type: 'license', key, hwid, sessionid, name: KEYAUTH_NAME, ownerid: KEYAUTH_OWNERID, secret: KEYAUTH_SECRET });
 }
-app.post('/api/license/activate', loginLimiter, authMiddleware, async (req, res) => {
+app.post('/api/license/activate', licenseLimiter, authMiddleware, async (req, res) => {
   const sess = sessions.get(req.authToken);
   if (!sess || sess.kind !== 'local') return res.status(400).json({ error: 'This login is already Premium.' });
   const u = users.get(sess.username);
   if (!u) return res.status(404).json({ error: 'Account not found' });
+  if (u.plan === 'pro' && !u.planUntil) return res.status(400).json({ error: 'Your account already has lifetime access. Your key was not used.' });
   const fKey = 'lic:' + sess.username;
   const f = userFails.get(fKey);
   if (f && f.n >= 8 && Date.now() - f.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
@@ -1315,25 +1475,23 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   if (uf && uf.n >= 8 && Date.now() - uf.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
   if (username.includes('@')) return localLogin(res, username.trim().toLowerCase(), password, uKey);
   if (!AUTH_CONFIGURED) return res.status(503).json({ error: 'Login is temporarily unavailable.' });
-  try {
-    const init = await keyauthInit();
-    if (!init.success) throw new Error(init.message || 'Init failed');
-    const sessionid = init.sessionid;
-
-    const login = await keyauthLogin(username, password, sessionid, hwid);
-    if (!login.success) throw new Error(login.message || 'Invalid username or password');
-
-    userFails.delete(uKey);
-    const subs = (login.info && login.info.subscriptions) || [];
-    const exp = Math.max(0, ...subs.map(x => Number(x.expiry) || 0));
-    const sx = { kind: 'keyauth', keyauthSessionId: sessionid, username };
-    if (exp > 0) { if (exp * 1000 > Date.UTC(2090, 0, 1)) sx.lifetime = true; else sx.expiry = exp * 1000; }
-    startSession(res, sx);
-  } catch (e) {
+  const unavailable = () => res.status(503).json({ error: 'Login service is temporarily unavailable. Please try again.' });
+  let init, login;
+  try { init = await keyauthInit(); } catch (e) { return unavailable(); }
+  if (!init || !init.success) return unavailable();
+  const sessionid = init.sessionid;
+  try { login = await keyauthLogin(username, password, sessionid, hwid); } catch (e) { return unavailable(); }
+  if (!login || !login.success) {
     const f = userFails.get(uKey) || { n: 0, t: Date.now() };
     f.n++; f.t = Date.now(); userFails.set(uKey, f);
-    res.status(401).json({ error: e.message });
+    return res.status(401).json({ error: String((login && login.message) || 'Invalid username or password').slice(0, 200) });
   }
+  userFails.delete(uKey);
+  const subs = (login.info && login.info.subscriptions) || [];
+  const exp = Math.max(0, ...subs.map(x => Number(x.expiry) || 0));
+  const sx = { kind: 'keyauth', keyauthSessionId: sessionid, username };
+  if (exp > 0) { if (exp * 1000 > Date.UTC(2090, 0, 1)) sx.lifetime = true; else sx.expiry = exp * 1000; }
+  startSession(res, sx);
 });
 
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
@@ -1376,8 +1534,14 @@ app.post('/api/presence', presence.ping);
 app.get('/api/presence', presence.snapshot);
 
 const FORMS_WAIT_MS = Math.max(0, parseInt(process.env.FORMS_WAIT_MS, 10) || 8000);
-const ENGINE_MIN_BOOKS = Number.isFinite(parseInt(process.env.ENGINE_MIN_BOOKS, 10)) ? Math.max(1, parseInt(process.env.ENGINE_MIN_BOOKS, 10)) : 2;
-const ENGINE_MARKET_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_MARKET_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.7; })();
+const ENGINE_MIN_BOOKS_WANTED = Number.isFinite(parseInt(process.env.ENGINE_MIN_BOOKS, 10)) ? Math.max(1, parseInt(process.env.ENGINE_MIN_BOOKS, 10)) : 1;
+// Without ODDS_API_KEY the only price source is Bzzoiro = ONE bookmaker per match. Asking for more than that blocks every bet forever
+// (that is how "0 value bets" happened with ENGINE_MIN_BOOKS=3), so the requirement is capped by what the configured sources can deliver.
+const ENGINE_MAX_BOOKS_POSSIBLE = oddsApi.status().enabled ? Infinity : 1;
+const ENGINE_MIN_BOOKS = Math.min(ENGINE_MIN_BOOKS_WANTED, ENGINE_MAX_BOOKS_POSSIBLE);
+if (ENGINE_MIN_BOOKS < ENGINE_MIN_BOOKS_WANTED) console.log(`⚠️ ENGINE_MIN_BOOKS=${ENGINE_MIN_BOOKS_WANTED} is higher than the sources allow (only ${ENGINE_MAX_BOOKS_POSSIBLE} bookmaker without ODDS_API_KEY): using ${ENGINE_MIN_BOOKS}.`);
+const ENGINE_MAX_EV = (() => { const v = parseFloat(process.env.ENGINE_MAX_EV); return Number.isFinite(v) && v >= 0.05 && v <= 2 ? v : 0.15; })();
+const ENGINE_MARKET_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_MARKET_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.85; })();   // evaluate: the market alone beats the model, so lean on it
 const ENGINE_ELO_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_ELO_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 0.5 ? v : 0.15; })();
 const leagueAvgCache = { map: new Map(), ts: 0 };
 function getLeagueAvgs() {
@@ -1405,7 +1569,7 @@ async function getFixturesWithForms() {
   const upcoming = fixtures.filter(f => f.status === 'notstarted' || f.status === 'started');
   if (!upcoming.length) return fixtures;
   const teams = upcoming.flatMap(f => [f.home, f.away]).filter(t => t.id);
-  const pending = [teams.length ? ensureForms(teams) : null, ensureBzzForms()].filter(Boolean);
+  const pending = [teams.length ? ensureForms(teams) : null, ensureBzzForms(), ensureFdSeasonStats()].filter(Boolean);
   if (pending.length) {
     let timer;
     await Promise.race([Promise.all(pending.map(p => p.catch(() => {}))), new Promise(r => { timer = setTimeout(r, FORMS_WAIT_MS); })]);
@@ -1419,7 +1583,7 @@ app.get('/api/fixtures', dataLimiter, authMiddleware, requirePro, async (req, re
   try {
     const fixtures = await getFixturesWithForms();
     const teams = fixtures.filter(f => f.status === 'notstarted' || f.status === 'started').flatMap(f => [f.home, f.away]).filter(t => t.id);
-    res.json({ fixtures });
+    res.json({ fixtures, feed: feedHealth() });
     if (teams.length && !prefetchInProgress) ensureForms(teams).catch(e => console.error(e.message));
     const logoP = ensureLogos(fixtures.flatMap(f => [f.home, f.away]));
     if (logoP) logoP.catch(e => console.error('Logo fetch error:', e.message));
@@ -1427,20 +1591,20 @@ app.get('/api/fixtures', dataLimiter, authMiddleware, requirePro, async (req, re
 });
 
 const engineDecide = require('./engine/decision'), engineValidate = require('./engine/validate'), engineServe = require('./engine/serve');
-app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) => {
+app.get('/api/engine/predictions', dataLimiter, authMiddleware, requirePro, async (req, res) => {
   try {
     const fixtures = await getFixturesWithForms();
     const eloBook = getEloBook(), lgAvg = getLeagueAvgs();
     const qmw = parseFloat(req.query.mw), qev = parseFloat(req.query.mev);
     const mw = Number.isFinite(qmw) && qmw >= 0 && qmw <= 1 ? qmw : ENGINE_MARKET_WEIGHT;
-    const dOpts = { minBooks: ENGINE_MIN_BOOKS, maxGap: ENGINE_MAX_GAP };
+    const dOpts = { minBooks: ENGINE_MIN_BOOKS, maxGap: ENGINE_MAX_GAP, maxEV: ENGINE_MAX_EV };
     if (Number.isFinite(qev) && qev >= 0 && qev <= 0.5) dOpts.minEV = qev;
     const out = fixtures.map(fx0 => {
       const f = lgAvg.has(fx0.league) ? Object.assign({}, fx0, { leagueAvg: lgAvg.get(fx0.league) }) : fx0;
       return engineServe.item(f, { marketWeight: mw, eloWeight: ENGINE_ELO_WEIGHT, eloBook, decide: dOpts, maxGap: ENGINE_MAX_GAP });
     });
     const xgCounts = {}; for (const f of fixtures) { const k = f.xgSource || 'none'; xgCounts[k] = (xgCounts[k] || 0) + 1; }
-    res.json({ predictions: out, meta: { minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
+    res.json({ predictions: out, meta: { feed: feedHealth(), minBooks: ENGINE_MIN_BOOKS, maxEV: ENGINE_MAX_EV, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, fdSeason: { competitions: fdSeasonMaps().length, teams: fdSeasonMaps().reduce((n, m) => n + m.size, 0) }, xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
   } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
 });
 
@@ -1464,6 +1628,9 @@ async function backgroundTick() {
       if (teams.length) ensureForms(teams).catch(e => console.error(e.message));
     }
     ensureBzzForms();
+    // Second odds source (no-op without ODDS_API_KEY). New prices => drop the fixtures cache so the next request uses them.
+    await oddsApi.discover(fixtures, teamsMatchAny).catch(() => 0);
+    if (await oddsApi.refresh(fixtures).catch(() => 0)) fixturesCache.data = null;
     await refreshHistoryResults();
   } catch (e) { console.error('Background tick error:', e.message); }
 }
@@ -1493,11 +1660,15 @@ setInterval(() => {
 
 let shuttingDown = false;
 let demoSaver = null;   // set once Demo Arena is wired below
+let discoverSaver = null;   // declared before shutdown() so an early signal can't hit the temporal dead zone
 function shutdown(signal, code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`${signal}: saving data before exit`);
-  for (const sv of [userSaver, sessionSaver, licenseSaver, snapshotSaver, discoverSaver, demoSaver]) if (sv) sv.now();
+  // Each saver is read inside try/catch: one that is not created yet (early signal) or that throws must not block the exit.
+  for (const getSaver of [() => userSaver, () => sessionSaver, () => licenseSaver, () => snapshotSaver, () => discoverSaver, () => demoSaver]) {
+    try { const sv = getSaver(); if (sv) sv.now(); } catch (e) { console.error('Shutdown save error:', e && e.message); }
+  }
   server.close(() => process.exit(code));
   setTimeout(() => process.exit(code), 4000).unref();
 }
@@ -1528,30 +1699,36 @@ try {
     console.log(`📰 Loaded ${discoverPosts.size} discover posts`);
   }
 } catch (e) { console.error('Discover load error:', e.message); }
-const discoverSaver = makeSaver('Discover', () => writeAtomic(DISCOVER_FILE, JSON.stringify([...discoverPosts.values()])), 1000);
+discoverSaver = makeSaver('Discover', () => writeAtomic(DISCOVER_FILE, JSON.stringify([...discoverPosts.values()])), 1000);
 const saveDiscoverSoon = discoverSaver.soon;
 
-const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// Uploaded images live next to the other data files (a persistent disk), not inside the app folder that every deploy replaces.
+const UPLOADS_DIR = path.join(path.dirname(HISTORY_FILE), 'uploads');
+const LEGACY_UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');   // images uploaded before this change keep working
+try { fs.mkdirSync(UPLOADS_DIR, { recursive: true }); } catch (e) { console.error('Uploads folder error:', e.message); }
+const IMAGE_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+app.use('/uploads', express.static(UPLOADS_DIR, {
+  dotfiles: 'deny', index: false, maxAge: '7d',
+  setHeaders(res) { res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox"); }
+}));
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, crypto.randomBytes(8).toString('hex') + ext);
+    cb(null, crypto.randomBytes(8).toString('hex') + (IMAGE_EXT[file.mimetype] || '.jpg'));
   }
 });
 const upload = multer({ 
   storage, 
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only images are allowed'));
+    if (IMAGE_EXT[file.mimetype]) cb(null, true);
+    else cb(new Error('Only JPG, PNG, WebP or GIF images are allowed'));
   }
 });
 
 // ✅ Upload route safely wrapped for Express 5
-app.post('/api/upload', authMiddleware, requireAdmin, (req, res, next) => {
+app.post('/api/upload', dataLimiter, authMiddleware, requireAdmin, (req, res, next) => {
   upload.single('image')(req, res, (err) => {
     if (err) {
       console.error('Upload error:', err);
@@ -1598,18 +1775,29 @@ function settleMatch(m) {
 }
 
 // Visible to every logged-in user (Pro and Free). Shared matches get their live status/score refreshed on each read.
+// What a viewer may see of a post: counts and their own vote. Voter e-mails never leave the server.
+const discoverView = (p, match, me) => ({
+  id: p.id, text: p.text, image: p.image, match: match || null, date: p.date, comments: p.comments || [],
+  likes: (p.likes || []).length, dislikes: (p.dislikes || []).length,
+  isLiked: (p.likes || []).includes(me), isDisliked: (p.dislikes || []).includes(me)
+});
+
+// Visible to every logged-in user (Pro and Free). Shared matches get their live status/score refreshed on each read.
 app.get('/api/discover', authMiddleware, (req, res) => {
+  const me = sessions.get(req.authToken).username;
   const posts = [...discoverPosts.values()].sort((a, b) => b.date - a.date).map(p => {
-    if (!p.match) return p;
+    if (!p.match) return discoverView(p, null, me);
     const m = settleMatch(p.match);
     if (m.result && !p.match.result) { p.match = m; saveDiscoverSoon(); }   // keep the final result forever
-    return m === p.match ? p : Object.assign({}, p, { match: m });
+    return discoverView(p, m, me);
   });
   res.json({ posts });
 });
 
 app.post('/api/discover', authMiddleware, requireAdmin, (req, res) => {
   const { text, image, matchId } = req.body || {};
+  const img = String(image || '').trim();
+  if (img && !/^(\/uploads\/[a-f0-9]{16}\.(jpg|png|webp|gif)|https:\/\/[^\s"'<>]{1,480})$/i.test(img)) return res.status(400).json({ error: 'Invalid image URL.' });
   let match = null;
   if (matchId != null && matchId !== '') {
     const f = findFixture(matchId);
@@ -1617,12 +1805,12 @@ app.post('/api/discover', authMiddleware, requireAdmin, (req, res) => {
     if ([...discoverPosts.values()].some(p => p.match && String(p.match.id) === String(f.id))) return res.status(409).json({ error: 'This match is already on Discover.' });
     match = matchCard(f); match.pick = pickFor(f);
   }
-  if (!text && !image && !match) return res.status(400).json({ error: 'Post must have text, an image or a match.' });
+  if (!text && !img && !match) return res.status(400).json({ error: 'Post must have text, an image or a match.' });
   const id = crypto.randomBytes(8).toString('hex');
-  const post = { id, text: String(text || '').slice(0, 1000), image: String(image || '').slice(0, 500), match, date: Date.now(), likes: [], dislikes: [], comments: [] };
+  const post = { id, text: String(text || '').slice(0, 1000), image: img, match, date: Date.now(), likes: [], dislikes: [], comments: [] };
   discoverPosts.set(id, post);
   saveDiscoverSoon();
-  res.json({ ok: true, post });
+  res.json({ ok: true, post: discoverView(post, match, sessions.get(req.authToken).username) });
 });
 
 // Admin: delete a post (POST, because the global method guard rejects DELETE with 405)
@@ -1632,15 +1820,15 @@ app.post('/api/discover/:id/delete', authMiddleware, requireAdmin, (req, res) =>
   discoverPosts.delete(p.id);
   saveDiscoverSoon();
   if (typeof p.image === 'string' && p.image.startsWith('/uploads/')) {
-    const file = path.join(UPLOADS_DIR, path.basename(p.image));
+    const name = path.basename(p.image);
     const stillUsed = [...discoverPosts.values()].some(o => o.image === p.image);
-    if (!stillUsed && path.dirname(file) === UPLOADS_DIR) fs.unlink(file, () => {});
+    if (!stillUsed) for (const dir of [UPLOADS_DIR, LEGACY_UPLOADS_DIR]) fs.unlink(path.join(dir, name), () => {});
   }
   res.json({ ok: true });
 });
 
 // ✅ Fixed Express 5 Routes (Removed regex params like :action(like|dislike))
-app.post('/api/discover/:id/like', authMiddleware, (req, res) => {
+app.post('/api/discover/:id/like', dataLimiter, authMiddleware, (req, res) => {
   const p = discoverPosts.get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Post not found' });
   const user = sessions.get(req.authToken).username;
@@ -1656,7 +1844,7 @@ app.post('/api/discover/:id/like', authMiddleware, (req, res) => {
   res.json({ ok: true, likes: p.likes.length, dislikes: p.dislikes.length, isLiked: p.likes.includes(user), isDisliked: p.dislikes.includes(user) });
 });
 
-app.post('/api/discover/:id/dislike', authMiddleware, (req, res) => {
+app.post('/api/discover/:id/dislike', dataLimiter, authMiddleware, (req, res) => {
   const p = discoverPosts.get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Post not found' });
   const user = sessions.get(req.authToken).username;
@@ -1672,7 +1860,7 @@ app.post('/api/discover/:id/dislike', authMiddleware, (req, res) => {
   res.json({ ok: true, likes: p.likes.length, dislikes: p.dislikes.length, isLiked: p.likes.includes(user), isDisliked: p.dislikes.includes(user) });
 });
 
-app.post('/api/discover/:id/comment', authMiddleware, (req, res) => {
+app.post('/api/discover/:id/comment', dataLimiter, authMiddleware, (req, res) => {
   const p = discoverPosts.get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Post not found' });
   const text = String((req.body || {}).text || '').trim();
@@ -1713,7 +1901,7 @@ const demoArena = require('./demo-arena').create({
   providerStatus: () => ({
     configured: !!(BZZOIRO_API_KEY || API_KEY),
     providers: { bzzoiro: !!BZZOIRO_API_KEY, footballData: !!API_KEY },
-    bzzoiroRequestsToday: bzzUsage.n, bzzoiroDailyBudget: BZZ_DAILY_BUDGET
+    bzzoiroRequestsToday: bzzUsage.n, bzzoiroDailyBudget: BZZ_DAILY_BUDGET,
   }),
   planOfUserKey: key => {
     const i = key.indexOf(':'), kind = key.slice(0, i), name = key.slice(i + 1);
@@ -1721,6 +1909,51 @@ const demoArena = require('./demo-arena').create({
   }
 });
 demoSaver = demoArena.saver;
+
+/* ═══════════════════════════════════════════════════════════
+   ADMIN-ONLY TRACKING: real win/loss of the frozen pre-match picks (1X2 and Over/Under 2.5).
+   Uses only picks frozen BEFORE kickoff and final scores of finished matches. Nothing is invented; flat 1-unit stake when a real price exists.
+   ═══════════════════════════════════════════════════════════ */
+function trackingReport() {
+  const fin = dedupeFixtures([...snapshotStore.values()].filter(f => f && f.status === 'finished' && Number.isInteger(f.homeScore) && Number.isInteger(f.awayScore) && f.pick));
+  const priceOf = (f, key) => {
+    const books = (Array.isArray(f.openOdds) && f.openOdds.length ? f.openOdds : f.odds) || [];
+    const v = books.map(b => b && b[key]).filter(x => x > 1);
+    return v.length ? Math.max(...v) : null;
+  };
+  const empty = () => ({ n: 0, win: 0, loss: 0, units: 0, priced: 0 });
+  const oddsCore = require('./engine/odds'), clvs = [];
+  const tot = { x12: empty(), ou: empty(), bets: empty() }, days = new Map(), list = [];
+  const add = (t, won, odds) => { t.n++; won ? t.win++ : t.loss++; if (odds) { t.priced++; t.units += won ? odds - 1 : -1; } };
+  for (const f of fin) {
+    const goals = f.homeScore + f.awayScore, res = f.homeScore > f.awayScore ? 'home' : f.homeScore === f.awayScore ? 'draw' : 'away';
+    const row = { id: f.id, date: f.date, kickoff: f.kickoff, league: f.league, match: `${f.home.name} vs ${f.away.name}`, score: `${f.homeScore}-${f.awayScore}` };
+    const d = days.get(f.date) || { date: f.date, x12: empty(), ou: empty() }; days.set(f.date, d); d.bets = d.bets || empty();
+    if (f.pick.bet) {
+      const b = f.pick.bet, o = b.firstOdds || b.odds, won = b.key === res, c = oddsCore.consensus(f.odds || []), fp = c && c.fair[{ home: 'h', draw: 'd', away: 'a' }[b.key]];
+      const clv = o > 1 && fp > 0 ? o * fp - 1 : null;
+      add(tot.bets, won, o); add(d.bets, won, o); if (clv != null) clvs.push(clv);
+      row.bet = { pick: b.key, odds: o, ev: b.ev, won, clv: clv == null ? null : +clv.toFixed(4), book: b.book };
+    }
+    if (f.pick.key) { const won = f.pick.key === res, o = priceOf(f, f.pick.key); add(tot.x12, won, o); add(d.x12, won, o); row.x12 = { pick: f.pick.key, p: f.pick.p, won, odds: o }; }
+    if (f.pick.ou === 'over' || f.pick.ou === 'under') {
+      const won = f.pick.ou === 'over' ? goals > 2.5 : goals < 2.5, o = priceOf(f, f.pick.ou === 'over' ? 'over25' : 'under25');
+      add(tot.ou, won, o); add(d.ou, won, o); row.ou = { pick: f.pick.ou, p: f.pick.ouP == null ? null : f.pick.ouP, won, odds: o, goals };
+    }
+    list.push(row);
+  }
+  const fmt = t => ({ n: t.n, win: t.win, loss: t.loss, winRate: t.n ? +(t.win / t.n).toFixed(4) : null, priced: t.priced, units: +t.units.toFixed(2), roi: t.priced ? +(t.units / t.priced).toFixed(4) : null });
+  return {
+    totals: { bets: Object.assign(fmt(tot.bets), { clvN: clvs.length, clv: clvs.length ? +(clvs.reduce((a, b) => a + b, 0) / clvs.length).toFixed(4) : null }), x12: fmt(tot.x12), ou: fmt(tot.ou) },
+    days: [...days.values()].sort((a, b) => b.date.localeCompare(a.date)).map(d => ({ date: d.date, bets: fmt(d.bets || empty()), x12: fmt(d.x12), ou: fmt(d.ou) })),
+    matches: list.sort((a, b) => (b.date + (b.kickoff || '')).localeCompare(a.date + (a.kickoff || ''))).slice(0, 60),
+    note: 'BETS = the value bets the engine flagged before kickoff (price when first flagged); CLV = that price x closing fair probability - 1, positive means the market moved your way. Flat 1-unit stake at the best price seen before kickoff; ROI only over picks that had a real price. Over/Under line 2.5.'
+  };
+}
+app.get('/api/admin/tracking', dataLimiter, authMiddleware, requireAdmin, async (req, res) => {
+  try { await refreshHistoryResults().catch(() => {}); res.json(trackingReport()); }
+  catch (e) { res.status(500).json({ error: 'Server error' }); }
+});
 
 // ✅ Express 5 JSON 404 fallback
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
