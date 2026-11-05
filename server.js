@@ -879,7 +879,7 @@ function freezePick(f) {
     const pred = enginePre.predict(fx, { marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, eloBook: getEloBook() });
     if (!pred || !pred.p) return null;
     const best = [['home', pred.p.h], ['draw', pred.p.d], ['away', pred.p.a]].sort((x, y) => y[1] - x[1])[0];
-    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), source: pred.source, at: Date.now() };
+    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), ouP: pred.over == null ? null : +Math.max(pred.over, 1 - pred.over).toFixed(4), source: pred.source, at: Date.now() };
   } catch (e) { console.error('freezePick error:', e.message); return null; }
 }
 
@@ -1600,7 +1600,13 @@ app.post('/api/presence', presence.ping);
 app.get('/api/presence', presence.snapshot);
 
 const FORMS_WAIT_MS = Math.max(0, parseInt(process.env.FORMS_WAIT_MS, 10) || 8000);
-const ENGINE_MIN_BOOKS = Number.isFinite(parseInt(process.env.ENGINE_MIN_BOOKS, 10)) ? Math.max(1, parseInt(process.env.ENGINE_MIN_BOOKS, 10)) : 1;   // odds now come from one source (Bzzoiro): 2 would block every bet
+const ENGINE_MIN_BOOKS_WANTED = Number.isFinite(parseInt(process.env.ENGINE_MIN_BOOKS, 10)) ? Math.max(1, parseInt(process.env.ENGINE_MIN_BOOKS, 10)) : 1;
+// Without ODDS_API_KEY the only price source is Bzzoiro = ONE bookmaker per match. Asking for more than that blocks every bet forever
+// (that is how "0 value bets" happened with ENGINE_MIN_BOOKS=3), so the requirement is capped by what the configured sources can deliver.
+const ENGINE_MAX_BOOKS_POSSIBLE = oddsApi.status().enabled ? Infinity : 1;
+const ENGINE_MIN_BOOKS = Math.min(ENGINE_MIN_BOOKS_WANTED, ENGINE_MAX_BOOKS_POSSIBLE);
+if (ENGINE_MIN_BOOKS < ENGINE_MIN_BOOKS_WANTED) console.log(`⚠️ ENGINE_MIN_BOOKS=${ENGINE_MIN_BOOKS_WANTED} is higher than the sources allow (only ${ENGINE_MAX_BOOKS_POSSIBLE} bookmaker without ODDS_API_KEY): using ${ENGINE_MIN_BOOKS}.`);
+const ENGINE_MAX_EV = (() => { const v = parseFloat(process.env.ENGINE_MAX_EV); return Number.isFinite(v) && v >= 0.05 && v <= 2 ? v : 0.30; })();
 const ENGINE_MARKET_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_MARKET_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.7; })();
 const ENGINE_ELO_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_ELO_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 0.5 ? v : 0.15; })();
 const leagueAvgCache = { map: new Map(), ts: 0 };
@@ -1657,14 +1663,14 @@ app.get('/api/engine/predictions', dataLimiter, authMiddleware, requirePro, asyn
     const eloBook = getEloBook(), lgAvg = getLeagueAvgs();
     const qmw = parseFloat(req.query.mw), qev = parseFloat(req.query.mev);
     const mw = Number.isFinite(qmw) && qmw >= 0 && qmw <= 1 ? qmw : ENGINE_MARKET_WEIGHT;
-    const dOpts = { minBooks: ENGINE_MIN_BOOKS, maxGap: ENGINE_MAX_GAP };
+    const dOpts = { minBooks: ENGINE_MIN_BOOKS, maxGap: ENGINE_MAX_GAP, maxEV: ENGINE_MAX_EV };
     if (Number.isFinite(qev) && qev >= 0 && qev <= 0.5) dOpts.minEV = qev;
     const out = fixtures.map(fx0 => {
       const f = lgAvg.has(fx0.league) ? Object.assign({}, fx0, { leagueAvg: lgAvg.get(fx0.league) }) : fx0;
       return engineServe.item(f, { marketWeight: mw, eloWeight: ENGINE_ELO_WEIGHT, eloBook, decide: dOpts, maxGap: ENGINE_MAX_GAP });
     });
     const xgCounts = {}; for (const f of fixtures) { const k = f.xgSource || 'none'; xgCounts[k] = (xgCounts[k] || 0) + 1; }
-    res.json({ predictions: out, meta: { feed: feedHealth(), minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, fdSeason: { competitions: fdSeasonMaps().length, teams: fdSeasonMaps().reduce((n, m) => n + m.size, 0) }, xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
+    res.json({ predictions: out, meta: { feed: feedHealth(), minBooks: ENGINE_MIN_BOOKS, maxEV: ENGINE_MAX_EV, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, fdSeason: { competitions: fdSeasonMaps().length, teams: fdSeasonMaps().reduce((n, m) => n + m.size, 0) }, xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
   } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
 });
 
@@ -1968,6 +1974,44 @@ const demoArena = require('./demo-arena').create({
   }
 });
 demoSaver = demoArena.saver;
+
+/* ═══════════════════════════════════════════════════════════
+   ADMIN-ONLY TRACKING: real win/loss of the frozen pre-match picks (1X2 and Over/Under 2.5).
+   Uses only picks frozen BEFORE kickoff and final scores of finished matches. Nothing is invented; flat 1-unit stake when a real price exists.
+   ═══════════════════════════════════════════════════════════ */
+function trackingReport() {
+  const fin = dedupeFixtures([...snapshotStore.values()].filter(f => f && f.status === 'finished' && Number.isInteger(f.homeScore) && Number.isInteger(f.awayScore) && f.pick));
+  const priceOf = (f, key) => {
+    const books = (Array.isArray(f.openOdds) && f.openOdds.length ? f.openOdds : f.odds) || [];
+    const v = books.map(b => b && b[key]).filter(x => x > 1);
+    return v.length ? Math.max(...v) : null;
+  };
+  const empty = () => ({ n: 0, win: 0, loss: 0, units: 0, priced: 0 });
+  const tot = { x12: empty(), ou: empty() }, days = new Map(), list = [];
+  const add = (t, won, odds) => { t.n++; won ? t.win++ : t.loss++; if (odds) { t.priced++; t.units += won ? odds - 1 : -1; } };
+  for (const f of fin) {
+    const goals = f.homeScore + f.awayScore, res = f.homeScore > f.awayScore ? 'home' : f.homeScore === f.awayScore ? 'draw' : 'away';
+    const row = { id: f.id, date: f.date, kickoff: f.kickoff, league: f.league, match: `${f.home.name} vs ${f.away.name}`, score: `${f.homeScore}-${f.awayScore}` };
+    const d = days.get(f.date) || { date: f.date, x12: empty(), ou: empty() }; days.set(f.date, d);
+    if (f.pick.key) { const won = f.pick.key === res, o = priceOf(f, f.pick.key); add(tot.x12, won, o); add(d.x12, won, o); row.x12 = { pick: f.pick.key, p: f.pick.p, won, odds: o }; }
+    if (f.pick.ou === 'over' || f.pick.ou === 'under') {
+      const won = f.pick.ou === 'over' ? goals > 2.5 : goals < 2.5, o = priceOf(f, f.pick.ou === 'over' ? 'over25' : 'under25');
+      add(tot.ou, won, o); add(d.ou, won, o); row.ou = { pick: f.pick.ou, p: f.pick.ouP == null ? null : f.pick.ouP, won, odds: o, goals };
+    }
+    list.push(row);
+  }
+  const fmt = t => ({ n: t.n, win: t.win, loss: t.loss, winRate: t.n ? +(t.win / t.n).toFixed(4) : null, priced: t.priced, units: +t.units.toFixed(2), roi: t.priced ? +(t.units / t.priced).toFixed(4) : null });
+  return {
+    totals: { x12: fmt(tot.x12), ou: fmt(tot.ou) },
+    days: [...days.values()].sort((a, b) => b.date.localeCompare(a.date)).map(d => ({ date: d.date, x12: fmt(d.x12), ou: fmt(d.ou) })),
+    matches: list.sort((a, b) => (b.date + (b.kickoff || '')).localeCompare(a.date + (a.kickoff || ''))).slice(0, 60),
+    note: 'Flat 1-unit stake at the best price seen before kickoff; ROI only over picks that had a real price. Over/Under line 2.5.'
+  };
+}
+app.get('/api/admin/tracking', dataLimiter, authMiddleware, requireAdmin, async (req, res) => {
+  try { await refreshHistoryResults().catch(() => {}); res.json(trackingReport()); }
+  catch (e) { res.status(500).json({ error: 'Server error' }); }
+});
 
 // ✅ Express 5 JSON 404 fallback
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
