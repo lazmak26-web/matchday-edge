@@ -138,7 +138,7 @@ function isActive() {
    Same match = same kick-off (+-15 min) AND (one team named exactly the same OR both teams loosely match).
    "One similar team" alone is NOT enough: Manchester City v Everton and Manchester United v Fulham at 15:00 used to become one match.
    ═══════════════════════════════════════════════════════════ */
-const { normalizeTeamKey, teamsFuzzyMatch, teamsMatchAny, samePairing, dedupeFixtures } = require('./matching');
+const { normalizeTeamKey, normalizeName, squadKey, teamsFuzzyMatch, teamsMatchAny, samePairing, dedupeFixtures } = require('./matching');
 
 /* ═══════════════════════════════════════════════════════════
    STATUS NORMALIZATION
@@ -384,7 +384,61 @@ const logoCache = new Map();
 let logoFetchInProgress = null;
 
 const logoKey = name => String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-const cachedLogo = name => { const c = logoCache.get(logoKey(name)); return c && c.url ? c.url : null; };
+const cachedLogo = name => { const c = logoCache.get(logoKey(name)); return (c && c.url) || fdCrest(name) || null; };
+
+/* Crests from football-data.org (1 call per competition, cached 7 days): fast and reliable for the big leagues + Champions League.
+   TheSportsDB below stays as the fallback for every team football-data does not cover. */
+const FD_CREST_CODES = ['CL', 'PL', 'PD', 'SA', 'BL1', 'FL1', 'DED', 'PPL', 'ELC'];
+const FD_CREST_TTL = 7 * 24 * 60 * 60 * 1000, FD_CREST_MISS = 60 * 60 * 1000, FD_CREST_MAX_PER_RUN = 3, FD_CREST_GAP = 7000;
+const fdCrestCache = new Map();   // competition code -> { ts, ok, teams: [{ toks: [Set], sq, crest }] }
+let fdCrestInProgress = null;
+const CREST_STOP = new Set(['fc', 'ac', 'as', 'us', 'ss', 'cf', 'sc', 'afc', 'cd', 'ud', 'sd', 'rc', 'ca', 'cp', 'club', 'de', 'del', 'la', 'le', 'el', 'the', 'calcio', 'bc', 'sv', 'vfl', 'vfb', 'tsg']);
+const crestToks = n => new Set(String(n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w && !/^\d+$/.test(w) && !CREST_STOP.has(w)));
+// Same team = same word set, or (>= 2 words) one set inside the other. A single word must match exactly, so "Inter Club d'Escaldes" never gets Inter Milan's crest.
+function crestSame(a, b) {
+  if (!a.size || !b.size) return false;
+  const [x, y] = a.size <= b.size ? [a, b] : [b, a];
+  if (![...x].every(t => y.has(t))) return false;
+  return x.size === y.size || x.size >= 2;
+}
+function fdCrest(name) {
+  const t = crestToks(name); if (!t.size) return null;
+  const sq = squadKey(name), nn = normalizeName(name);
+  for (const e of fdCrestCache.values()) {
+    if (!e.ok) continue;
+    for (const x of e.teams) {
+      if (x.sq !== sq) continue;
+      if (x.nn === nn || x.toks.some(k => crestSame(t, k))) return x.crest;
+    }
+  }
+  return null;
+}
+function ensureFdCrests() {
+  if (!API_KEY) return null;
+  if (fdCrestInProgress) return fdCrestInProgress;
+  const now = Date.now();
+  const need = FD_CREST_CODES.filter(c => { const e = fdCrestCache.get(c); return !e || now - e.ts > (e.ok ? FD_CREST_TTL : FD_CREST_MISS); });
+  if (!need.length || Date.now() < fdBlockedUntil) return null;
+  need.length = Math.min(need.length, FD_CREST_MAX_PER_RUN);
+  fdCrestInProgress = (async () => {
+    let got = false;
+    try {
+      for (const code of need) {
+        if (Date.now() < fdBlockedUntil) break;
+        try {
+          const d = await apiGet(`/competitions/${code}/teams`);
+          const teams = (d.teams || []).filter(t => t && t.crest && /^https?:\/\//i.test(t.crest)).map(t => ({
+            toks: [crestToks(t.name), crestToks(t.shortName)].filter(k => k.size), sq: squadKey(t.name), nn: normalizeName(t.name), crest: t.crest
+          }));
+          fdCrestCache.set(code, { ts: Date.now(), ok: true, teams });
+          got = true;
+        } catch (e) { fdCrestCache.set(code, { ts: Date.now(), ok: false, teams: [] }); }
+        await new Promise(r => setTimeout(r, FD_CREST_GAP));
+      }
+    } finally { if (got) fixturesCache.data = null; fdCrestInProgress = null; }
+  })();
+  return fdCrestInProgress;
+}
 
 function cleanNameForSearch(name) {
   return String(name || '')
@@ -1521,6 +1575,7 @@ app.get('/api/public/fixtures', async (req, res) => {
     }));
     res.set('Cache-Control', 'public, max-age=15');
     res.json({ fixtures: out });
+    const crestP = ensureFdCrests(); if (crestP) crestP.catch(() => {});
     const logoP = ensureLogos(fixtures.flatMap(f => [f.home, f.away]));
     if (logoP) logoP.catch(() => {});
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
@@ -1585,6 +1640,7 @@ app.get('/api/fixtures', dataLimiter, authMiddleware, requirePro, async (req, re
     const teams = fixtures.filter(f => f.status === 'notstarted' || f.status === 'started').flatMap(f => [f.home, f.away]).filter(t => t.id);
     res.json({ fixtures, feed: feedHealth() });
     if (teams.length && !prefetchInProgress) ensureForms(teams).catch(e => console.error(e.message));
+    const crestP = ensureFdCrests(); if (crestP) crestP.catch(() => {});
     const logoP = ensureLogos(fixtures.flatMap(f => [f.home, f.away]));
     if (logoP) logoP.catch(e => console.error('Logo fetch error:', e.message));
   } catch (e) { res.status(500).json({ error: 'Server error', fixtures: [] }); }
