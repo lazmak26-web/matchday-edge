@@ -26,6 +26,51 @@ const LEAGUES = [
 ];
 const sportKeyOf = league => { for (const [re, k] of LEAGUES) if (re.test(String(league || ''))) return k; return null; };
 
+// Bzzoiro only gives "League #83" style labels, so the league name cannot be mapped to a sport key. We LEARN the mapping instead:
+// The Odds API lists upcoming events per sport WITHOUT odds (/sports/{key}/events). Those calls are meant to be free; to be safe
+// we read the x-requests-last header and switch discovery off for good if any of them is ever charged.
+const learned = new Map();                 // fixture.league label -> sportKey
+const disc = { ts: 0, off: false, running: null, sports: [] };
+async function getJson(url) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const rem = parseInt(r.headers.get('x-requests-remaining'), 10); if (Number.isFinite(rem)) usage.remaining = rem;
+  if (!r.ok) throw new Error('odds-api ' + r.status);
+  return { json: await r.json(), last: parseInt(r.headers.get('x-requests-last'), 10) };
+}
+async function discover(fixtures, same) {
+  if (!KEY || disc.off || typeof same !== 'function') return 0;
+  const todo = (fixtures || []).filter(f => f && f.status === 'notstarted' && f.league && !sportKeyOf(f.league) && !learned.has(f.league));
+  if (!todo.length || Date.now() - disc.ts < 2 * 3600 * 1000) return 0;
+  if (disc.running) return disc.running;
+  disc.running = (async () => {
+    let found = 0;
+    try {
+      disc.ts = Date.now();
+      const { json: sports } = await getJson(`${BASE}/sports/?apiKey=${encodeURIComponent(KEY)}`);
+      disc.sports = (Array.isArray(sports) ? sports : []).filter(x => x && x.active && /^soccer_/.test(x.key)).map(x => x.key).slice(0, 80);
+      const queue = disc.sports.slice();
+      const workers = Array.from({ length: 4 }, async () => {
+        while (queue.length && !disc.off) {
+          const k = queue.shift();
+          try {
+            const { json, last } = await getJson(`${BASE}/sports/${k}/events?apiKey=${encodeURIComponent(KEY)}`);
+            if (Number.isFinite(last) && last > 0) { disc.off = true; console.log('odds-api: events listing is charged on this plan, league discovery disabled'); return; }
+            for (const ev of Array.isArray(json) ? json : []) {
+              if (!ev || !ev.home_team || !ev.away_team) continue;
+              for (const f of todo) if (!learned.has(f.league) && same(f.home.name, ev.home_team) && same(f.away.name, ev.away_team)) { learned.set(f.league, k); found++; }
+            }
+          } catch (e) { /* one sport failing must not stop the rest */ }
+        }
+      });
+      await Promise.all(workers);
+      if (found) console.log(`odds-api: learned ${found} league mapping(s): ${[...new Set(learned.values())].join(', ')}`);
+    } catch (e) { console.error('odds-api discover:', e.message); }
+    finally { disc.running = null; }
+    return found;
+  })();
+  return disc.running;
+}
+
 const cache = new Map();            // sportKey -> { ts, events:[{home,away,commence,books:[{book,home,draw,away}]}] }
 const usage = { day: '', calls: 0, remaining: null };
 const roll = () => { const d = new Date().toISOString().slice(0, 10); if (usage.day !== d) { usage.day = d; usage.calls = 0; } };
@@ -62,7 +107,7 @@ async function refresh(fixtures) {
   if (!KEY) return 0;
   roll();
   const need = new Set();
-  for (const f of fixtures || []) { if (f && f.status === 'notstarted') { const k = sportKeyOf(f.league); if (k) need.add(k); } }
+  for (const f of fixtures || []) { if (f && f.status === 'notstarted') { const k = sportKeyOf(f.league) || learned.get(f.league); if (k) need.add(k); } }
   let n = 0;
   for (const k of need) {
     const c = cache.get(k);
@@ -81,6 +126,6 @@ function booksFor(home, away, same) {
   for (const { events } of cache.values()) for (const e of events) if (same(home, e.home) && same(away, e.away)) return e.books;
   return [];
 }
-const status = () => ({ enabled: !!KEY, callsToday: usage.calls, maxPerDay: MAX_DAY, creditsRemaining: usage.remaining, leaguesCached: cache.size });
+const status = () => ({ enabled: !!KEY, learnedLeagues: learned.size, discoveryOff: disc.off, callsToday: usage.calls, maxPerDay: MAX_DAY, creditsRemaining: usage.remaining, leaguesCached: cache.size });
 
-module.exports = { refresh, booksFor, sportKeyOf, parseEvents, status };
+module.exports = { refresh, discover, booksFor, sportKeyOf, parseEvents, status };

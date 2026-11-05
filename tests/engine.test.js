@@ -230,7 +230,7 @@ test('sliders: the EV slider really flips a price between WATCH and BET; market-
   const f = { id: 2, status: 'notstarted', xgSource: 'season', league: 'L',
     home: { name: 'Alpha', xgFor: 1.9, xgAgainst: 0.9, formN: 20 }, away: { name: 'Beta', xgFor: 1.0, xgAgainst: 1.5, formN: 20 },
     odds: [{ book: 'A', home: 2.2, draw: 3.6, away: 3.6 }, { book: 'B', home: 2.25, draw: 3.5, away: 3.7 }] };
-  const base = serve.item(f, { marketWeight: 0.5, decide: { minEV: 0.045, minBooks: 2, maxGap: 0.4 }, maxGap: 0.4 });
+  const base = serve.item(f, { marketWeight: 0.5, decide: { minEV: 0.045, minBooks: 2, maxGap: 0.4, maxEV: 1 }, maxGap: 0.4 });
   const low = Reblend.evaluate(base, 0.5, 0), high = Reblend.evaluate(base, 0.5, 0.5);
   assert.ok(low.bestEv > 0, 'there is a positive-EV price');
   assert.strictEqual(low.tier, 'BET');
