@@ -27,7 +27,7 @@ function decide(fx, pred, opts = {}) {
   if (!fx) return { action: 'NO BET', reasons: ['no fixture'], safety: ['no fixture'], upset: null };
   const c = Object.assign({}, DEFAULTS, opts), reasons = [];
   const v = validate(pred, fx, { maxGap: c.maxGap });
-  if (!v.ok) return { action: 'NO BET', reasons: v.issues, safety: v.issues, upset: null };
+  if (!v.ok) return { action: 'NO BET', reasons: v.issues, safety: v.issues, baseSafety: v.issues, upset: null };
   if (!/^model\+market/.test(pred.source)) reasons.push('needs both model and market inputs (source: ' + pred.source + ')');
   if (pred.marketBooks < c.minBooks) reasons.push('only ' + pred.marketBooks + ' bookmaker(s): market consensus not reliable');
   if (!opts.backtest && fx.status && fx.status !== 'notstarted') reasons.push('match already started');
@@ -47,8 +47,8 @@ function decide(fx, pred, opts = {}) {
     if (top.p < c.minProb) reasons.push('probability too low');
   }
   const upset = upsetRisk(fx, pred);
-  const safety = reasons.slice(0, nSafety);
+  const safety = reasons.slice(0, nSafety), baseSafety = safety.slice();   // baseSafety: data-safety blocks only (the upset block below moves with the sliders)
   if (upset && upset.risk === 'High') { const m = 'high upset risk: ' + upset.signals.join('; '); reasons.push(m); safety.push(m); }
-  return reasons.length ? { action: 'NO BET', reasons, safety, upset, best: top || null } : { action: 'BET', pick: top, reasons: [], safety: [], upset, best: top };
+  return reasons.length ? { action: 'NO BET', reasons, safety, baseSafety, upset, best: top || null } : { action: 'BET', pick: top, reasons: [], safety: [], baseSafety, upset, best: top };
 }
 module.exports = { decide, bestPrices, DEFAULTS };

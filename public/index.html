@@ -1792,10 +1792,28 @@ function pickOf(r) {
 }
 
 // Result row for one finished match. `dynamic` = the match is from today: always re-run the engine with the CURRENT
-// sliders (the server's pre-kickoff pick is ignored so the slider can move today's results). Past matches that are
+// sliders (see liveSliderPick: same ingredients as the cards; the pick frozen before kickoff is only the fallback). Past matches that are
 // not frozen yet use the server's pre-kickoff pick if there is one, otherwise the engine with the current sliders,
 // and are then frozen by getFinishedMatches(). Never on guessed data (league-avg / h2h xG).
+// Today's matches use EXACTLY the same maths as the cards: the server's model / market / Elo ingredients re-blended with the
+// sliders by Reblend. (The old browser-only model ignored Elo, league averages and the shrinkage of noisy form data, so a match could
+// show one pick on its card and another in Performance.)
+function liveSliderPick(fx) {
+  const sp = st.srv && st.srv.get(String(fx.id));
+  if (!sp || !sp.prediction || !sp.prediction.p) return null;
+  const rb = window.Reblend ? window.Reblend.evaluate(sp, st.mw, st.mev) : null;   // null = the sliders cannot change this match
+  const p = rb && rb.p ? rb.p : sp.prediction.p;
+  const over = rb && rb.over != null ? rb.over : sp.prediction.over;
+  const key = [['home', p.h], ['draw', p.d], ['away', p.a]].sort((x, y) => y[1] - x[1])[0];
+  return { key: key[0], p: key[1], ou: over == null ? null : (over >= 0.5 ? 'over' : 'under') };
+}
+
 function frozenResult(fx, dynamic) {
+  if (dynamic) {
+    const lp = liveSliderPick(fx);
+    if (lp) return resultFromPick(fx, lp);
+    if (validPickKey(fx.pick)) return resultFromPick(fx, fx.pick);   // no server ingredients (yet): the pick frozen before kickoff
+  }
   if (!dynamic && validPickKey(fx.pick)) return resultFromPick(fx, fx.pick);
   let f = fx;
   if (fx.xgSource === 'league-avg' || fx.xgSource === 'h2h') {
@@ -2255,6 +2273,8 @@ async function loadGate() {
     const sm = new Map(); (d.predictions || []).forEach(p => { if (p && p.id != null && p.prediction) sm.set(String(p.id), p); }); st.srv = sm;
     st.results = applyGate(st.results || []);
     renderSignals();
+    renderHistory();   // today's Performance rows use the same server ingredients as the cards
+    { const pv = document.getElementById('view-performance'); if (pv && pv.classList.contains('active')) updateChart(parseInt($('chartRange').value) || 7, 'app'); }
     if (typeof updateFilterPreview === 'function') updateFilterPreview();
   } catch (e) { /* gate unavailable */ }
 }

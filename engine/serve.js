@@ -1,7 +1,7 @@
 'use strict';
 // One /api/engine/predictions entry. Besides the final decision it carries the raw ingredients (model, market, elo, best real prices),
 // so the browser can re-run the SLIDER-dependent part (market weight, minimum EV) instantly with public/reblend.js, without a server round trip.
-const pre = require('./prematch'), decision = require('./decision'), validate = require('./validate');
+const pre = require('./prematch'), decision = require('./decision'), validate = require('./validate'), { staticSignals } = require('./upset');
 
 function item(f, o = {}) {
   const pred = pre.predict(f, { marketWeight: o.marketWeight, eloWeight: o.eloWeight, eloBook: o.eloBook });
@@ -12,7 +12,9 @@ function item(f, o = {}) {
   return {
     id: f.id, bestEv: dec.best ? dec.best.ev : null,
     tier: dec.action === 'BET' ? 'BET' : ((dec.safety || []).length ? 'NO BET' : 'WATCH'),
-    safety: dec.safety || [], xgSource: f.xgSource || null,
+    safety: dec.safety || [], safetyBase: dec.baseSafety || dec.safety || [],
+    upsetStatic: { home: staticSignals(f, 'home'), away: staticSignals(f, 'away') },
+    xgSource: f.xgSource || null,
     prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source },
     validation: validate.validate(pred, f, { maxGap: o.maxGap }), decision: dec,
     components, prices: decision.bestPrices(f),
