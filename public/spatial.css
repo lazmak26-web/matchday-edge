@@ -218,3 +218,12 @@ body{
 .empty-cta:disabled{opacity:.6;cursor:default}
 #cookieBar .cb-btn{min-height:44px}
 .site-footer a,.consent a{display:inline-block;padding:12px 2px}
+
+/* ── smoothness: cheaper tab switch / menu / slider repaint ── */
+.tab-view.active{animation:none}                       /* group-fading a view full of glass cards forces an offscreen pass every frame */
+.tab-view.active{contain:layout style}
+.match{content-visibility:auto;contain-intrinsic-size:auto 230px}   /* off-screen cards skip layout+paint while sliders re-render the list */
+.side-menu{-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);will-change:transform}
+.modal-box{-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
+.app-header,.bottom-nav{-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%)}
+.side-overlay{transition:opacity .2s}
