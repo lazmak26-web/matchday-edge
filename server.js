@@ -11,14 +11,7 @@ const API_BASE = 'https://api.football-data.org/v4';
 
 const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
 const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
-const afOdds = require('./apifootball').create({
-  key: process.env.APIFOOTBALL_KEY,
-  teamsFuzzyMatch: (a, b) => teamsFuzzyMatch(a, b),
-  dailyBudget: parseInt(process.env.APIFOOTBALL_DAILY_BUDGET, 10) || 90,
-  maxPages: parseInt(process.env.APIFOOTBALL_MAX_PAGES, 10) || 6,
-  statsBudget: parseInt(process.env.APIFOOTBALL_STATS_BUDGET, 10) || 35,
-  onUpdate: () => { fixturesCache.data = null; }
-});
+const { normalizeTeamKey, teamsMatchAny, samePairing, dedupeFixtures } = require('./matching');
 
 /* ═══════════════════════════════════════════════════════════
    KEYAUTH CONFIG
@@ -95,23 +88,25 @@ const FD_TTL_IDLE = 10 * 60 * 1000;
 const ODDS_TTL = 60 * 1000;
 const ODDS_EVENT_TTL = 10 * 60 * 1000;
 const ODDS_MISS_TTL = 3 * 60 * 1000;
+const ODDS_MISS_TTL_FAR = 20 * 60 * 1000;   // no odds yet and kick-off is more than 3h away: no point asking every 3 minutes
+const FETCH_TIMEOUT_MS = 10 * 1000;          // no outgoing request may hang forever
 const FORM_MISS_TTL = 10 * 60 * 1000;
 const HISTORY_TTL = 5 * 60 * 1000;
 
-const CONCURRENCY = 2;
+const CONCURRENCY = 1;
 const ODDS_CONCURRENCY = 3;
-const API_DELAY = 400;
+// football-data.org free plan = 10 requests/minute. The old burst (2 workers, 400ms apart) hit the limit after ~10 teams, and the 429 cool-down then
+// blocked the football-data MATCHES request too. One request every 6.5s stays under the limit. Paid plan: set FD_FORMS_DELAY_MS=400.
+const API_DELAY = Math.max(0, parseInt(process.env.FD_FORMS_DELAY_MS, 10) || 6500);
 const ODDS_DELAY = 150;
 
 const formCache = new Map();
 const fixturesCache = { data: null, ts: 0 };
-const eventsCache = { data: null, ts: 0 };
 const oddsCache = { data: null, ts: 0 };
 const historyCache = { data: null, ts: 0 };
 let prefetchInProgress = null;
 let oddsFetchInProgress = null;
 let fixturesFetchInProgress = null;
-let eventsFetchInProgress = null;
 
 const fdCache = { data: null, ts: 0, day: null, errUntil: 0 };
 let fdInProgress = null;
@@ -125,76 +120,28 @@ function bzzRoll() { const d = new Date().toISOString().slice(0, 10); if (bzzUsa
 function bzzCount() { bzzRoll(); bzzUsage.n++; if (bzzUsage.n % 100 === 0) console.log(`📈 Bzzoiro requests today: ${bzzUsage.n}/${BZZ_DAILY_BUDGET}`); }
 function bzzBudgetOk() { bzzRoll(); return bzzUsage.n < BZZ_DAILY_BUDGET; }
 
+// One client for every Bzzoiro call (timeout, 429 cool-down, request counting) and one feed for today's events (see bzzoiro.js).
+const bzzoiro = require('./bzzoiro');
+const bzzClient = bzzoiro.create({ base: BZZOIRO_API_BASE, key: BZZOIRO_API_KEY, count: bzzCount, timeoutMs: FETCH_TIMEOUT_MS });
+const bzzEvents = bzzoiro.createEventsFeed({
+  client: bzzClient, today: () => todayStr(), isActive: () => isActive(), budgetOk: () => bzzBudgetOk(),
+  ttlActiveMs: EVENTS_TTL_ACTIVE, ttlIdleMs: EVENTS_TTL_IDLE,
+  maxPages: Math.max(1, parseInt(process.env.BZZ_EVENTS_MAX_PAGES, 10) || 10)
+});
+
 function isActive() {
   if (!lastFixtures) return true;
   const now = Date.now();
   return lastFixtures.some(f => {
-    if (f.status === 'started') return true;
+    if (f.status === 'started') {
+      // a match stuck in "started" for hours (finished without a score, postponed...) must not keep the fast refresh rate on all day
+      const t = new Date(f.date + 'T' + f.kickoff + ':00Z').getTime();
+      return isNaN(t) || now - t < 5 * 60 * 60 * 1000;
+    }
     if (f.status !== 'notstarted') return false;
     const t = new Date(f.date + 'T' + f.kickoff + ':00Z').getTime();
     return !isNaN(t) && t - now < 15 * 60 * 1000;
   });
-}
-
-/* ═══════════════════════════════════════════════════════════
-   TEAM ALIASES & MATCHING
-   ═══════════════════════════════════════════════════════════ */
-const TEAM_ALIASES = {
-  'manchester united fc': 'manchester united', 'manchester city fc': 'manchester city',
-  'arsenal fc': 'arsenal', 'chelsea fc': 'chelsea', 'liverpool fc': 'liverpool',
-  'tottenham hotspur fc': 'tottenham hotspur', 'newcastle united fc': 'newcastle united',
-  'aston villa fc': 'aston villa', 'west ham united fc': 'west ham united',
-  'brighton & hove albion fc': 'brighton and hove albion', 'wolverhampton wanderers fc': 'wolverhampton wanderers',
-  'nottingham forest fc': 'nottingham forest', 'crystal palace fc': 'crystal palace',
-  'everton fc': 'everton', 'fulham fc': 'fulham', 'brentford fc': 'brentford',
-  'afc bournemouth': 'bournemouth', 'leicester city fc': 'leicester city',
-  'ipswich town fc': 'ipswich town', 'southampton fc': 'southampton',
-  'real madrid cf': 'real madrid', 'fc barcelona': 'barcelona', 'atletico de madrid': 'atletico madrid',
-  'sevilla fc': 'sevilla', 'real betis balompie': 'real betis', 'valencia cf': 'valencia',
-  'villarreal cf': 'villarreal', 'athletic club': 'athletic bilbao',
-  'fc internazionale milano': 'inter milan', 'ac milan': 'ac milan', 'juventus fc': 'juventus',
-  'ssc napoli': 'napoli', 'as roma': 'roma', 'ss lazio': 'lazio', 'atalanta bc': 'atalanta',
-  'acf fiorentina': 'fiorentina', 'fc bayern munchen': 'bayern munich', 'borussia dortmund': 'borussia dortmund',
-  'rb leipzig': 'rb leipzig', 'bayer 04 leverkusen': 'bayer leverkusen', 'eintracht frankfurt': 'eintracht frankfurt',
-  'paris saint-germain fc': 'paris saint germain', 'olympique de marseille': 'marseille',
-  'olympique lyonnais': 'lyon', 'as monaco': 'monaco', 'losc lille': 'lille',
-  'us sassuolo calcio': 'sassuolo', 'torino fc': 'torino', 'como 1907': 'como', 'cagliari calcio': 'cagliari'
-};
-
-function normalizeTeamKey(home, away) {
-  const clean = s => {
-    let t = String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-    return TEAM_ALIASES[t] || t;
-  };
-  return `${clean(home)}|${clean(away)}`;
-}
-
-function teamsFuzzyMatch(a, b) {
-  if (!a || !b) return false;
-  const clean = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\b(fc|ac|as|us|ss|cf|sc|afc|cd|club|calcio|sporting|sport|city|united|town|the|de|la|le|1907|calcio)\b/g, ' ').replace(/[^a-z0-9]/g, '').trim();
-  const ca = clean(a), cb = clean(b);
-  if (!ca || !cb) return false;
-  return ca === cb || ca.includes(cb) || cb.includes(ca);
-}
-
-// Token-based matching: "Deportivo de A Coruña" == "RC Deportivo La Coruña" (club prefixes / articles / 1-letter words ignored)
-const TEAM_STOP = new Set(['fc', 'ac', 'as', 'us', 'ss', 'cf', 'sc', 'afc', 'cd', 'ud', 'sd', 'rc', 'ca', 'cp', 'club', 'de', 'del', 'la', 'le', 'el', 'the', 'calcio', '1907']);
-function teamTokens(n) {
-  return String(n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length > 1 && !TEAM_STOP.has(w));
-}
-function teamsLooseMatch(a, b) {
-  const ta = teamTokens(a), tb = teamTokens(b);
-  if (!ta.length || !tb.length) return false;
-  const sa = new Set(ta), sb = new Set(tb);
-  const sub = (x, y) => [...x].every(t => y.has(t)) && [...x].some(t => t.length >= 5 || x.size > 1);
-  return sub(sa, sb) || sub(sb, sa);
-}
-const teamsMatchAny = (a, b) => teamsFuzzyMatch(a, b) || teamsLooseMatch(a, b);
-// Same kick-off (±15 min) and at least one team in common => the same match from two sources (a team cannot play twice at once)
-function sameMatch(a, b) {
-  const ta = Date.parse(a.date + 'T' + (a.kickoff || '00:00') + ':00Z'), tb = Date.parse(b.date + 'T' + (b.kickoff || '00:00') + ':00Z');
-  if (isNaN(ta) || isNaN(tb) || Math.abs(ta - tb) > 15 * 60 * 1000) return false;
-  return teamsMatchAny(a.home.name, b.home.name) || teamsMatchAny(a.away.name, b.away.name);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -240,7 +187,7 @@ function pickBetterStatus(a, b) {
    ═══════════════════════════════════════════════════════════ */
 async function apiGet(endpoint) {
   if (Date.now() < fdBlockedUntil) throw new Error('football-data cooling down after 429');
-  const r = await fetch(`${API_BASE}${endpoint}`, { headers: { 'X-Auth-Token': API_KEY || '' } });
+  const r = await fetch(`${API_BASE}${endpoint}`, { headers: { 'X-Auth-Token': API_KEY || '' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (r.status === 429) fdBlockedUntil = Date.now() + 65 * 1000;
   if (!r.ok) throw new Error(`API ${endpoint} → ${r.status}`);
   return r.json();
@@ -259,6 +206,7 @@ async function fetchFdMatches() {
       fdCache.data = d.matches || []; fdCache.ts = Date.now(); fdCache.day = day;
     } catch (e) {
       fdCache.errUntil = Date.now() + 60 * 1000;
+      console.error('football-data matches: ' + e.message);
     } finally { fdInProgress = null; }
     return fdCache.day === day && fdCache.data ? fdCache.data : [];
   })();
@@ -355,7 +303,7 @@ async function ensureBzzForms() {
   if (!bzzBudgetOk()) return null;
   if (bzzFormInProgress) return bzzFormInProgress;
   const need = new Set();
-  for (const ev of eventsCache.data || []) { if (ev && ev.home_team) need.add(teamNameKey(ev.home_team)); if (ev && ev.away_team) need.add(teamNameKey(ev.away_team)); }
+  for (const ev of bzzEvents.peek()) { if (ev && ev.home_team) need.add(teamNameKey(ev.home_team)); if (ev && ev.away_team) need.add(teamNameKey(ev.away_team)); }
   bzzFormInProgress = (async () => {
     const stats = { need: need.size, teams: 0, covered: 0, events: 0, pages: 0, days: 0, error: null, at: new Date().toISOString() };
     try {
@@ -363,16 +311,18 @@ async function ensureBzzForms() {
       const finished = ev => normalizeStatus(ev.status, ev.event_date) === 'finished';
       outer: for (let d = 0; d <= BZZ_FORM_DAYS; d++) {
         const day = dateDaysAgo(d);
-        let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${day}&date_to=${day}`;
+        let url = `/v2/events/?date_from=${day}&date_to=${day}`;
         stats.days++;
         while (url) {
-          if (stats.pages >= BZZ_FORM_MAX_PAGES || !bzzBudgetOk()) break outer;
-          stats.pages++; bzzCount();
-          const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' } });
-          if (!r.ok) throw new Error(`Bzz forms HTTP ${r.status}`);
-          const data = await r.json();
-          events.push(...(data.results || data.data || []));
-          url = typeof data.next === 'string' && data.next ? data.next : null;
+          if (stats.pages >= BZZ_FORM_MAX_PAGES || !bzzBudgetOk() || bzzClient.cooling()) break outer;
+          stats.pages++;
+          let data;
+          try { data = await bzzClient.get(url); }
+          catch (e) { stats.error = e.message; break outer; }   // keep the pages already paid for instead of throwing them all away
+          const part = data && (data.results || data.data);
+          if (Array.isArray(part)) events.push(...part);
+          const next = data && typeof data.next === 'string' && data.next ? data.next : null;
+          url = next ? bzzClient.follow(next) : null;
         }
         if (need.size && d >= 1) {
           const m = buildBzzFormMap(events, finished);
@@ -381,7 +331,8 @@ async function ensureBzzForms() {
       }
       const map = buildBzzFormMap(events, finished);
       stats.events = events.length; stats.teams = map.size; stats.covered = [...need].filter(k => map.has(k)).length;
-      if (map.size) { bzzFormCache.map = map; bzzFormCache.ts = Date.now(); }
+      if (stats.error) for (const [k, v] of bzzFormCache.map) if (!map.has(k)) map.set(k, v);   // incomplete run: never drop teams we already knew
+      if (map.size) { bzzFormCache.map = map; bzzFormCache.ts = stats.error ? Date.now() - BZZ_FORM_TTL + BZZ_FORM_RETRY : Date.now(); }
       else bzzFormCache.ts = Date.now() - BZZ_FORM_TTL + BZZ_FORM_RETRY;
     } catch (e) {
       stats.error = e.message;
@@ -471,39 +422,7 @@ function todayStr() {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
-async function fetchBzzoiroEvents() {
-  if (!BZZOIRO_API_KEY) return [];
-  const eventsTtl = isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE;
-  if (eventsCache.data && Date.now() - eventsCache.ts < eventsTtl) return eventsCache.data;
-  if (!bzzBudgetOk()) return eventsCache.data || [];
-  if (eventsFetchInProgress) return eventsFetchInProgress;
-  eventsFetchInProgress = (async () => {
-    try {
-      // Fetch 2 pages of events (follows `next`); each page costs 1 request of the Bzzoiro budget.
-      let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${todayStr()}&date_to=${todayStr()}`;
-      const events = [];
-      for (let page = 0; url && page < 2; page++) {
-        bzzCount();
-        const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' } });
-        if (!r.ok) { if (page === 0) throw new Error(`Events HTTP ${r.status}`); break; }
-        const data = await r.json();
-        const part = data.results || data.data || [];
-        if (Array.isArray(part)) events.push(...part);
-        url = typeof data.next === 'string' && data.next ? data.next : null;
-      }
-      if (Array.isArray(events) && events.length > 0) {
-        eventsCache.data = events; eventsCache.ts = Date.now();
-      } else if (!eventsCache.data || !eventsCache.data.length) {
-        eventsCache.data = events; eventsCache.ts = Date.now();
-      } else {
-        eventsCache.ts = Date.now() - eventsTtl + 10 * 1000;
-      }
-      return eventsCache.data || [];
-    } catch (e) { return eventsCache.data || []; }
-    finally { eventsFetchInProgress = null; }
-  })();
-  return eventsFetchInProgress;
-}
+function fetchBzzoiroEvents() { return bzzEvents.get(); }
 
 function parseBzzoiroOdds(oddsObj) {
   if (!oddsObj) return null;
@@ -515,12 +434,20 @@ function parseBzzoiroOdds(oddsObj) {
 
 async function fetchEventOdds(eventId) {
   try {
-    bzzCount();
-    const r = await fetch(`${BZZOIRO_API_BASE}/v2/events/${eventId}/odds/`, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}` } });
-    if (!r.ok) return null;
-    const data = await r.json();
+    const data = await bzzClient.get(`/v2/events/${encodeURIComponent(eventId)}/odds/`);
     return data.odds || data;
   } catch (e) { return null; }
+}
+
+// Odds are only asked for matches that have NOT started. Finished / live matches never get new pre-match odds, so asking again only burned the
+// daily budget (and once it was used up the whole match list froze). Matches without odds are retried less often while kick-off is far away.
+function oddsRefreshDue(ev, cached, now) {
+  if (normalizeStatus(ev.status, ev.event_date) !== 'notstarted') return false;
+  if (!cached) return true;
+  if (cached.parsed) return now - cached.ts > ODDS_EVENT_TTL;
+  const kickoff = new Date(ev.event_date).getTime();
+  const far = !isNaN(kickoff) && kickoff - now > 3 * 60 * 60 * 1000;
+  return now - cached.ts > (far ? ODDS_MISS_TTL_FAR : ODDS_MISS_TTL);
 }
 
 async function fetchOdds() {
@@ -531,16 +458,12 @@ async function fetchOdds() {
     const oddsMap = new Map();
     try {
       const events = await fetchBzzoiroEvents();
-      const valid = events.filter(ev => ev.home_team && ev.away_team);
+      const valid = events.filter(ev => ev && ev.home_team && ev.away_team);
       const now = Date.now();
-      const queue = valid.filter(ev => {
-        const c = oddsByEvent.get(ev.id);
-        if (!bzzBudgetOk()) return false;
-        if (!c) return true;
-        return now - c.ts > (c.parsed ? ODDS_EVENT_TTL : ODDS_MISS_TTL);
-      });
+      const queue = valid.filter(ev => oddsRefreshDue(ev, oddsByEvent.get(ev.id), now));
       const workers = Array.from({ length: ODDS_CONCURRENCY }, async () => {
         while (queue.length) {
+          if (!bzzBudgetOk() || bzzClient.cooling()) { queue.length = 0; break; }   // budget / rate limit checked per request, not once per batch
           const ev = queue.shift();
           const raw = await fetchEventOdds(ev.id);
           const parsed = parseBzzoiroOdds(raw);
@@ -574,15 +497,7 @@ async function fetchOdds() {
    ═══════════════════════════════════════════════════════════ */
 function estimateXGForFixture(fixture) {
   const H = fixture.home, A = fixture.away;
-  const inj = afOdds.injuriesFor(H.name, A.name, new Date(fixture.date + 'T' + fixture.kickoff + ':00Z').getTime());
-  if (inj) { H.injuries = inj.home; A.injuries = inj.away; }
   if (H.xgFor != null && A.xgFor != null) { fixture.xgSource = 'direct'; fixture.dataQuality = 'high'; return; }
-  const ss = afOdds.statsFor(H.name, A.name, new Date(fixture.date + 'T' + fixture.kickoff + ':00Z').getTime());
-  if (ss) {
-    H.xgFor = ss.home.gf; H.xgAgainst = ss.home.ga; H.formN = ss.home.n;
-    A.xgFor = ss.away.gf; A.xgAgainst = ss.away.ga; A.formN = ss.away.n;
-    fixture.xgSource = 'season'; fixture.dataQuality = fixture.odds?.length ? 'high' : 'medium'; return;
-  }
   if (H.gf5 != null && A.gf5 != null) {
     H.xgFor = H.gf5 / 5; H.xgAgainst = H.ga5 / 5; A.xgFor = A.gf5 / 5; A.xgAgainst = A.ga5 / 5;
     fixture.xgSource = 'forms'; fixture.dataQuality = fixture.odds?.length ? 'medium' : 'low'; return;
@@ -596,35 +511,13 @@ function estimateXGForFixture(fixture) {
   fixture.xgSource = 'league-avg'; fixture.dataQuality = 'very-low';
 }
 
-function mergeOdds(base, home, away, kickoffMs) {
-  const out = base ? [base] : [], seen = new Set(out.map(b => String(b.book).toLowerCase()));
-  for (const b of afOdds.lookup(home, away, kickoffMs)) { const k = String(b.book).toLowerCase(); if (!seen.has(k)) { seen.add(k); out.push(b); } }
-  return out;
-}
+// Odds come from Bzzoiro only (one bookmaker per match, book = 'Bzzoiro'); football-data.org's free plan has no odds.
+const mergeOdds = base => (base ? [base] : []);
 
 // Well-known clubs / national teams: their matches are shown first (fixture.big = 0, 1 or 2 famous teams).
 const BIG_TEAMS = /\b(real madrid|barcelona|atl[eé]tico madrid|sevilla|valencia|villarreal|real sociedad|athletic club|manchester (united|city)|liverpool|chelsea|arsenal|tottenham|newcastle|aston villa|west ham|bayern|dortmund|leverkusen|rb leipzig|juventus|inter(?! miami)|milan|napoli|roma|lazio|atalanta|fiorentina|paris saint|psg|marseille|lyon|monaco|lille|benfica|porto|sporting cp|sporting lisbon|ajax|psv|feyenoord|celtic|rangers|galatasaray|fenerbah[cç]e|be[sş]ikta[sş]|olympiacos|shakhtar|dynamo kyiv|al[ -]hilal|al[ -]nassr|al[ -]ittihad|al[ -]ahli|inter miami|boca juniors|river plate|flamengo|palmeiras|wydad|raja casablanca|al ahly|zamalek|brazil|argentina|france|england|spain|germany|portugal|italy|netherlands|belgium|croatia|morocco|usa|mexico|japan)\b/i;
 const YOUTH_OR_WOMEN = /\b(u-?\d{2}|women|w|ii|b|reserves?|youth)\b/i;
 const isBigTeam = n => { n = String(n || ''); return BIG_TEAMS.test(n) && !YOUTH_OR_WOMEN.test(n); };
-
-function fixtureQuality(f) {
-  return (f.home.logo ? 1 : 0) + (f.away.logo ? 1 : 0) + (Array.isArray(f.odds) ? f.odds.length : 0) * 0.5 + (f.sources || []).length
-    + (f.home.form ? 1 : 0) + (f.away.form ? 1 : 0) + (f.pick ? 3 : 0) + (/^League #/.test(f.league || '') ? -2 : 0);
-}
-function dedupeFixtures(fixtures) {
-  const result = [];
-  for (const f of fixtures) {
-    const i = result.findIndex(r => sameMatch(r, f));
-    if (i < 0) { result.push(f); continue; }
-    const r = result[i], keep = fixtureQuality(f) > fixtureQuality(r) ? f : r, other = keep === f ? r : f;
-    const seen = new Set((keep.odds || []).map(o => String(o.book).toLowerCase()));
-    const odds = (keep.odds || []).concat((other.odds || []).filter(o => o && !seen.has(String(o.book).toLowerCase())));
-    result[i] = Object.assign({}, keep, { odds,
-      home: Object.assign({}, keep.home, { logo: keep.home.logo || other.home.logo || null }),
-      away: Object.assign({}, keep.away, { logo: keep.away.logo || other.away.logo || null }) });
-  }
-  return result;
-}
 
 async function getFixtures() {
   if (fixturesCache.data && Date.now() - fixturesCache.ts < FIXTURES_TTL) return fixturesCache.data;
@@ -635,10 +528,11 @@ async function getFixtures() {
       const eventsP = fetchBzzoiroEvents().catch(() => []);
       const fdP = API_KEY ? fetchFdMatches() : Promise.resolve([]);
 
+      // Stale-while-revalidate: once odds are cached, the fixtures request never waits for the per-event odds refresh (it finishes in the
+      // background and invalidates fixturesCache). Only the very first load, with no odds yet, waits for it.
       let oddsMap = oddsCache.data;
-      if (!oddsMap || Date.now() - oddsCache.ts > ODDS_TTL) {
-        oddsMap = await fetchOdds().catch(() => oddsMap || new Map());
-      }
+      if (!oddsMap) oddsMap = await fetchOdds().catch(() => new Map());
+      else if (Date.now() - oddsCache.ts > ODDS_TTL) fetchOdds().catch(() => {});
       if (!oddsMap) oddsMap = new Map();
 
       const [bzzEvents, fdMatches] = await Promise.all([eventsP, fdP]);
@@ -652,19 +546,13 @@ async function getFixtures() {
         const kickoff = new Date(ev.event_date);
         if (isNaN(kickoff.getTime())) continue;
 
+        // Same pairing AND same kick-off (+-15 min; a team cannot play twice at once). One exactly-equal team name is enough proof,
+        // loose similarity must hold for BOTH teams (see matching.js): "Man City" must never swallow "Man United".
         let fdMatch = null;
         for (const m of fdMatches) {
           if (usedFdIds.has(m.id)) continue;
-          if (teamsMatchAny(ev.home_team, m.homeTeam.name) && teamsMatchAny(ev.away_team, m.awayTeam.name)) {
-            fdMatch = m; usedFdIds.add(m.id); break;
-          }
-        }
-        if (!fdMatch) {   // different spellings: same kick-off + one team in common
-          for (const m of fdMatches) {
-            if (usedFdIds.has(m.id)) continue;
-            if (Math.abs(Date.parse(m.utcDate) - kickoff.getTime()) > 15 * 60 * 1000) continue;
-            if (teamsMatchAny(ev.home_team, m.homeTeam.name) || teamsMatchAny(ev.away_team, m.awayTeam.name)) { fdMatch = m; usedFdIds.add(m.id); break; }
-          }
+          if (Math.abs(Date.parse(m.utcDate) - kickoff.getTime()) > 15 * 60 * 1000) continue;
+          if (samePairing(ev.home_team, ev.away_team, m.homeTeam.name, m.awayTeam.name)) { fdMatch = m; usedFdIds.add(m.id); break; }
         }
 
         const hf = (fdMatch ? formCache.get(fdMatch.homeTeam.id)?.data : null) || bzzFormCache.map.get(teamNameKey(ev.home_team)) || null;
@@ -713,7 +601,7 @@ async function getFixtures() {
             ga5: af?.ga5 ?? null,
             formN: af?.n ?? null
           },
-          odds: mergeOdds(oddsMap.get(normalizeTeamKey(ev.home_team, ev.away_team)), ev.home_team, ev.away_team, kickoff.getTime()),
+          odds: mergeOdds(oddsMap.get(normalizeTeamKey(ev.home_team, ev.away_team))),
           h2h: ev.head_to_head || null,
           sources: fdMatch ? ['bzz', 'fd'] : ['bzz']
         };
@@ -738,7 +626,7 @@ async function getFixtures() {
           awayScore: m.score?.fullTime?.away ?? 0,
           home: { id: m.homeTeam.id, name: m.homeTeam.name, logo: m.homeTeam.crest || cachedLogo(m.homeTeam.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null },
           away: { id: m.awayTeam.id, name: m.awayTeam.name, logo: m.awayTeam.crest || cachedLogo(m.awayTeam.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null },
-          odds: mergeOdds(odds, m.homeTeam.name, m.awayTeam.name, kickoff.getTime()),
+          odds: mergeOdds(odds),
           sources: odds ? ['fd', 'bzz'] : ['fd']
         };
         if (fixture.status === 'finished' && (m.score?.fullTime?.home == null || m.score?.fullTime?.away == null)) fixture.status = 'started';
@@ -849,17 +737,14 @@ async function refreshHistoryResults() {
   if (!unfinished.length) { historyCache.ts = Date.now(); return; }
 
   resultsRefreshInProgress = (async () => {
+    let changed = false;
     try {
       const oldest = unfinished.reduce((m, f) => (f.date < m ? f.date : m), todayStr());
       const dateFrom = oldest < dateDaysAgo(14) ? dateDaysAgo(14) : oldest;
-      let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${dateFrom}&date_to=${todayStr()}`;
-      let changed = false;
+      let url = `/v2/events/?date_from=${dateFrom}&date_to=${todayStr()}`;
 
       for (let page = 0; url && page < 10; page++) {
-        bzzCount();
-        const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' } });
-        if (!r.ok) throw new Error(`Results refresh HTTP ${r.status}`);
-        const data = await r.json();
+        const data = await bzzClient.get(url);
         for (const ev of (data.results || data.data || [])) {
           const snap = snapshotStore.get(`bzz_${ev.id}`);
           if (!snap || snap.status === 'finished') continue;
@@ -870,13 +755,13 @@ async function refreshHistoryResults() {
           snap.awayScore = ev.away_score;
           changed = true;
         }
-        url = typeof data.next === 'string' && data.next ? data.next : null;
+        url = typeof data.next === 'string' && data.next ? bzzClient.follow(data.next) : null;
       }
-      if (changed) saveSnapshotsSoon();
       historyCache.ts = Date.now();
     } catch (e) {
-      console.error(e.message);
-    } finally { resultsRefreshInProgress = null; }
+      console.error('Results refresh: ' + e.message);
+      historyCache.ts = Date.now() - RESULTS_REFRESH_TTL + 60 * 1000;   // retry in 1 min, not on every /api/history request
+    } finally { if (changed) saveSnapshotsSoon(); resultsRefreshInProgress = null; }
   })();
   return resultsRefreshInProgress;
 }
@@ -1520,7 +1405,7 @@ async function getFixturesWithForms() {
   const upcoming = fixtures.filter(f => f.status === 'notstarted' || f.status === 'started');
   if (!upcoming.length) return fixtures;
   const teams = upcoming.flatMap(f => [f.home, f.away]).filter(t => t.id);
-  const pending = [teams.length ? ensureForms(teams) : null, ensureBzzForms(), afOdds.ensure(), afOdds.ensureStats(upcoming.map(f => ({ home: f.home.name, away: f.away.name, t: new Date(f.date + 'T' + f.kickoff + ':00Z').getTime() })))].filter(Boolean);
+  const pending = [teams.length ? ensureForms(teams) : null, ensureBzzForms()].filter(Boolean);
   if (pending.length) {
     let timer;
     await Promise.race([Promise.all(pending.map(p => p.catch(() => {}))), new Promise(r => { timer = setTimeout(r, FORMS_WAIT_MS); })]);
@@ -1555,7 +1440,7 @@ app.get('/api/engine/predictions', authMiddleware, requirePro, async (req, res) 
       return engineServe.item(f, { marketWeight: mw, eloWeight: ENGINE_ELO_WEIGHT, eloBook, decide: dOpts, maxGap: ENGINE_MAX_GAP });
     });
     const xgCounts = {}; for (const f of fixtures) { const k = f.xgSource || 'none'; xgCounts[k] = (xgCounts[k] || 0) + 1; }
-    res.json({ predictions: out, meta: { minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, apiFootball: afOdds.stats(), xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
+    res.json({ predictions: out, meta: { minBooks: ENGINE_MIN_BOOKS, marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, xgSources: xgCounts, bzzForms: bzzFormCache.stats || (BZZOIRO_API_KEY ? 'not run yet' : 'no BZZOIRO_API_KEY') } });
   } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
 });
 
@@ -1827,9 +1712,8 @@ const demoArena = require('./demo-arena').create({
   lookupMatch: demoLookup,
   providerStatus: () => ({
     configured: !!(BZZOIRO_API_KEY || API_KEY),
-    providers: { bzzoiro: !!BZZOIRO_API_KEY, footballData: !!API_KEY, apiFootball: !!process.env.APIFOOTBALL_KEY },
-    bzzoiroRequestsToday: bzzUsage.n, bzzoiroDailyBudget: BZZ_DAILY_BUDGET,
-    apiFootball: (() => { try { return afOdds.stats(); } catch (e) { return null; } })()
+    providers: { bzzoiro: !!BZZOIRO_API_KEY, footballData: !!API_KEY },
+    bzzoiroRequestsToday: bzzUsage.n, bzzoiroDailyBudget: BZZ_DAILY_BUDGET
   }),
   planOfUserKey: key => {
     const i = key.indexOf(':'), kind = key.slice(0, i), name = key.slice(i + 1);

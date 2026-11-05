@@ -184,24 +184,11 @@ test('elo is ignored unless both teams have enough real games', () => {
   assert.ok(!/elo/.test(p.source) && p.sources.elo === null);
 });
 
-// ---- API-Football parsing ----
-test('API-Football odds are parsed and bad lines dropped', () => {
-  const { parseBooks } = require('../apifootball');
-  const bm = (name, h, d, a) => ({ id: 1, name, bets: [{ id: 1, name: 'Match Winner', values: [{ value: 'Home', odd: h }, { value: 'Draw', odd: d }, { value: 'Away', odd: a }] }, { id: 5, name: 'Goals Over/Under', values: [{ value: 'Over 2.5', odd: '1.9' }, { value: 'Under 2.5', odd: '1.95' }] }] });
-  const out = parseBooks([bm('Bet365', '2.10', '3.40', '3.50'), bm('Broken', '1.20', '1.20', '1.20'), bm('Bad', '0.9', '3', '3')]);
-  assert.strictEqual(out.length, 1);
-  assert.strictEqual(out[0].book, 'Bet365');
-  assert.strictEqual(out[0].over25, 1.9);
-});
-
-test('season stats: parsed only with a real sample; season rates are shrunk less than 5-game forms', () => {
-  const { parseTeamStats } = require('../apifootball');
-  const r = (played, gf, ga) => ({ fixtures: { played: { total: played } }, goals: { for: { total: { total: gf } }, against: { total: { total: ga } } } });
-  assert.deepStrictEqual(parseTeamStats(r(10, 15, 9)), { gf: 1.5, ga: 0.9, n: 10 });
-  assert.strictEqual(parseTeamStats(r(4, 8, 2)), null);
-  assert.strictEqual(parseTeamStats([]), null);
+// xgSource 'season' is no longer produced by the server (it came from API-Football), but history rows saved earlier still carry it and must keep being treated as real data.
+test("xgSource 'season' (old saved rows) is shrunk less than 5-game forms", () => {
   const mk = (src, n) => ({ id: 'x', status: 'notstarted', xgSource: src, home: team('H', 2.2, 0.8, { formN: n }), away: team('A', 0.8, 2.2, { formN: n }), odds: [] });
   assert.ok(lambdas(mk('season', 30)).h > lambdas(mk('forms', 5)).h);
+  assert.notStrictEqual(lambdas(mk('season', 30)), null, 'saved rows with source season are real data, not a guess');
 });
 
 test('per-league goal average changes the model; absurd values are ignored', () => {
@@ -217,69 +204,6 @@ test('NO BET still exposes the best candidate (for the UI) but never a pick', ()
   assert.strictEqual(d.action, 'NO BET');
   assert.ok(d.best && typeof d.best.ev === 'number');
   assert.strictEqual(d.pick, undefined);
-});
-
-test('injuries: only confirmed absences count; unknown is null, not zero', async () => {
-  const { create } = require('../apifootball');
-  const resp = u => u.includes('/fixtures') ? { errors: [], response: [{ fixture: { id: 7, date: new Date().toISOString(), status: { short: 'NS' } }, league: { id: 1, season: 2026 }, teams: { home: { id: 1, name: 'Alpha' }, away: { id: 2, name: 'Beta' } } }] }
-    : u.includes('/injuries') ? { errors: [], paging: { total: 1 }, response: [1, 2, 3].map(i => ({ fixture: { id: 7 }, team: { id: 1 }, player: { type: 'Missing Fixture' } })).concat([{ fixture: { id: 7 }, team: { id: 1 }, player: { type: 'Questionable' } }, { fixture: { id: 7 }, team: { id: 2 }, player: { type: 'Missing Fixture' } }]) }
-    : { errors: [], paging: { total: 1 }, response: [] };
-  const c = create({ key: 'k', fetchImpl: async u => ({ ok: true, json: async () => resp(u) }), teamsFuzzyMatch: (a, b) => a === b, log: () => {} });
-  assert.strictEqual(c.injuriesFor('Alpha', 'Beta', Date.now()), null);
-  await c.ensure(); // injuries are OFF by default (APIFOOTBALL_INJURIES!=1): still unknown, no extra API call
-  assert.strictEqual(c.injuriesFor('Alpha', 'Beta', Date.now()), null);
-  process.env.APIFOOTBALL_INJURIES = '1';
-  try {
-    const c2 = create({ key: 'k', fetchImpl: async u => ({ ok: true, json: async () => resp(u) }), teamsFuzzyMatch: (a, b) => a === b, log: () => {} });
-    await c2.ensure();
-    assert.deepStrictEqual(c2.injuriesFor('Alpha', 'Beta', Date.now()), { home: 3, away: 1 });
-  } finally { delete process.env.APIFOOTBALL_INJURIES; }
-});
-
-test('API-Football: free-plan page cap keeps the pages already read and is learned, not retried', async () => {
-  const { create, pageCapFrom } = require('../apifootball');
-  assert.strictEqual(pageCapFrom('API-Football: {"plan":"Free plans are limited to a maximum value of 3 for the Page parameter"}'), 3);
-  assert.strictEqual(pageCapFrom('something else'), null);
-  const fixture = id => ({ fixture: { id, date: new Date().toISOString(), status: { short: 'NS' } }, league: { id: 1, season: 2026 }, teams: { home: { id: id, name: 'H' + id }, away: { id: id + 100, name: 'A' + id } } });
-  const odds = id => ({ fixture: { id }, bookmakers: [{ name: 'B', bets: [{ id: 1, name: 'Match Winner', values: [{ value: 'Home', odd: '2.0' }, { value: 'Draw', odd: '3.4' }, { value: 'Away', odd: '3.8' }] }] }] });
-  const calls = [];
-  const fetchImpl = async u => {
-    calls.push(u);
-    const page = Number((/page=(\d+)/.exec(u) || [])[1] || 1);
-    let body;
-    if (u.includes('/fixtures')) body = { errors: [], response: [1, 2, 3].map(fixture) };
-    else if (page > 3) body = { errors: { plan: 'Free plans are limited to a maximum value of 3 for the Page parameter' }, response: [] };
-    else body = { errors: [], paging: { total: 6 }, response: [odds(page)] };
-    return { ok: true, json: async () => body };
-  };
-  const c = create({ key: 'k', fetchImpl, maxPages: 6, teamsFuzzyMatch: (a, b) => a === b, log: () => {} });
-  await c.ensure();
-  const s = c.stats();
-  assert.strictEqual(s.matches, 3, 'the 3 pages read before the plan error must be kept');
-  assert.strictEqual(s.pageCap, 3);
-  assert.strictEqual(s.lastError, null);
-  assert.strictEqual(c.lookup('H1', 'A1', Date.now()).length, 1);
-  assert.strictEqual(calls.filter(u => u.includes('/odds')).length, 4, 'exactly one wasted call (page 4)');
-});
-
-test('API-Football: a plan error on season stats stops further stats calls for the day', async () => {
-  const { create } = require('../apifootball');
-  let statCalls = 0;
-  const fx = id => ({ fixture: { id, date: new Date().toISOString(), status: { short: 'NS' } }, league: { id: 1, season: 2026 }, teams: { home: { id: id, name: 'H' + id }, away: { id: id + 100, name: 'A' + id } } });
-  const fetchImpl = async u => {
-    let body;
-    if (u.includes('/fixtures')) body = { errors: [], response: [1, 2, 3, 4].map(fx) };
-    else { statCalls++; body = { errors: { plan: 'Free plans do not have access to this season, try from 2021 to 2023.' }, response: [] }; }
-    return { ok: true, json: async () => body };
-  };
-  const c = create({ key: 'k', fetchImpl, teamsFuzzyMatch: (a, b) => a === b, log: () => {} });
-  const list = [1, 2, 3, 4].map(i => ({ home: 'H' + i, away: 'A' + i, t: Date.now() }));
-  await c.ensureStats(list);
-  assert.ok(statCalls <= 2, 'at most the two parallel workers fire before the backoff, got ' + statCalls);
-  const before = statCalls;
-  assert.strictEqual(c.ensureStats(list), null, 'backed off for the rest of the day');
-  assert.strictEqual(statCalls, before);
-  assert.strictEqual(c.stats().statsOff, true);
 });
 
 test('a null bookmaker entry does not crash validation or the decision', () => {
