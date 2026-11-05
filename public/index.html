@@ -209,7 +209,7 @@ button,select,input{font:inherit;color:inherit}
 .m-top{display:flex;justify-content:space-between;align-items:center;gap:8px;position:relative}
 .m-league{font-size:13px;font-weight:600;color:var(--ink-2)}
 .m-top-right{display:flex;align-items:center;gap:6px}
-.mh-quality{padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.04em;background:var(--soft);color:var(--ink-3)}
+.mh-quality{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.04em;background:var(--soft);color:var(--ink-3)}
 .mh-quality.high{background:var(--bad-dim);color:var(--bad)}
 .mh-quality.medium{background:var(--warn-dim);color:var(--warn)}
 .mh-quality.low{background:var(--good-dim);color:var(--good)}
@@ -226,10 +226,10 @@ button,select,input{font:inherit;color:inherit}
 .m-time,.m-live-score{font-size:20px;font-weight:700;letter-spacing:-.03em}
 .m-live-score{font-size:24px}
 .m-vs{font-size:11px;color:var(--ink-3);font-weight:600}
-.m-live-tag{font-size:10px;font-weight:700;color:var(--info);background:var(--info-dim);padding:2px 8px;border-radius:999px}
+.m-live-tag{font-size:12px;font-weight:700;color:var(--info);background:var(--info-dim);padding:2px 8px;border-radius:999px}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;position:relative}
 .tile{background:var(--soft);border-radius:16px;padding:10px 6px;text-align:center}
-.tile i{display:block;font-style:normal;font-size:11px;color:var(--ink-3)}
+.tile i{display:block;font-style:normal;font-size:12px;color:var(--ink-3)}
 .tile b{font-size:17px;letter-spacing:-.02em}
 .tile.top{background:var(--brand);color:var(--on-brand)}
 .tile.top i{color:inherit;opacity:.8}
@@ -1536,9 +1536,18 @@ async function checkAuth() {
   } catch(e) { updateAuthUI(); }
 }
 
-const fxDateTime = fx => new Date(fx.date + 'T' + (fx.kickoff || '00:00') + ':00Z');
+// Called for every card on every slider move / render, so: parse each kick-off once, and build the time formatter once
+// (toLocaleTimeString creates a new Intl formatter per call, which was the slowest line of a render).
+const _kickMs = new Map();
+const fxDateTime = fx => {
+  const k = fx.date + 'T' + (fx.kickoff || '00:00');
+  let ms = _kickMs.get(k);
+  if (ms === undefined) { ms = Date.parse(k + ':00Z'); if (_kickMs.size > 4000) _kickMs.clear(); _kickMs.set(k, ms); }
+  return new Date(ms);
+};
+const _timeFmt = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 const fxLocalDate = fx => { const d = fxDateTime(fx); return isNaN(d.getTime()) ? String(fx.date).slice(0, 10) : localDateStr(d); };
-const fxLocalTime = fx => { const d = fxDateTime(fx); return isNaN(d.getTime()) ? (fx.kickoff || '') : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); };
+const fxLocalTime = fx => { const d = fxDateTime(fx); return isNaN(d.getTime()) ? (fx.kickoff || '') : _timeFmt.format(d); };
 
 const Engine = (() => {
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -2001,7 +2010,7 @@ function renderSignals() {
   if (st.feedDegraded) note.push('The data feed is incomplete right now: some of today\'s matches may be missing. The list updates by itself.');
   const noteHTML = note.length ? `<div class="empty-state" style="grid-column:1/-1;padding:10px 14px;text-align:left;font-size:13px">⚠️ ${esc(note.join(' · '))}</div>` : '';
   const cardsHTML = cardHTMLs.join('');
-  $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + `<div class="empty-state">${t.no_upcoming}</div>`));
+  $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + `<div class="empty-state"><strong>${t.no_upcoming}</strong><p>Picks appear here as soon as bookmakers post prices for upcoming matches.</p><button type="button" class="empty-cta" onclick="this.disabled=true;this.textContent='Checking…';pollFeed().finally(()=>{this.disabled=false;this.textContent='Check for new matches'})">Check for new matches</button></div>`));
   const inDom = $('cards').querySelectorAll('article.match').length;
   if (inDom !== rendered.length) console.warn('Signals: dashboard counts', rendered.length, 'but', inDom, 'cards are in the page');
   syncStatsFromCards();
@@ -2066,7 +2075,7 @@ function renderHistory() {
   const t = translations[localStorage.getItem('mde:lang') || 'en'] || translations.en;
   const finished = getFinishedMatches();
   if (!finished.length) {
-    $('history-list').innerHTML = `<div class="empty-state">${t.no_finished}</div>`;
+    $('history-list').innerHTML = `<div class="empty-state"><strong>${t.no_finished}</strong><p>Results and the win rate of our picks show up here once matches are over.</p></div>`;
     $('perf-winrate').textContent = '0%';
     $('perf-bar').style.width = '0%';
     $('perf-wins').textContent = 0;

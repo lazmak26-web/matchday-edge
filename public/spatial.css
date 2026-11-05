@@ -203,3 +203,18 @@ body{
 /* text-only buttons (Cancel / Back) stay flat: no glow */
 .auth-btn[style*="transparent"],.auth-btn[style*="transparent"]:hover{box-shadow:none;transform:none;filter:none}
 .auth-btn[style*="transparent"]:hover{color:var(--ink)!important}
+
+/* ── tap targets ≥44px (visual size unchanged where it is a small round chip) ── */
+.icon-btn,.filter-btn{min-width:44px;min-height:44px}
+.bell-btn,.pin-btn{position:relative}
+.bell-btn::after,.pin-btn::after{content:"";position:absolute;inset:-7px}
+.site-footer nav a,.site-footer .link-btn,#cookieBar a{display:inline-block;padding:12px 4px;min-height:44px;box-sizing:border-box}
+.site-footer nav{gap:0 14px}
+/* ── empty states: headline + one value sentence + one action ── */
+.empty-state strong{display:block;color:var(--ink);font-size:15px;margin-bottom:6px}
+.empty-state p{margin:0 auto 14px;max-width:34ch;font-size:13px;line-height:1.5}
+.empty-state p:last-child{margin-bottom:0}
+.empty-cta{min-height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:600;font-size:13px;cursor:pointer}
+.empty-cta:disabled{opacity:.6;cursor:default}
+#cookieBar .cb-btn{min-height:44px}
+.site-footer a,.consent a{display:inline-block;padding:12px 2px}

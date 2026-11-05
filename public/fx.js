@@ -38,8 +38,12 @@
       if (seen[k]) return; seen[k] = 1; fresh.push(n);
     });
     if (!fresh.length) return;
-    if (fresh.length > 60) fresh = fresh.slice(0, 60);
-    g.from(fresh, { y: 26, opacity: 0, duration: .55, stagger: { each: .045, amount: .6 }, ease: 'power3.out', clearProps: 'transform,opacity' });
+    // Only the cards the person can see are worth animating (up to 10). Animating all of them made the first render of a long list
+    // the heaviest moment of the page for no visible gain.
+    var vh = window.innerHeight || 800;
+    fresh = fresh.filter(function (n) { var r = n.getBoundingClientRect(); return r.bottom > 0 && r.top < vh; }).slice(0, 10);
+    if (!fresh.length) return;
+    g.from(fresh, { y: 22, opacity: 0, duration: .5, stagger: { each: .05, amount: .4 }, ease: 'power3.out', clearProps: 'transform,opacity' });
   }
 
   function after() {
