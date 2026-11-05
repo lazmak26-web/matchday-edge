@@ -227,3 +227,17 @@ body{
 .modal-box{-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
 .app-header,.bottom-nav{-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%)}
 .side-overlay{transition:opacity .2s}
+
+/* ── side menu: items glide in one after another, leave together ── */
+.side-menu .side-head,.side-menu .side-item{
+  opacity:0;transform:translate3d(-18px,0,0);
+  transition:opacity .18s ease,transform .22s ease,background .25s,color .25s;
+}
+.side-menu.open .side-head,.side-menu.open .side-item{
+  opacity:1;transform:none;
+  transition:opacity .4s ease calc(var(--i,0)*55ms + 120ms),transform .55s var(--sp-ease) calc(var(--i,0)*55ms + 120ms),background .25s,color .25s;
+}
+@media (prefers-reduced-motion:reduce){
+  .side-menu .side-head,.side-menu .side-item{transform:none!important;transition:opacity .12s ease!important}
+  .side-menu.open .side-head,.side-menu.open .side-item{transition:opacity .12s ease!important}
+}

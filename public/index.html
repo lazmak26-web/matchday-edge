@@ -1318,7 +1318,7 @@ function closeSettingsModal() { document.getElementById('settingsModal').classLi
 function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); }
 function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); }
 
-function openMenu() { const sm = document.getElementById('sideMenu'); sm.inert = false; sm.setAttribute('aria-hidden', 'false'); sm.classList.add('open'); document.getElementById('menuOverlay').classList.remove('hidden'); }
+function openMenu() { const sm = document.getElementById('sideMenu'); let _i = 0; sm.querySelectorAll('.side-head,.side-item:not(.hidden)').forEach(el => el.style.setProperty('--i', _i++)); sm.inert = false; sm.setAttribute('aria-hidden', 'false'); sm.classList.add('open'); document.getElementById('menuOverlay').classList.remove('hidden'); }
 function closeMenu() { const sm = document.getElementById('sideMenu'); sm.classList.remove('open'); sm.setAttribute('aria-hidden', 'true'); sm.inert = true; document.getElementById('menuOverlay').classList.add('hidden'); }
 function menuGo(tab) { closeMenu(); switchTab(tab); }
 function menuDo(fn) { closeMenu(); fn(); }
