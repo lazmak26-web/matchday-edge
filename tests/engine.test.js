@@ -240,3 +240,24 @@ test('sliders: the EV slider really flips a price between WATCH and BET; market-
   assert.strictEqual(marketOnly.components, null);
   assert.strictEqual(Reblend.evaluate(marketOnly, 0.5, 0), null);
 });
+
+// ── credibility cap: a huge "edge" from a single price is a data error, not a bet ──
+test('decision: edge above maxEV is not a BET (server) and Reblend agrees (browser)', () => {
+  const { decide } = require('../engine/decision'), Reblend = require('../public/reblend.js'), serve = require('../engine/serve');
+  const fx = { id: 'x', status: 'notstarted', home: { name: 'A', xgFor: 1.5, xgAgainst: 1.0 }, away: { name: 'B', xgFor: 1.0, xgAgainst: 1.5 }, xgSource: 'direct',
+    odds: [{ book: 'Bzzoiro', home: 6.0, draw: 3.4, away: 1.6 }] };
+  const pred = require('../engine/prematch').predict(fx, { marketWeight: 0.2 });
+  const d = decide(fx, pred, { minBooks: 1, maxGap: 0.6, maxEV: 0.30, maxOdds: 99 });
+  assert.notEqual(d.action, 'BET');
+  const it = serve.item(fx, { marketWeight: 0.2, decide: { minBooks: 1, maxGap: 0.6, maxEV: 0.30, maxOdds: 99 }, maxGap: 0.6 });
+  const rb = Reblend.evaluate(it, 0.2, 0.045);
+  assert.notEqual(rb.tier, 'BET');
+});
+test('decision: a normal 8% edge on one bookmaker is still a BET when minBooks is 1', () => {
+  const { decide } = require('../engine/decision');
+  const fx = { status: 'notstarted', odds: [{ book: 'Bzzoiro', home: 2.2, draw: 3.4, away: 3.6 }] };
+  const pred = { p: { h: 0.49, d: 0.26, a: 0.25 }, source: 'model+market', marketBooks: 1, sources: { model: { h: 0.5, d: 0.25, a: 0.25 }, market: { h: 0.45, d: 0.28, a: 0.27 } } };
+  const d = decide(fx, pred, { minBooks: 1 });
+  assert.equal(d.action, 'BET');
+  assert.equal(decide(fx, pred, { minBooks: 3 }).action, 'NO BET');
+});

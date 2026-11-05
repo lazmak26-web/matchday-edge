@@ -765,6 +765,14 @@ html.lenis, html.lenis body { height:auto; }
         <div class="adm-wrap"><table class="adm-table"><thead><tr><th>#</th><th>Email</th><th>Plan</th><th>Expires</th><th>Joined</th></tr></thead><tbody id="adminRows"></tbody></table></div>
         <p class="perf-note" id="adminMsg"></p>
       </section>
+      <section style="margin-top:32px;" id="adminTracking">
+        <div class="section-head"><div><div class="section-label">🛡️ Admin only</div><h2>Pick tracking</h2></div>
+          <button class="hide-btn" type="button" onclick="loadTracking()">Refresh</button></div>
+        <div class="perf-grid" id="trkTotals"></div>
+        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Day</th><th>1X2 W/L</th><th>1X2 units</th><th>O/U W/L</th><th>O/U units</th></tr></thead><tbody id="trkDays"></tbody></table></div>
+        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Match</th><th>Score</th><th>1X2 pick</th><th>Over/Under 2.5</th></tr></thead><tbody id="trkRows"></tbody></table></div>
+        <p class="perf-note" id="trkNote"></p>
+      </section>
     </div>
 
     <div id="view-demo" class="tab-view"></div>
@@ -1753,7 +1761,7 @@ function __doSwitch(tab) {
   if (window.__globePause) window.__globePause(250);
   if (tab === 'weekly') renderWeekly();
   if (tab === 'unlock') renderUnlock();
-  if (tab === 'admin') loadAdmin();
+  if (tab === 'admin') { loadAdmin(); loadTracking(); }
   if (tab === 'discover') loadDiscover();
   if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
 }
@@ -2210,8 +2218,9 @@ function applyServerPred(r, sp) {
   r.json.scoreline_prediction = { most_likely: pr.top || 'N/A', alternatives: [] };
   r.json.main_prediction = { selection: v.main1x2.sel, confidence: pctS(v.main1x2.p) };
   v.bestEv = rb ? rb.bestEv : (sp.bestEv != null ? sp.bestEv : null);
-  v.bet = null; v.noBet = null; v.blockedEv = null; r.json.best_bet_value = null;
+  v.bet = null; v.noBet = null; v.blockedEv = null; v.why = null; r.json.best_bet_value = null;
   if (v.started) return;
+  v.why = (rb ? rb.reasons : d.reasons) || null;
   if (tier === 'BET' && pick) {
     const k = pick, o = k.odds, b = o - 1, kel = b <= 0 ? 0 : Math.max(0, (k.p * b - (1 - k.p)) / b);
     const sel = k.key === 'home' ? H.name + ' to Win' : k.key === 'away' ? A.name + ' to Win' : 'Draw';
@@ -2283,7 +2292,16 @@ function updateFilterPreview() {
     const top = [...cnt.values()].sort((a, b) => b.n - a.n).slice(0, 4).map(e => `${e.n}× ${esc(e.ex)}`).join('<br>');
     note = ` · ${blocked.length} price(s) pass your EV filter but were hidden by the safety check:<br>${top}`;
   }
-  else if (!bets.length && topAny != null) note = ` · best available EV ${sgn(topAny)} (below ${(st.mev * 100).toFixed(1)}%)`;
+  else if (!bets.length && topAny != null) {
+    if (topAny < st.mev) note = ` · best available EV ${sgn(topAny)} (below ${(st.mev * 100).toFixed(1)}%)`;
+    else {
+      // some raw edge is above the slider but the engine refused it: say why instead of claiming it is "below" the threshold
+      const cnt = new Map();
+      up.filter(r => r.v.bestEv != null && r.v.bestEv >= st.mev && r.v.why && r.v.why.length).forEach(r => r.v.why.forEach(x => { const k = String(x).replace(/\d+(\.\d+)?/g, '#'); const e = cnt.get(k) || { n: 0, ex: x }; e.n++; cnt.set(k, e); }));
+      const top = [...cnt.values()].sort((a, b) => b.n - a.n).slice(0, 4).map(e => `${e.n}× ${esc(e.ex)}`).join('<br>');
+      note = ` · best raw EV ${sgn(topAny)} was NOT flagged by the safety rules:<br>${top}`;
+    }
+  }
   const gm = st.gateMeta;
   const fd0 = gm && gm.feed, feedTxt = fd0 ? `<br><small>feed: server ${esc(fd0.instance)} · up ${fd0.uptimeSec}s · ${fd0.shown} matches · Bzzoiro ${fd0.bzzEvents} events (${fd0.bzzPages} pages${fd0.bzzIncomplete ? ', INCOMPLETE' : ''})${fd0.fdDegraded ? ' · football-data DOWN' : ''}</small>` : '';
   const dbg = gm ? feedTxt + `<br><small>server: forms ${gm.bzzForms && typeof gm.bzzForms === 'object' ? gm.bzzForms.covered + '/' + gm.bzzForms.need + ' teams, ' + gm.bzzForms.events + ' events, ' + gm.bzzForms.pages + ' pages' + (gm.bzzForms.error ? ', error: ' + esc(gm.bzzForms.error) : '') : esc(String(gm.bzzForms))} · xG ${esc(JSON.stringify(gm.xgSources))} · minBooks ${gm.minBooks}<br>football-data season stats: ${gm.fdSeason ? gm.fdSeason.teams + ' teams · ' + gm.fdSeason.competitions + ' competitions' : 'n/a (old server)'}</small>` : (blocked.length ? '<br><small>server: old version (no diagnostics)</small>' : '');
@@ -2418,6 +2436,23 @@ async function loadAdmin() {
       .map(([l, v, c]) => `<div class="perf-card"><div class="perf-val" style="color:${c}">${Number(v) || 0}</div><div class="perf-lbl">${l}</div></div>`).join('');
     renderAdmin();
   } catch (e) { $('adminMsg').textContent = 'Could not load admin data (' + e.message + ').'; }
+}
+const trkMark = (w) => w == null ? '' : w ? '✅' : '❌';
+const trkUnits = u => (u > 0 ? '+' : '') + Number(u || 0).toFixed(2);
+async function loadTracking() {
+  if (!isAdmin()) return;
+  const note = $('trkNote'); note.textContent = 'Loading…';
+  try {
+    const r = await fetch('/api/admin/tracking', { headers: { 'Authorization': 'Bearer ' + authState.token } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const card = (lbl, t) => `<div class="perf-card"><div class="perf-val" style="color:${t.win >= t.loss ? 'var(--good)' : 'var(--bad, #f87171)'}">${t.win}W / ${t.loss}L</div><div class="perf-lbl">${lbl} · ${t.winRate == null ? '—' : (t.winRate * 100).toFixed(1) + '%'} · ${trkUnits(t.units)}u${t.roi == null ? '' : ' (ROI ' + (t.roi * 100).toFixed(1) + '%)'}</div></div>`;
+    $('trkTotals').innerHTML = card('1X2', d.totals.x12) + card('Over/Under 2.5', d.totals.ou);
+    const wl = t => t.n ? `${t.win}W-${t.loss}L` : '—';
+    $('trkDays').innerHTML = (d.days || []).map(x => `<tr><td>${esc(x.date)}</td><td>${wl(x.x12)}</td><td>${x.x12.priced ? trkUnits(x.x12.units) : '—'}</td><td>${wl(x.ou)}</td><td>${x.ou.priced ? trkUnits(x.ou.units) : '—'}</td></tr>`).join('') || '<tr><td colspan="5">No finished tracked matches yet.</td></tr>';
+    $('trkRows').innerHTML = (d.matches || []).map(m => `<tr><td>${esc(m.match)}<br><small style="color:var(--ink-3)">${esc(m.date)} ${esc(m.kickoff || '')}</small></td><td>${esc(m.score)}</td><td>${m.x12 ? trkMark(m.x12.won) + ' ' + esc(m.x12.pick) + (m.x12.odds ? ' @' + Number(m.x12.odds).toFixed(2) : '') : '—'}</td><td>${m.ou ? trkMark(m.ou.won) + ' ' + esc(m.ou.pick) + (m.ou.odds ? ' @' + Number(m.ou.odds).toFixed(2) : '') : '—'}</td></tr>`).join('');
+    note.textContent = d.note || '';
+  } catch (e) { note.textContent = 'Could not load tracking (' + e.message + ').'; }
 }
 document.getElementById('adminSearch').addEventListener('input', renderAdmin);
 

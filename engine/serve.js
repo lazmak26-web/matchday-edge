@@ -16,7 +16,7 @@ function item(f, o = {}) {
     prediction: pred && { p: pred.p, over: pred.over, top: pred.top, source: pred.source },
     validation: validate.validate(pred, f, { maxGap: o.maxGap }), decision: dec,
     components, prices: decision.bestPrices(f),
-    limits: { maxOdds: decision.DEFAULTS.maxOdds, minProb: decision.DEFAULTS.minProb }
+    limits: { maxOdds: decision.DEFAULTS.maxOdds, minProb: decision.DEFAULTS.minProb, maxEV: o.decide && o.decide.maxEV != null ? o.decide.maxEV : decision.DEFAULTS.maxEV }
   };
 }
 module.exports = { item };
