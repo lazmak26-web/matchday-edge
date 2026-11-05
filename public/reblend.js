@@ -18,7 +18,7 @@
     if (isNum(c.eloWeight) && c.eloWeight > 0 && c.elo) p = mix(c.elo, p, c.eloWeight);
     const sum = p.h + p.d + p.a; p = { h: p.h / sum, d: p.d / sum, a: p.a / sum };
     const over = isNum(c.overModel) && isNum(c.overMarket) ? w * c.overMarket + (1 - w) * c.overModel : pr.over;
-    const lim = it.limits || {}, maxOdds = isNum(lim.maxOdds) ? lim.maxOdds : 6, minProb = isNum(lim.minProb) ? lim.minProb : 0.12, maxEV = isNum(lim.maxEV) ? lim.maxEV : 0.30;
+    const lim = it.limits || {}, maxOdds = isNum(lim.maxOdds) ? lim.maxOdds : 6, minProb = isNum(lim.minProb) ? lim.minProb : 0.12, maxEV = isNum(lim.maxEV) ? lim.maxEV : 0.15;
     const picks = [];
     for (const k of ['h', 'd', 'a']) {
       const pz = it.prices && it.prices[k];

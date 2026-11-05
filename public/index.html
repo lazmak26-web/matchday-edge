@@ -769,8 +769,8 @@ html.lenis, html.lenis body { height:auto; }
         <div class="section-head"><div><div class="section-label">🛡️ Admin only</div><h2>Pick tracking</h2></div>
           <button class="hide-btn" type="button" onclick="loadTracking()">Refresh</button></div>
         <div class="perf-grid" id="trkTotals"></div>
-        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Day</th><th>1X2 W/L</th><th>1X2 units</th><th>O/U W/L</th><th>O/U units</th></tr></thead><tbody id="trkDays"></tbody></table></div>
-        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Match</th><th>Score</th><th>1X2 pick</th><th>Over/Under 2.5</th></tr></thead><tbody id="trkRows"></tbody></table></div>
+        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Day</th><th>Bets W/L</th><th>Bets units</th><th>1X2 W/L</th><th>1X2 units</th><th>O/U W/L</th><th>O/U units</th></tr></thead><tbody id="trkDays"></tbody></table></div>
+        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Match</th><th>Score</th><th>Value bet</th><th>1X2 pick</th><th>Over/Under 2.5</th></tr></thead><tbody id="trkRows"></tbody></table></div>
         <p class="perf-note" id="trkNote"></p>
       </section>
     </div>
@@ -1695,7 +1695,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const NA = '<span class="na">N/A</span>';
 
-const st = { fixtures: [], mw: 0.7, mev: 0.045, results: [] };
+const st = { fixtures: [], mw: 0.85, mev: 0.045, results: [] };
 
 const pct1 = x => (x * 100).toFixed(1) + '%';
 const sgn = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(2) + '%';
@@ -2447,10 +2447,11 @@ async function loadTracking() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     const card = (lbl, t) => `<div class="perf-card"><div class="perf-val" style="color:${t.win >= t.loss ? 'var(--good)' : 'var(--bad, #f87171)'}">${t.win}W / ${t.loss}L</div><div class="perf-lbl">${lbl} · ${t.winRate == null ? '—' : (t.winRate * 100).toFixed(1) + '%'} · ${trkUnits(t.units)}u${t.roi == null ? '' : ' (ROI ' + (t.roi * 100).toFixed(1) + '%)'}</div></div>`;
-    $('trkTotals').innerHTML = card('1X2', d.totals.x12) + card('Over/Under 2.5', d.totals.ou);
+    const b = d.totals.bets;
+    $('trkTotals').innerHTML = card('Value bets (BET)', b) + `<div class="perf-card"><div class="perf-val">${b.clv == null ? '—' : (b.clv > 0 ? '+' : '') + (b.clv * 100).toFixed(1) + '%'}</div><div class="perf-lbl">CLV · ${b.clvN} bets · positive = beating the closing line</div></div>` + card('1X2 (top pick)', d.totals.x12) + card('Over/Under 2.5', d.totals.ou);
     const wl = t => t.n ? `${t.win}W-${t.loss}L` : '—';
-    $('trkDays').innerHTML = (d.days || []).map(x => `<tr><td>${esc(x.date)}</td><td>${wl(x.x12)}</td><td>${x.x12.priced ? trkUnits(x.x12.units) : '—'}</td><td>${wl(x.ou)}</td><td>${x.ou.priced ? trkUnits(x.ou.units) : '—'}</td></tr>`).join('') || '<tr><td colspan="5">No finished tracked matches yet.</td></tr>';
-    $('trkRows').innerHTML = (d.matches || []).map(m => `<tr><td>${esc(m.match)}<br><small style="color:var(--ink-3)">${esc(m.date)} ${esc(m.kickoff || '')}</small></td><td>${esc(m.score)}</td><td>${m.x12 ? trkMark(m.x12.won) + ' ' + esc(m.x12.pick) + (m.x12.odds ? ' @' + Number(m.x12.odds).toFixed(2) : '') : '—'}</td><td>${m.ou ? trkMark(m.ou.won) + ' ' + esc(m.ou.pick) + (m.ou.odds ? ' @' + Number(m.ou.odds).toFixed(2) : '') : '—'}</td></tr>`).join('');
+    $('trkDays').innerHTML = (d.days || []).map(x => `<tr><td>${esc(x.date)}</td><td>${wl(x.bets)}</td><td>${x.bets.priced ? trkUnits(x.bets.units) : '—'}</td><td>${wl(x.x12)}</td><td>${x.x12.priced ? trkUnits(x.x12.units) : '—'}</td><td>${wl(x.ou)}</td><td>${x.ou.priced ? trkUnits(x.ou.units) : '—'}</td></tr>`).join('') || '<tr><td colspan="7">No finished tracked matches yet.</td></tr>';
+    $('trkRows').innerHTML = (d.matches || []).map(m => `<tr><td>${esc(m.match)}<br><small style="color:var(--ink-3)">${esc(m.date)} ${esc(m.kickoff || '')}</small></td><td>${esc(m.score)}</td><td>${m.bet ? trkMark(m.bet.won) + ' ' + esc(m.bet.pick) + ' @' + Number(m.bet.odds).toFixed(2) + (m.bet.clv == null ? '' : ' · CLV ' + (m.bet.clv * 100).toFixed(1) + '%') : '—'}</td><td>${m.x12 ? trkMark(m.x12.won) + ' ' + esc(m.x12.pick) + (m.x12.odds ? ' @' + Number(m.x12.odds).toFixed(2) : '') : '—'}</td><td>${m.ou ? trkMark(m.ou.won) + ' ' + esc(m.ou.pick) + (m.ou.odds ? ' @' + Number(m.ou.odds).toFixed(2) : '') : '—'}</td></tr>`).join('');
     note.textContent = d.note || '';
   } catch (e) { note.textContent = 'Could not load tracking (' + e.message + ').'; }
 }

@@ -872,14 +872,23 @@ const enginePre = require('./engine/prematch');
 // Frozen pre-match pick: computed server-side from REAL inputs only (engine returns null when xG is a league-avg/h2h guess
 // and there is no market). It is refreshed while the match is 'notstarted' and never touched again after kickoff,
 // so Performance / Weekly / Chart no longer change when the user moves a slider or the model is retuned.
-function freezePick(f) {
+function freezePick(f, prevPick) {
   try {
     const lg = getLeagueAvgs();
     const fx = lg.has(f.league) ? Object.assign({}, f, { leagueAvg: lg.get(f.league) }) : f;
     const pred = enginePre.predict(fx, { marketWeight: ENGINE_MARKET_WEIGHT, eloWeight: ENGINE_ELO_WEIGHT, eloBook: getEloBook() });
     if (!pred || !pred.p) return null;
     const best = [['home', pred.p.h], ['draw', pred.p.d], ['away', pred.p.a]].sort((x, y) => y[1] - x[1])[0];
-    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), ouP: pred.over == null ? null : +Math.max(pred.over, 1 - pred.over).toFixed(4), source: pred.source, at: Date.now() };
+    // The REAL value-bet decision (same gate as the site) is frozen too, so tracking measures the bets users were actually shown.
+    // firstOdds/firstAt = the price when this bet was first flagged (what a user could have taken); CLV compares it with the closing price.
+    let bet = null;
+    const dec = require('./engine/decision').decide(fx, pred, { minBooks: ENGINE_MIN_BOOKS, maxGap: ENGINE_MAX_GAP, maxEV: ENGINE_MAX_EV });
+    if (dec.action === 'BET' && dec.pick) {
+      const pb = prevPick && prevPick.bet && prevPick.bet.key === dec.pick.key ? prevPick.bet : null;
+      bet = { key: dec.pick.key, odds: dec.pick.odds, book: dec.pick.book, p: +dec.pick.p.toFixed(4), ev: +dec.pick.ev.toFixed(4),
+        firstOdds: pb ? (pb.firstOdds || pb.odds) : dec.pick.odds, firstAt: pb ? (pb.firstAt || pb.at || Date.now()) : Date.now(), at: Date.now() };
+    }
+    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), ouP: pred.over == null ? null : +Math.max(pred.over, 1 - pred.over).toFixed(4), source: pred.source, bet, at: Date.now() };
   } catch (e) { console.error('freezePick error:', e.message); return null; }
 }
 
@@ -914,14 +923,14 @@ function recordSnapshots(fixtures) {
 
     if (!prev) {
       if (f.status !== 'notstarted') continue;
-      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: JSON.parse(JSON.stringify(f.odds || [])), pick: freezePick(f) }));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: JSON.parse(JSON.stringify(f.odds || [])), pick: freezePick(f, null) }));
       changed = true;
       continue;
     }
 
     if (prev.status === 'notstarted' && f.status === 'notstarted') {
       const open = prev.openOdds || JSON.parse(JSON.stringify(prev.odds || []));
-      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: open, pick: freezePick(f) || prev.pick || null }));
+      snapshotStore.set(f.id, Object.assign(JSON.parse(JSON.stringify(f)), { openOdds: open, pick: freezePick(f, prev.pick) || prev.pick || null }));
       changed = true;
       continue;
     }
@@ -1606,8 +1615,8 @@ const ENGINE_MIN_BOOKS_WANTED = Number.isFinite(parseInt(process.env.ENGINE_MIN_
 const ENGINE_MAX_BOOKS_POSSIBLE = oddsApi.status().enabled ? Infinity : 1;
 const ENGINE_MIN_BOOKS = Math.min(ENGINE_MIN_BOOKS_WANTED, ENGINE_MAX_BOOKS_POSSIBLE);
 if (ENGINE_MIN_BOOKS < ENGINE_MIN_BOOKS_WANTED) console.log(`⚠️ ENGINE_MIN_BOOKS=${ENGINE_MIN_BOOKS_WANTED} is higher than the sources allow (only ${ENGINE_MAX_BOOKS_POSSIBLE} bookmaker without ODDS_API_KEY): using ${ENGINE_MIN_BOOKS}.`);
-const ENGINE_MAX_EV = (() => { const v = parseFloat(process.env.ENGINE_MAX_EV); return Number.isFinite(v) && v >= 0.05 && v <= 2 ? v : 0.30; })();
-const ENGINE_MARKET_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_MARKET_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.7; })();
+const ENGINE_MAX_EV = (() => { const v = parseFloat(process.env.ENGINE_MAX_EV); return Number.isFinite(v) && v >= 0.05 && v <= 2 ? v : 0.15; })();
+const ENGINE_MARKET_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_MARKET_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.85; })();   // evaluate: the market alone beats the model, so lean on it
 const ENGINE_ELO_WEIGHT = (() => { const v = parseFloat(process.env.ENGINE_ELO_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 0.5 ? v : 0.15; })();
 const leagueAvgCache = { map: new Map(), ts: 0 };
 function getLeagueAvgs() {
@@ -1695,6 +1704,7 @@ async function backgroundTick() {
     }
     ensureBzzForms();
     // Second odds source (no-op without ODDS_API_KEY). New prices => drop the fixtures cache so the next request uses them.
+    await oddsApi.discover(fixtures, teamsMatchAny).catch(() => 0);
     if (await oddsApi.refresh(fixtures).catch(() => 0)) fixturesCache.data = null;
     await refreshHistoryResults();
   } catch (e) { console.error('Background tick error:', e.message); }
@@ -1987,12 +1997,19 @@ function trackingReport() {
     return v.length ? Math.max(...v) : null;
   };
   const empty = () => ({ n: 0, win: 0, loss: 0, units: 0, priced: 0 });
-  const tot = { x12: empty(), ou: empty() }, days = new Map(), list = [];
+  const oddsCore = require('./engine/odds'), clvs = [];
+  const tot = { x12: empty(), ou: empty(), bets: empty() }, days = new Map(), list = [];
   const add = (t, won, odds) => { t.n++; won ? t.win++ : t.loss++; if (odds) { t.priced++; t.units += won ? odds - 1 : -1; } };
   for (const f of fin) {
     const goals = f.homeScore + f.awayScore, res = f.homeScore > f.awayScore ? 'home' : f.homeScore === f.awayScore ? 'draw' : 'away';
     const row = { id: f.id, date: f.date, kickoff: f.kickoff, league: f.league, match: `${f.home.name} vs ${f.away.name}`, score: `${f.homeScore}-${f.awayScore}` };
-    const d = days.get(f.date) || { date: f.date, x12: empty(), ou: empty() }; days.set(f.date, d);
+    const d = days.get(f.date) || { date: f.date, x12: empty(), ou: empty() }; days.set(f.date, d); d.bets = d.bets || empty();
+    if (f.pick.bet) {
+      const b = f.pick.bet, o = b.firstOdds || b.odds, won = b.key === res, c = oddsCore.consensus(f.odds || []), fp = c && c.fair[{ home: 'h', draw: 'd', away: 'a' }[b.key]];
+      const clv = o > 1 && fp > 0 ? o * fp - 1 : null;
+      add(tot.bets, won, o); add(d.bets, won, o); if (clv != null) clvs.push(clv);
+      row.bet = { pick: b.key, odds: o, ev: b.ev, won, clv: clv == null ? null : +clv.toFixed(4), book: b.book };
+    }
     if (f.pick.key) { const won = f.pick.key === res, o = priceOf(f, f.pick.key); add(tot.x12, won, o); add(d.x12, won, o); row.x12 = { pick: f.pick.key, p: f.pick.p, won, odds: o }; }
     if (f.pick.ou === 'over' || f.pick.ou === 'under') {
       const won = f.pick.ou === 'over' ? goals > 2.5 : goals < 2.5, o = priceOf(f, f.pick.ou === 'over' ? 'over25' : 'under25');
@@ -2002,10 +2019,10 @@ function trackingReport() {
   }
   const fmt = t => ({ n: t.n, win: t.win, loss: t.loss, winRate: t.n ? +(t.win / t.n).toFixed(4) : null, priced: t.priced, units: +t.units.toFixed(2), roi: t.priced ? +(t.units / t.priced).toFixed(4) : null });
   return {
-    totals: { x12: fmt(tot.x12), ou: fmt(tot.ou) },
-    days: [...days.values()].sort((a, b) => b.date.localeCompare(a.date)).map(d => ({ date: d.date, x12: fmt(d.x12), ou: fmt(d.ou) })),
+    totals: { bets: Object.assign(fmt(tot.bets), { clvN: clvs.length, clv: clvs.length ? +(clvs.reduce((a, b) => a + b, 0) / clvs.length).toFixed(4) : null }), x12: fmt(tot.x12), ou: fmt(tot.ou) },
+    days: [...days.values()].sort((a, b) => b.date.localeCompare(a.date)).map(d => ({ date: d.date, bets: fmt(d.bets || empty()), x12: fmt(d.x12), ou: fmt(d.ou) })),
     matches: list.sort((a, b) => (b.date + (b.kickoff || '')).localeCompare(a.date + (a.kickoff || ''))).slice(0, 60),
-    note: 'Flat 1-unit stake at the best price seen before kickoff; ROI only over picks that had a real price. Over/Under line 2.5.'
+    note: 'BETS = the value bets the engine flagged before kickoff (price when first flagged); CLV = that price x closing fair probability - 1, positive means the market moved your way. Flat 1-unit stake at the best price seen before kickoff; ROI only over picks that had a real price. Over/Under line 2.5.'
   };
 }
 app.get('/api/admin/tracking', dataLimiter, authMiddleware, requireAdmin, async (req, res) => {

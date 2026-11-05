@@ -3,7 +3,7 @@
 const { validate } = require('./validate');
 const { upsetRisk } = require('./upset');
 const oddsCore = require('./odds');
-const DEFAULTS = { minEV: 0.045, minBooks: 2, maxOdds: 6, minProb: 0.12, maxGap: 0.2, maxEV: 0.30 };
+const DEFAULTS = { minEV: 0.045, minBooks: 2, maxOdds: 6, minProb: 0.12, maxGap: 0.2, maxEV: 0.15 };
 
 // Best real bookmaker price per outcome. One stale/wrong price must not create a fake edge: ignore prices > 25% above the median (3+ books) or above the lower of 2 books.
 function bestPrices(fx) {
