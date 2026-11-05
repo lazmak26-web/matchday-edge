@@ -134,69 +134,11 @@ function isActive() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   TEAM ALIASES & MATCHING
+   TEAM ALIASES & MATCHING  (matching.js, covered by tests/matching.test.js)
+   Same match = same kick-off (+-15 min) AND (one team named exactly the same OR both teams loosely match).
+   "One similar team" alone is NOT enough: Manchester City v Everton and Manchester United v Fulham at 15:00 used to become one match.
    ═══════════════════════════════════════════════════════════ */
-const TEAM_ALIASES = {
-  'manchester united fc': 'manchester united', 'manchester city fc': 'manchester city',
-  'arsenal fc': 'arsenal', 'chelsea fc': 'chelsea', 'liverpool fc': 'liverpool',
-  'tottenham hotspur fc': 'tottenham hotspur', 'newcastle united fc': 'newcastle united',
-  'aston villa fc': 'aston villa', 'west ham united fc': 'west ham united',
-  'brighton & hove albion fc': 'brighton and hove albion', 'wolverhampton wanderers fc': 'wolverhampton wanderers',
-  'nottingham forest fc': 'nottingham forest', 'crystal palace fc': 'crystal palace',
-  'everton fc': 'everton', 'fulham fc': 'fulham', 'brentford fc': 'brentford',
-  'afc bournemouth': 'bournemouth', 'leicester city fc': 'leicester city',
-  'ipswich town fc': 'ipswich town', 'southampton fc': 'southampton',
-  'real madrid cf': 'real madrid', 'fc barcelona': 'barcelona', 'atletico de madrid': 'atletico madrid',
-  'sevilla fc': 'sevilla', 'real betis balompie': 'real betis', 'valencia cf': 'valencia',
-  'villarreal cf': 'villarreal', 'athletic club': 'athletic bilbao',
-  'fc internazionale milano': 'inter milan', 'ac milan': 'ac milan', 'juventus fc': 'juventus',
-  'ssc napoli': 'napoli', 'as roma': 'roma', 'ss lazio': 'lazio', 'atalanta bc': 'atalanta',
-  'acf fiorentina': 'fiorentina', 'fc bayern munchen': 'bayern munich', 'borussia dortmund': 'borussia dortmund',
-  'rb leipzig': 'rb leipzig', 'bayer 04 leverkusen': 'bayer leverkusen', 'eintracht frankfurt': 'eintracht frankfurt',
-  'paris saint-germain fc': 'paris saint germain', 'olympique de marseille': 'marseille',
-  'olympique lyonnais': 'lyon', 'as monaco': 'monaco', 'losc lille': 'lille',
-  'us sassuolo calcio': 'sassuolo', 'torino fc': 'torino', 'como 1907': 'como', 'cagliari calcio': 'cagliari'
-};
-
-function normalizeTeamKey(home, away) {
-  const clean = s => {
-    let t = String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-    return TEAM_ALIASES[t] || t;
-  };
-  return `${clean(home)}|${clean(away)}`;
-}
-
-function teamsFuzzyMatch(a, b) {
-  if (!a || !b) return false;
-  const clean = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\b(fc|ac|as|us|ss|cf|sc|afc|cd|club|calcio|sporting|sport|city|united|town|the|de|la|le|1907|calcio)\b/g, ' ').replace(/[^a-z0-9]/g, '').trim();
-  const ca = clean(a), cb = clean(b);
-  if (!ca || !cb) return false;
-  return ca === cb || ca.includes(cb) || cb.includes(ca);
-}
-
-// Token-based matching: "Deportivo de A Coruña" == "RC Deportivo La Coruña" (club prefixes / articles / 1-letter words ignored)
-const TEAM_STOP = new Set(['fc', 'ac', 'as', 'us', 'ss', 'cf', 'sc', 'afc', 'cd', 'ud', 'sd', 'rc', 'ca', 'cp', 'club', 'de', 'del', 'la', 'le', 'el', 'the', 'calcio', '1907']);
-function teamTokens(n) {
-  return String(n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length > 1 && !TEAM_STOP.has(w));
-}
-function teamsLooseMatch(a, b) {
-  const ta = teamTokens(a), tb = teamTokens(b);
-  if (!ta.length || !tb.length) return false;
-  const sa = new Set(ta), sb = new Set(tb);
-  const sub = (x, y) => [...x].every(t => y.has(t)) && [...x].some(t => t.length >= 5 || x.size > 1);
-  return sub(sa, sb) || sub(sb, sa);
-}
-const teamsMatchAny = (a, b) => teamsFuzzyMatch(a, b) || teamsLooseMatch(a, b);
-// Same kick-off (±15 min) and at least one team in common => the same match from two sources (a team cannot play twice at once)
-function sameMatch(a, b) {
-  const ta = Date.parse(a.date + 'T' + (a.kickoff || '00:00') + ':00Z'), tb = Date.parse(b.date + 'T' + (b.kickoff || '00:00') + ':00Z');
-  if (isNaN(ta) || isNaN(tb) || Math.abs(ta - tb) > 15 * 60 * 1000) return false;
-  const h = teamsMatchAny(a.home.name, b.home.name), w = teamsMatchAny(a.away.name, b.away.name);
-  // One provider never lists the same match twice, so two fixtures from the SAME provider are one match only if BOTH teams match
-  // ("Inter" and "Inter Miami" kicking off together are two different matches). Across providers one common team is enough.
-  const bzz = x => String(x.id).startsWith('bzz_');
-  return bzz(a) === bzz(b) ? (h && w) : (h || w);
-}
+const { normalizeTeamKey, teamsFuzzyMatch, teamsMatchAny, samePairing, dedupeFixtures } = require('./matching');
 
 /* ═══════════════════════════════════════════════════════════
    STATUS NORMALIZATION
@@ -669,24 +611,7 @@ const BIG_TEAMS = /\b(real madrid|barcelona|atl[eé]tico madrid|sevilla|valencia
 const YOUTH_OR_WOMEN = /\b(u-?\d{2}|women|w|ii|b|reserves?|youth)\b/i;
 const isBigTeam = n => { n = String(n || ''); return BIG_TEAMS.test(n) && !YOUTH_OR_WOMEN.test(n); };
 
-function fixtureQuality(f) {
-  return (f.home.logo ? 1 : 0) + (f.away.logo ? 1 : 0) + (Array.isArray(f.odds) ? f.odds.length : 0) * 0.5 + (f.sources || []).length
-    + (f.home.form ? 1 : 0) + (f.away.form ? 1 : 0) + (f.pick ? 3 : 0) + (/^League #/.test(f.league || '') ? -2 : 0);
-}
-function dedupeFixtures(fixtures) {
-  const result = [];
-  for (const f of fixtures) {
-    const i = result.findIndex(r => sameMatch(r, f));
-    if (i < 0) { result.push(f); continue; }
-    const r = result[i], keep = fixtureQuality(f) > fixtureQuality(r) ? f : r, other = keep === f ? r : f;
-    const seen = new Set((keep.odds || []).map(o => String(o.book).toLowerCase()));
-    const odds = (keep.odds || []).concat((other.odds || []).filter(o => o && !seen.has(String(o.book).toLowerCase())));
-    result[i] = Object.assign({}, keep, { odds,
-      home: Object.assign({}, keep.home, { logo: keep.home.logo || other.home.logo || null }),
-      away: Object.assign({}, keep.away, { logo: keep.away.logo || other.away.logo || null }) });
-  }
-  return result;
-}
+// fixtureQuality / dedupeFixtures: see matching.js
 
 // The site shows TODAY's matches only, and the list must not wobble between refreshes. A feed that is momentarily incomplete
 // (a Bzzoiro page failed, football-data is cooling down after a 429) must not make matches vanish or a finished one go back to
@@ -761,11 +686,11 @@ async function getFixtures() {
             fdMatch = m; usedFdIds.add(m.id); break;
           }
         }
-        if (!fdMatch) {   // different spellings: same kick-off + one team in common
+        if (!fdMatch) {   // different spellings: same kick-off + same pairing (one team named exactly the same, or both similar)
           for (const m of fdMatches) {
             if (usedFdIds.has(m.id)) continue;
             if (Math.abs(Date.parse(m.utcDate) - kickoff.getTime()) > 15 * 60 * 1000) continue;
-            if (teamsMatchAny(ev.home_team, m.homeTeam.name) || teamsMatchAny(ev.away_team, m.awayTeam.name)) { fdMatch = m; usedFdIds.add(m.id); break; }
+            if (samePairing(ev.home_team, ev.away_team, m.homeTeam.name, m.awayTeam.name)) { fdMatch = m; usedFdIds.add(m.id); break; }
           }
         }
 
