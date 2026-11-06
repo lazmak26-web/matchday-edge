@@ -246,7 +246,7 @@ body{
 .side-menu{transform-origin:34px 34px}
 .side-menu:not(.open){
   transform:scale(.12);opacity:0;pointer-events:none;
-  transition:transform .3s cubic-bezier(.4,0,.6,1),opacity .2s ease .05s;
+  transition:transform .46s cubic-bezier(.65,0,.35,1),opacity .34s ease .1s;
 }
 .side-menu.open{
   transform:none;opacity:1;
@@ -281,3 +281,17 @@ body{
 @media (prefers-reduced-motion:reduce){
   .profile-menu:not(.hidden),#settingsModal:not(.hidden),#settingsModal:not(.hidden) .modal-box,.profile-menu>*,#settingsModal .modal-box>*{animation:none!important}
 }
+
+/* ── admin tab: rises and scales up from the bottom of the screen ── */
+@keyframes spRise{from{opacity:0;transform:translate3d(0,28px,0) scale(.92)}to{opacity:1;transform:none}}
+#view-admin.active{transform-origin:50% 100vh;animation:spRise .6s var(--sp-ease) both;will-change:transform,opacity}
+#view-admin.active .perf-card,#view-admin.active .chart-card,#view-admin.active .empty-state{-webkit-backdrop-filter:none;backdrop-filter:none}
+#adminRows tr{content-visibility:auto;contain-intrinsic-size:auto 44px}
+@media (prefers-reduced-motion:reduce){#view-admin.active{animation:none;will-change:auto}}
+.adm-table:has(#adminRows){table-layout:fixed;width:100%;min-width:600px}   /* fixed layout: appending rows no longer re-measures the whole table */
+.adm-table:has(#adminRows) th:nth-child(1){width:48px}
+.adm-table:has(#adminRows) th:nth-child(2){width:230px}
+.adm-table:has(#adminRows) th:nth-child(3){width:120px}
+.adm-table:has(#adminRows) th:nth-child(4){width:100px}
+.adm-table:has(#adminRows) th:nth-child(5){width:102px}
+.adm-table:has(#adminRows) td{overflow-wrap:anywhere}
