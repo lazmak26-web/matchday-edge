@@ -332,3 +332,7 @@ body{
 /* settings grows from the menu button point (34,34) without any JS layout read:
    % inside transform-origin is the box itself, and the box is centred in the viewport */
 #settingsModal .modal-box{transform-origin:calc(34px - (100vw - 100%) / 2) calc(34px - (100vh - 100%) / 2)}
+
+/* while a modal or the side menu is open the page behind it is frozen under a scrim (live-globe.js sets html.ui-overlay and
+   stops the globe): drop the static header/nav blur too so nothing re-blurs under the open animation */
+html.ui-overlay .app-header,html.ui-overlay .bottom-nav{-webkit-backdrop-filter:none;backdrop-filter:none}
