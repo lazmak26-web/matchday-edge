@@ -348,3 +348,36 @@ html.ui-overlay .app-header,html.ui-overlay .bottom-nav{-webkit-backdrop-filter:
 .perf-card.hero::after{transform:translateY(15px) scale(.88);opacity:.4}
 @media (prefers-reduced-motion:reduce){.wl-bar i{transition:none}}
 .wl-bar.empty{background:var(--glass-line)}
+
+/* ── richer, still-static background: three coloured lights + a very fine grain + soft vignette (no extra blur layers) ── */
+body{
+  background:
+    radial-gradient(70% 55% at 8% -6%,color-mix(in srgb,var(--brand) 26%,transparent),transparent 70%),
+    radial-gradient(60% 50% at 100% 2%,color-mix(in srgb,var(--info,var(--brand)) 20%,transparent),transparent 72%),
+    radial-gradient(55% 40% at -4% 52%,color-mix(in srgb,var(--good,var(--brand)) 13%,transparent),transparent 70%),
+    radial-gradient(55% 40% at 104% 70%,color-mix(in srgb,var(--brand) 16%,transparent),transparent 72%),
+    radial-gradient(90% 55% at 50% 112%,color-mix(in srgb,var(--good,var(--brand)) 15%,transparent),transparent 66%),
+    radial-gradient(120% 70% at 50% 108%,color-mix(in srgb,var(--brand) 14%,transparent),transparent 62%),
+    linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--bg) 88%,var(--brand) 12%));
+  background-attachment:fixed;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.06;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  background-size:160px 160px;
+}
+[data-theme="light"] body::before,[data-theme="mist"] body::before,[data-theme="sand"] body::before,[data-theme="mono"] body::before,[data-theme="arctic"] body::before,[data-theme="mint"] body::before{opacity:.035;filter:invert(1)}
+body::after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(130% 100% at 50% 40%,transparent 62%,rgba(0,0,0,.18));
+}
+[data-theme="light"] body::after,[data-theme="mist"] body::after,[data-theme="sand"] body::after,[data-theme="mono"] body::after,[data-theme="arctic"] body::after,[data-theme="mint"] body::after{background:radial-gradient(130% 100% at 50% 40%,transparent 60%,rgba(30,40,70,.08))}
+
+/* ── footer: small, quiet, compact (the tap area is widened with a pseudo-element, so it stays easy to hit without taking space) ── */
+.site-footer{font-size:10.5px;line-height:1.5;margin:18px auto 104px;opacity:.85}
+.disclaimer{font-size:10px;line-height:1.5;margin:40px auto 0;max-width:56ch;opacity:.8}
+.site-footer nav{gap:0 12px;margin-bottom:6px}
+.site-footer nav a,.site-footer .link-btn,.site-footer p a{display:inline;position:relative;padding:0;min-height:0;font-size:10.5px;color:var(--text-sub);text-decoration-color:color-mix(in srgb,var(--text-sub) 45%,transparent);text-underline-offset:2px}
+.site-footer .link-btn{background:none;border:0;cursor:pointer;text-decoration:underline;font-family:inherit}
+.site-footer nav a::after,.site-footer .link-btn::after{content:"";position:absolute;inset:-13px -7px}
+.site-footer a:hover,.site-footer .link-btn:hover{color:var(--ink)}
