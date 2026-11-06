@@ -384,7 +384,17 @@ const logoCache = new Map();
 let logoFetchInProgress = null;
 
 const logoKey = name => String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-const cachedLogo = name => { const c = logoCache.get(logoKey(name)); return (c && c.url) || fdCrest(name) || null; };
+// Local club logos (FCLOGO, MIT) are tried FIRST: they never fail, never rate-limit and load from our own domain.
+let FC_INDEX = {};
+try { FC_INDEX = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'logos', 'fc', 'index.json'), 'utf8')); } catch (e) { console.log('FCLOGO index not loaded:', e.message); }
+const fcKey = n => String(n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/-/g, ' ').replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+function fcLocalLogo(name) {
+  if (!name) return null;
+  const k = fcKey(name), k2 = fcKey(cleanNameForSearch(name));
+  const f = FC_INDEX[k] || FC_INDEX[k2] || FC_INDEX[k.replace(/^(fc|afc|cf|ac|sc|cd|ca|club|as|ss|us)\s+/, '').replace(/\s+(fc|afc|cf|ac|sc|cd|ca)$/, '')];
+  return f ? '/logos/fc/' + f : null;
+}
+const cachedLogo = name => { const c = logoCache.get(logoKey(name)); return fcLocalLogo(name) || (c && c.url) || fdCrest(name) || null; };
 
 /* Crests from football-data.org (1 call per competition, cached 7 days): fast and reliable for the big leagues + Champions League.
    TheSportsDB below stays as the fallback for every team football-data does not cover. */
@@ -810,7 +820,7 @@ async function getFixtures() {
           home: {
             id: fdMatch?.homeTeam.id || null,
             name: ev.home_team,
-            logo: fdMatch?.homeTeam?.crest || ev.home_team_logo || ev.home_logo || cachedLogo(ev.home_team) || null,
+            logo: fcLocalLogo(ev.home_team) || fdMatch?.homeTeam?.crest || ev.home_team_logo || ev.home_logo || cachedLogo(ev.home_team) || null,
             form: hf?.form || null,
             gf5: hf?.gf5 ?? null,
             ga5: hf?.ga5 ?? null,
@@ -819,7 +829,7 @@ async function getFixtures() {
           away: {
             id: fdMatch?.awayTeam.id || null,
             name: ev.away_team,
-            logo: fdMatch?.awayTeam?.crest || ev.away_team_logo || ev.away_logo || cachedLogo(ev.away_team) || null,
+            logo: fcLocalLogo(ev.away_team) || fdMatch?.awayTeam?.crest || ev.away_team_logo || ev.away_logo || cachedLogo(ev.away_team) || null,
             form: af?.form || null,
             gf5: af?.gf5 ?? null,
             ga5: af?.ga5 ?? null,
@@ -848,8 +858,8 @@ async function getFixtures() {
           status: normalizeStatus(m.status, m.utcDate),
           homeScore: m.score?.fullTime?.home ?? 0,
           awayScore: m.score?.fullTime?.away ?? 0,
-          home: { id: m.homeTeam.id, name: m.homeTeam.name, logo: m.homeTeam.crest || cachedLogo(m.homeTeam.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null },
-          away: { id: m.awayTeam.id, name: m.awayTeam.name, logo: m.awayTeam.crest || cachedLogo(m.awayTeam.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null },
+          home: { id: m.homeTeam.id, name: m.homeTeam.name, logo: fcLocalLogo(m.homeTeam.name) || m.homeTeam.crest || cachedLogo(m.homeTeam.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null },
+          away: { id: m.awayTeam.id, name: m.awayTeam.name, logo: fcLocalLogo(m.awayTeam.name) || m.awayTeam.crest || cachedLogo(m.awayTeam.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null },
           odds: mergeOdds(odds, m.homeTeam.name, m.awayTeam.name),
           sources: odds ? ['fd', 'bzz'] : ['fd']
         };
