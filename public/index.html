@@ -1313,7 +1313,7 @@ function updateAuthUI() {
 
 function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
 function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authError').textContent = ''; resetAuthSteps(); document.getElementById('loginPass').value = ''; setAuthMode('login'); }
-function openSettingsModal() { const m = document.getElementById('settingsModal'); m.classList.remove('closing'); m.classList.remove('hidden'); const bx = m.querySelector('.modal-box'); if (bx) bx.style.transformOrigin = (34 - bx.offsetLeft) + 'px ' + (34 - bx.offsetTop) + 'px'; document.getElementById('menuSetBtn').classList.add('active'); }
+function openSettingsModal() { const m = document.getElementById('settingsModal'); m.classList.remove('closing'); m.classList.remove('hidden');  document.getElementById('menuSetBtn').classList.add('active'); }
 function animHide(el, ms) { ms = ms || 460; if (!el || el.classList.contains('hidden') || el.classList.contains('closing')) return; if (matchMedia('(prefers-reduced-motion:reduce)').matches) { el.classList.add('hidden'); return; } el.classList.add('closing'); setTimeout(() => { el.classList.add('hidden'); el.classList.remove('closing'); }, ms); }
 function closeSettingsModal() { animHide(document.getElementById('settingsModal')); document.getElementById('menuSetBtn').classList.remove('active'); }
 function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); }
@@ -1372,7 +1372,7 @@ async function activateLicense() {
 }
 
 document.getElementById('loginBtn').onclick = openAuthModal;
-document.getElementById('settingsBtn').onclick = openSettingsModal;
+document.getElementById('settingsBtn').onclick = () => setTimeout(openSettingsModal, 280);
 document.getElementById('openFilterBtn').onclick = openFilterModal;
 
 document.getElementById('logoutBtn').onclick = async () => {
@@ -1771,10 +1771,10 @@ function __doSwitch(tab) {
   document.querySelectorAll('.side-item[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.getElementById('tgFab').classList.toggle('tab-off', tab !== 'signals');
   if (window.__globePause) window.__globePause(250);
-  if (tab === 'weekly') renderWeekly();
-  if (tab === 'unlock') renderUnlock();
+  if (tab === 'weekly') setTimeout(() => { if (view.classList.contains('active')) renderWeekly(); }, 90);
+  if (tab === 'unlock') setTimeout(() => { if (view.classList.contains('active')) renderUnlock(); }, 90);
   if (tab === 'admin') setTimeout(() => { if (document.getElementById('view-admin').classList.contains('active')) { loadAdmin(); loadTracking(); } }, 380);
-  if (tab === 'discover') loadDiscover();
+  if (tab === 'discover') setTimeout(() => { if (view.classList.contains('active')) loadDiscover(); }, 90);
   if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
 }
 
@@ -2898,7 +2898,7 @@ document.addEventListener('DOMContentLoaded',function(){
   overlays.forEach((o, n) => { const box = o.querySelector('.modal-box'), h = o.querySelector('h2'); if (!box) return; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); if (h) { h.id = h.id || 'dlgTitle' + n; box.setAttribute('aria-labelledby', h.id); } });
   const obs = new MutationObserver(ms => ms.forEach(m => {
     const o = m.target;
-    if (!o.classList.contains('hidden')) { if (!openers.has(o)) { openers.set(o, document.activeElement); setTimeout(() => { const f = [...o.querySelectorAll(FOC)].find(vis); if (f) f.focus(); }, 50); } }
+    if (!o.classList.contains('hidden')) { if (!openers.has(o)) { openers.set(o, document.activeElement); setTimeout(() => { if (o.classList.contains('hidden')) return; const f = [...o.querySelectorAll(FOC)].find(vis); if (f) f.focus({ preventScroll: true }); }, 650); } }
     else if (openers.has(o)) { const b = openers.get(o); openers.delete(o); if (b && b.focus && document.contains(b)) b.focus(); }
   }));
   overlays.forEach(o => obs.observe(o, { attributes: true, attributeFilter: ['class'] }));

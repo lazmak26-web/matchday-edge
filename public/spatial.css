@@ -328,3 +328,7 @@ body{
   .profile-menu:not(.hidden),#settingsModal:not(.hidden),#settingsModal:not(.hidden) .modal-box,.profile-menu>*,#settingsModal .modal-box>*,
   .profile-menu.closing,#settingsModal.closing,#settingsModal.closing .modal-box,.profile-menu.closing>*,#settingsModal.closing .modal-box>*{animation:none!important}
 }
+
+/* settings grows from the menu button point (34,34) without any JS layout read:
+   % inside transform-origin is the box itself, and the box is centred in the viewport */
+#settingsModal .modal-box{transform-origin:calc(34px - (100vw - 100%) / 2) calc(34px - (100vh - 100%) / 2)}
