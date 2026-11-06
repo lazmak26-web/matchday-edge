@@ -1,0 +1,115 @@
+/* LuciBet "Pro" finish.
+   Loaded after spatial.css. Same markup, same layout, same behaviour. It only changes the finish:
+   - one solid background (no gradients, no moving light, no glass blur)
+   - one accent colour (--brand) for every decorative element; green/red stay only where they carry meaning (profit / loss)
+   - flat panels with a hairline border, crisp type, restrained motion (opacity + transform only, so it stays fast)
+   To revert: remove the <link> to pro.css from index.html. */
+
+:root{
+  --pro-r:16px;            /* panels */
+  --pro-r-sm:12px;         /* buttons, inputs, pills */
+  --pro-ease:cubic-bezier(.2,.7,.2,1);
+  --pro-hair:var(--line);
+  --pro-shadow:0 1px 0 rgba(255,255,255,.03) inset;
+}
+[data-theme="light"],[data-theme="mist"],[data-theme="sand"],[data-theme="mono"],[data-theme="arctic"],[data-theme="mint"]{
+  --pro-shadow:0 1px 2px rgba(20,30,50,.05);
+}
+
+/* ───────── 1. One solid background ───────── */
+html,body{background:var(--bg)!important;background-image:none!important}
+.aurora{display:none!important}
+*,*::before,*::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.sp-live,.sp-hot{transform:none!important}
+
+/* ───────── 2. Typography ───────── */
+body{font-feature-settings:"tnum" 1,"cv11" 1;letter-spacing:-.003em}
+h2,h3{letter-spacing:-.028em}
+.hero-title{background:none!important;-webkit-text-fill-color:currentColor!important;color:var(--ink)!important;text-shadow:none!important;font-weight:700;letter-spacing:-.045em}
+/* the landing feature cards sit on one clean line (no staggered heights, no tint on the middle one) */
+.feature-grid{perspective:none!important;align-items:stretch!important}
+.feature-grid>.feature-card{margin-top:0!important;transform:none!important}
+.btn-tg,#cookieBar .cb-btn{background:var(--soft)!important;border:1px solid var(--line-2)!important;border-radius:var(--pro-r-sm)!important;box-shadow:none!important;color:var(--ink)!important;transition:background .15s,border-color .15s,transform .15s var(--pro-ease)}
+.btn-tg:hover,#cookieBar .cb-btn:hover{background:var(--card)!important;border-color:var(--brand)!important}
+#cookieBar .cb-btn:last-child{background:var(--brand)!important;border-color:var(--brand)!important;color:var(--on-brand,#fff)!important}
+.hero-subtitle{color:var(--ink-2)!important;max-width:60ch}
+.section-label{display:inline-flex;align-items:center;gap:8px;font-size:11.5px!important;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--brand)!important}
+.section-label::before{content:"";width:18px;height:2px;border-radius:2px;background:var(--brand)}
+.section-head h2{font-size:clamp(22px,3vw,30px);font-weight:700}
+.shiny{background:none!important;-webkit-text-fill-color:currentColor!important;animation:none!important;color:var(--brand)}
+
+/* ───────── 3. Panels: flat, hairline, no glow ───────── */
+.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item,.bv,.pf-card,.pf-day,.empty-state,.tile,.vb,.pf-chart,.pf-stat{
+  background:var(--card)!important;
+  border:1px solid var(--pro-hair)!important;
+  border-radius:var(--pro-r)!important;
+  box-shadow:var(--pro-shadow)!important;
+}
+.bv::before,.bv-shine{display:none!important}
+.match,.pick,.feature-card,.plan-card{transition:border-color .2s var(--pro-ease),transform .2s var(--pro-ease),background .2s}
+.match:hover,.pick:hover,.feature-card:hover,.plan-card:hover{border-color:var(--line-2)!important;transform:translateY(-1px)}
+.match.is-value,.bv:not(.is-none){border-color:color-mix(in srgb,var(--brand) 55%,var(--line))!important;background:color-mix(in srgb,var(--brand) 6%,var(--card))!important;box-shadow:inset 3px 0 0 var(--brand)!important}
+.match.is-selected,.pick.is-selected{border-color:var(--brand)!important;box-shadow:0 0 0 1px var(--brand)!important}
+.bv-tag{color:var(--brand)!important}
+.bv-num b.ev{color:var(--good)}
+.stat-item .stat-value,.stat-value{font-weight:700;letter-spacing:-.04em}
+
+/* ───────── 4. Pills and badges: one family ───────── */
+.pill,.hero-badge{border:1px solid var(--line-2)!important;background:var(--soft)!important;box-shadow:none!important;border-radius:999px;color:var(--ink-2)}
+.pill.good,.pill.low{background:var(--good-dim)!important;border-color:var(--good-line)!important;color:var(--good)!important}
+.hero-badge{color:var(--brand)!important;background:var(--brand-dim)!important;border-color:color-mix(in srgb,var(--brand) 35%,transparent)!important}
+
+/* ───────── 5. Chrome: header and tab bar ───────── */
+.app-header,.bottom-nav{background:var(--card)!important;border:0!important;border-bottom:1px solid var(--pro-hair)!important;box-shadow:none!important}
+.bottom-nav{border:1px solid var(--pro-hair)!important;box-shadow:0 10px 30px -12px rgba(0,0,0,.45)!important}
+.brand-mark{box-shadow:none!important;border:1px solid var(--pro-hair);border-radius:11px}
+.brand-name{letter-spacing:-.02em}
+.icon-btn,.filter-btn,.bell-btn,.pin-btn{background:var(--soft)!important;border:1px solid var(--pro-hair)!important;box-shadow:none!important;border-radius:var(--pro-r-sm)!important;transition:background .15s,border-color .15s,transform .15s var(--pro-ease)}
+.icon-btn:hover,.filter-btn:hover{background:var(--card)!important;border-color:var(--line-2)!important}
+.icon-btn:active,.filter-btn:active{transform:scale(.96)}
+.nav-item{box-shadow:none!important;background:transparent!important;color:var(--ink-3);transition:background .2s,color .2s}
+.nav-item:hover{color:var(--ink);background:var(--soft)!important}
+.nav-item.active{background:var(--brand)!important;color:var(--on-brand,#fff)!important;box-shadow:none!important}
+
+/* ───────── 6. Buttons and inputs ───────── */
+.btn-main,.auth-btn,.empty-cta{background:var(--brand)!important;color:var(--on-brand,#fff)!important;border:0!important;border-radius:var(--pro-r-sm)!important;font-weight:650;box-shadow:none!important;transition:filter .15s,transform .15s var(--pro-ease)}
+.btn-main:hover,.auth-btn:hover{filter:brightness(1.08)}
+.btn-main:active,.auth-btn:active{transform:scale(.98)}
+.auth-btn.auth-secondary,.btn-main.secondary,.dc-btn,.auth-btn[style*="transparent"]{background:transparent!important;color:var(--ink)!important;border:1px solid var(--line-2)!important}
+.auth-btn.auth-secondary:hover,.btn-main.secondary:hover,.dc-btn:hover{background:var(--soft)!important;filter:none}
+.auth-input,.settings-select,select,input[type="text"],input[type="email"],input[type="password"]{background:var(--soft)!important;border:1px solid var(--pro-hair)!important;border-radius:var(--pro-r-sm)!important;box-shadow:none!important;transition:border-color .15s,box-shadow .15s}
+.auth-input:focus,.settings-select:focus,select:focus{border-color:var(--brand)!important;box-shadow:0 0 0 3px var(--brand-dim)!important;outline:0}
+input[type="range"]{accent-color:var(--brand)}
+:focus-visible{outline:2px solid var(--brand)!important;outline-offset:2px}
+.tg-fab{box-shadow:0 8px 22px -8px rgba(0,0,0,.5)!important}
+
+/* ───────── 7. Modals and menus: solid, quick, no blur ───────── */
+.modal-overlay,.side-overlay{background:rgba(0,0,0,.62)!important}
+.modal-box,.side-menu,.profile-menu,#cookieBar{background:var(--card)!important;border:1px solid var(--line-2)!important;border-radius:20px!important;box-shadow:0 24px 60px -20px rgba(0,0,0,.7)!important}
+.side-menu{border-radius:0 20px 20px 0!important}
+.side-item{border-radius:var(--pro-r-sm)}
+.side-item:hover{background:var(--soft)}
+.side-item.active,.side-item:active{background:var(--brand-dim)!important;color:var(--brand)!important}
+.modal-box h2{font-size:20px;font-weight:700;letter-spacing:-.02em}
+#settingsModal:not(.hidden) .modal-box{animation:proPop .22s var(--pro-ease) both!important}
+@keyframes proPop{from{opacity:0;transform:translateY(10px) scale(.975)}to{opacity:1;transform:none}}
+#settingsModal:not(.hidden){animation:proFade .18s ease both!important}
+@keyframes proFade{from{opacity:0}to{opacity:1}}
+
+/* ───────── 8. Tab content and rows ───────── */
+.tab-view.active{animation:proTab .26s var(--pro-ease) both!important}
+@keyframes proTab{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.adm-table{border-collapse:separate;border-spacing:0}
+.adm-table th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+.adm-table td,.adm-table th{border-bottom:1px solid var(--pro-hair)}
+
+/* ───────── 9. Small polish ───────── */
+::selection{background:var(--brand);color:var(--on-brand,#fff)}
+*{scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:10px;border:3px solid var(--bg)}
+a{text-underline-offset:3px}
+@media (max-width:640px){:root{--pro-r:14px}.section-head h2{font-size:22px}}
+@media (prefers-reduced-motion:reduce){.tab-view.active,#settingsModal:not(.hidden),#settingsModal:not(.hidden) .modal-box{animation:none!important}.match,.pick,.btn-main,.auth-btn,.icon-btn{transition:none!important}}
+
+/* the logo is white artwork: keep its tile dark so it shows on light themes too */
+.brand-mark{background:#0b0d12!important}
