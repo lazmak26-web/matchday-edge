@@ -241,3 +241,18 @@ body{
   .side-menu .side-head,.side-menu .side-item{transform:none!important;transition:opacity .12s ease!important}
   .side-menu.open .side-head,.side-menu.open .side-item{transition:opacity .12s ease!important}
 }
+
+/* ── side menu: grows out of the menu button (top-left) and shrinks back into it ── */
+.side-menu{transform-origin:34px 34px}
+.side-menu:not(.open){
+  transform:scale(.12);opacity:0;pointer-events:none;
+  transition:transform .3s cubic-bezier(.4,0,.6,1),opacity .2s ease .05s;
+}
+.side-menu.open{
+  transform:none;opacity:1;
+  transition:transform .55s var(--sp-ease),opacity .22s ease;
+}
+.side-overlay{transition:opacity .25s ease}
+@media (prefers-reduced-motion:reduce){
+  .side-menu,.side-menu:not(.open),.side-menu.open{transform:none!important;transition:opacity .12s ease!important}
+}
