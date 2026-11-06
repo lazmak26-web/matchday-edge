@@ -1321,7 +1321,7 @@ function closeFilterModal() { document.getElementById('filterModal').classList.a
 
 function openMenu() { const sm = document.getElementById('sideMenu'); let _i = 0; sm.querySelectorAll('.side-head,.side-item:not(.hidden)').forEach(el => el.style.setProperty('--i', _i++)); sm.inert = false; sm.setAttribute('aria-hidden', 'false'); sm.classList.add('open'); document.getElementById('menuOverlay').classList.remove('hidden'); }
 function closeMenu() { const sm = document.getElementById('sideMenu'); sm.classList.remove('open'); sm.setAttribute('aria-hidden', 'true'); sm.inert = true; document.getElementById('menuOverlay').classList.add('hidden'); }
-function menuGo(tab) { closeMenu(); switchTab(tab); }
+function menuGo(tab) { closeMenu(); setTimeout(() => switchTab(tab), 170); }
 function menuDo(fn) { closeMenu(); fn(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
@@ -1773,7 +1773,7 @@ function __doSwitch(tab) {
   if (window.__globePause) window.__globePause(250);
   if (tab === 'weekly') renderWeekly();
   if (tab === 'unlock') renderUnlock();
-  if (tab === 'admin') { loadAdmin(); loadTracking(); }
+  if (tab === 'admin') setTimeout(() => { if (document.getElementById('view-admin').classList.contains('active')) { loadAdmin(); loadTracking(); } }, 380);
   if (tab === 'discover') loadDiscover();
   if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
 }
@@ -2439,10 +2439,14 @@ function renderAdmin() {
   const q = ($('adminSearch').value || '').trim().toLowerCase();
   const fmt = ms => ms ? new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const rows = adminUsers.filter(u => !q || u.email.toLowerCase().includes(q));
-  $('adminRows').innerHTML = rows.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.email)}${u.verified ? '' : ' <small style="color:var(--ink-3)">(unverified)</small>'}</td>
+  const rowHTML = (u, i) => `<tr><td>${i + 1}</td><td>${esc(u.email)}${u.verified ? '' : ' <small style="color:var(--ink-3)">(unverified)</small>'}</td>
     <td><span class="adm-pill ${u.plan === 'pro' ? 'adm-pro' : 'adm-free'}">${u.plan === 'pro' ? 'Pro' : 'Free'}</span>${u.expired ? ' <small style="color:var(--ink-3)">expired</small>' : ''}</td>
-    <td>${u.plan === 'pro' ? (u.lifetime ? 'Lifetime' : fmt(u.planUntil)) : '—'}</td><td>${fmt(u.createdAt)}</td></tr>`).join('')
-    || '<tr><td colspan="5" style="text-align:center;color:var(--ink-3)">No users</td></tr>';
+    <td>${u.plan === 'pro' ? (u.lifetime ? 'Lifetime' : fmt(u.planUntil)) : '—'}</td><td>${fmt(u.createdAt)}</td></tr>`;
+  const tok = renderAdmin._t = (renderAdmin._t || 0) + 1, tb = $('adminRows');
+  if (!rows.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-3)">No users</td></tr>'; return; }
+  tb.innerHTML = rows.slice(0, 30).map(rowHTML).join('');
+  let at = 30;
+  (function more() { if (tok !== renderAdmin._t || at >= rows.length) return; const end = Math.min(rows.length, at + 40); tb.insertAdjacentHTML('beforeend', rows.slice(at, end).map((u, k) => rowHTML(u, at + k)).join('')); at = end; requestAnimationFrame(more); })();
 }
 async function loadAdmin() {
   if (!isAdmin()) return;
@@ -2487,7 +2491,7 @@ async function loadTracking() {
     note.textContent = d.note || '';
   } catch (e) { note.textContent = 'Could not load tracking (' + e.message + ').'; }
 }
-document.getElementById('adminSearch').addEventListener('input', renderAdmin);
+{ let _adT; document.getElementById('adminSearch').addEventListener('input', () => { clearTimeout(_adT); _adT = setTimeout(renderAdmin, 120); }); }
 
 function applyPlanGate() {
   const ab = document.getElementById('menuAdminBtn'); if (ab) ab.classList.toggle('hidden', !isAdmin());
