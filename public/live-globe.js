@@ -113,8 +113,25 @@
     cyber: [[0.4, 0.15, 0.55], [0.3, 0.3, 0.75], [0, 0.9, 1]],
     wine: [[0.5, 0.12, 0.25], [0.55, 0.14, 0.28], [0.88, 0.32, 0.49]]
   };
+  /* the globe follows the site's accent colour (--brand), so a black page with a blue accent gets a blue globe */
+  function brandRGB() {
+    try {
+      var v = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+      var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
+      if (!m) return null;
+      var h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1];
+      return [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255];
+    } catch (e) { return null; }
+  }
+  function mixTo(c, to, k) { return [c[0] + (to[0] - c[0]) * k, c[1] + (to[1] - c[1]) * k, c[2] + (to[2] - c[2]) * k]; }
   function palette() {
     var t = document.documentElement.getAttribute('data-theme') || 'midnight';
+    var b = brandRGB();
+    if (b) {
+      var W = [1, 1, 1], K = [0, 0, 0];
+      if (LIGHT[t]) return { dark: 0, diffuse: 0.5, mapBrightness: 1.3, baseColor: mixTo(b, W, 0.88), glowColor: mixTo(b, W, 0.6), markerColor: b };
+      return { dark: 1, diffuse: 1.1, mapBrightness: 6, baseColor: mixTo(b, K, 0.4), glowColor: mixTo(b, K, 0.45), markerColor: mixTo(b, W, 0.35) };
+    }
     if (LIGHT[t]) return { dark: 0, diffuse: 0.5, mapBrightness: 1.3, baseColor: LIGHT[t][0], glowColor: LIGHT[t][1], markerColor: [0.06, 0.72, 0.5] };
     var d = DARK[t] || [[0.32, 0.28, 0.62], [0.26, 0.22, 0.62], [0.2, 0.83, 0.6]];
     return { dark: 1, diffuse: 1.1, mapBrightness: 6, baseColor: d[0], glowColor: d[1], markerColor: d[2] };
