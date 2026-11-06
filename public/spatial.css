@@ -284,10 +284,10 @@ body{
 
 /* ── admin tab: rises and scales up from the bottom of the screen ── */
 @keyframes spRise{from{opacity:0;transform:translate3d(0,28px,0) scale(.92)}to{opacity:1;transform:none}}
-#view-admin.active{transform-origin:50% 100vh;animation:spRise .6s var(--sp-ease) both;will-change:transform,opacity}
+#view-admin.active{transform-origin:50% 100vh;animation:spRise .6s var(--sp-ease) both}
 #view-admin.active .perf-card,#view-admin.active .chart-card,#view-admin.active .empty-state{-webkit-backdrop-filter:none;backdrop-filter:none}
 #adminRows tr{content-visibility:auto;contain-intrinsic-size:auto 44px}
-@media (prefers-reduced-motion:reduce){#view-admin.active{animation:none;will-change:auto}}
+@media (prefers-reduced-motion:reduce){#view-admin.active{animation:none}}
 .adm-table:has(#adminRows){table-layout:fixed;width:100%;min-width:600px}   /* fixed layout: appending rows no longer re-measures the whole table */
 .adm-table:has(#adminRows) th:nth-child(1){width:48px}
 .adm-table:has(#adminRows) th:nth-child(2){width:230px}
@@ -295,3 +295,12 @@ body{
 .adm-table:has(#adminRows) th:nth-child(4){width:100px}
 .adm-table:has(#adminRows) th:nth-child(5){width:102px}
 .adm-table:has(#adminRows) td{overflow-wrap:anywhere}
+
+/* ── panes that animate must not carry a live backdrop-filter: re-blurring every frame is what made phones stutter (screen recording: ~10-15 fps).
+      Same look from a denser tint; real blur stays on the static header/nav. ── */
+.side-menu,.modal-box,.profile-menu{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  background:var(--sp-pane),color-mix(in srgb,var(--card) 97%,transparent)!important;
+}
+.side-menu.open,.profile-menu:not(.hidden),.modal-box{will-change:transform,opacity}
+#settingsModal.hidden .modal-box,.profile-menu.hidden{will-change:auto}
