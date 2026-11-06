@@ -453,9 +453,10 @@ function cleanNameForSearch(name) {
 const SAP_KEY = process.env.SPORTSAPIPRO_KEY || '';
 function pickSapCompetitor(list, name) {
   const want = logoKey(name), want2 = logoKey(cleanNameForSearch(name));
-  const c = (Array.isArray(list) ? list : []).filter(x => x && x.id != null && x.name && (x.sportId == null || x.sportId === 1));
+  const NOT_FIRST_TEAM = /\b(women|woman|ladies|feminin|femenino|femminile|youth|reserves?|u ?\d{2}|ii|iii|b)\b/i;   // never pick a women's/youth/reserve side for a first-team fixture
+  const c = (Array.isArray(list) ? list : []).filter(x => x && x.id != null && x.name && (x.sportId == null || x.sportId === 1) && (NOT_FIRST_TEAM.test(name) || !NOT_FIRST_TEAM.test(x.name)));
   return c.find(x => logoKey(x.name) === want || logoKey(x.name) === want2)
-    || c.find(x => { const k = logoKey(x.name); return want2.length >= 4 && (k.startsWith(want2 + ' ') || want2.startsWith(k + ' ')) && Math.abs(k.length - want2.length) <= 6; })
+    || c.find(x => { const k = logoKey(x.name); return want2.length >= 4 && (k.startsWith(want2 + ' ') || want2.startsWith(k + ' ')) && Math.abs(k.length - want2.length) <= 4; })
     || null;
 }
 async function fetchLogoSportsApiPro(name) {
