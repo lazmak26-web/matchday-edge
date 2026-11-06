@@ -304,3 +304,27 @@ body{
 }
 .side-menu.open,.profile-menu:not(.hidden),.modal-box{will-change:transform,opacity}
 #settingsModal.hidden .modal-box,.profile-menu.hidden{will-change:auto}
+
+/* ── settings + profile use EXACTLY the side-menu measures: open .55s sp-ease / fade .22s, close .46s ease-in-out / fade .34s after .1s,
+      scale from .12, items +120ms then 55ms apart, -18px glide, .18s item exit ── */
+@keyframes spGrowSb{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:none}}
+@keyframes spShrinkSb{from{opacity:1;transform:none}to{opacity:0;transform:scale(.12)}}
+@keyframes spFadeInSb{from{opacity:0}to{opacity:1}}
+@keyframes spFadeOutSb{from{opacity:1}to{opacity:0}}
+@keyframes spOpIn{from{opacity:0}to{opacity:1}}
+@keyframes spOpOut{from{opacity:1}to{opacity:0}}
+@keyframes spItemInSb{from{opacity:0;transform:translate3d(-18px,0,0)}to{opacity:1;transform:none}}
+@keyframes spItemOutSb{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(-18px,0,0)}}
+.profile-menu:not(.hidden){animation:spGrowSb .55s var(--sp-ease) both}
+.profile-menu.closing{animation:spShrinkSb .46s cubic-bezier(.65,0,.35,1) both}
+#settingsModal:not(.hidden){animation:spFadeInSb .25s ease both}
+#settingsModal:not(.hidden) .modal-box{animation:spGrowSb .55s var(--sp-ease) both}
+#settingsModal.closing{animation:spFadeOutSb .46s ease both}
+#settingsModal.closing .modal-box{animation:spShrinkSb .46s cubic-bezier(.65,0,.35,1) both}
+.profile-menu:not(.hidden):not(.closing)>*,#settingsModal:not(.hidden):not(.closing) .modal-box>*{
+  animation:spItemInSb .55s var(--sp-ease) both;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.profile-menu.closing>*,#settingsModal.closing .modal-box>*{animation:spItemOutSb .18s ease both;animation-delay:0s}
+@media (prefers-reduced-motion:reduce){
+  .profile-menu:not(.hidden),#settingsModal:not(.hidden),#settingsModal:not(.hidden) .modal-box,.profile-menu>*,#settingsModal .modal-box>*,
+  .profile-menu.closing,#settingsModal.closing,#settingsModal.closing .modal-box,.profile-menu.closing>*,#settingsModal.closing .modal-box>*{animation:none!important}
+}

@@ -1313,8 +1313,8 @@ function updateAuthUI() {
 
 function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
 function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authError').textContent = ''; resetAuthSteps(); document.getElementById('loginPass').value = ''; setAuthMode('login'); }
-function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('menuSetBtn').classList.add('active'); }
-function animHide(el) { if (!el || el.classList.contains('hidden') || el.classList.contains('closing')) return; if (matchMedia('(prefers-reduced-motion:reduce)').matches) { el.classList.add('hidden'); return; } el.classList.add('closing'); setTimeout(() => { el.classList.add('hidden'); el.classList.remove('closing'); }, 240); }
+function openSettingsModal() { const m = document.getElementById('settingsModal'); m.classList.remove('closing'); m.classList.remove('hidden'); const bx = m.querySelector('.modal-box'); if (bx) bx.style.transformOrigin = (34 - bx.offsetLeft) + 'px ' + (34 - bx.offsetTop) + 'px'; document.getElementById('menuSetBtn').classList.add('active'); }
+function animHide(el, ms) { ms = ms || 460; if (!el || el.classList.contains('hidden') || el.classList.contains('closing')) return; if (matchMedia('(prefers-reduced-motion:reduce)').matches) { el.classList.add('hidden'); return; } el.classList.add('closing'); setTimeout(() => { el.classList.add('hidden'); el.classList.remove('closing'); }, ms); }
 function closeSettingsModal() { animHide(document.getElementById('settingsModal')); document.getElementById('menuSetBtn').classList.remove('active'); }
 function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); }
 function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); }
