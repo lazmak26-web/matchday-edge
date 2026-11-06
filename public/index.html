@@ -1322,7 +1322,7 @@ function closeFilterModal() { document.getElementById('filterModal').classList.a
 function openMenu() { const sm = document.getElementById('sideMenu'); let _i = 0; sm.querySelectorAll('.side-head,.side-item:not(.hidden)').forEach(el => el.style.setProperty('--i', _i++)); sm.inert = false; sm.setAttribute('aria-hidden', 'false'); sm.classList.add('open'); document.getElementById('menuOverlay').classList.remove('hidden'); }
 function closeMenu() { const sm = document.getElementById('sideMenu'); sm.classList.remove('open'); sm.setAttribute('aria-hidden', 'true'); sm.inert = true; document.getElementById('menuOverlay').classList.add('hidden'); }
 function menuGo(tab) { closeMenu(); setTimeout(() => switchTab(tab), 170); }
-function menuDo(fn) { closeMenu(); fn(); }
+function menuDo(fn) { closeMenu(); setTimeout(fn, 280); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
 function openLicenseModal() { document.getElementById('menuLicBtn').classList.add('active'); document.getElementById('licBtn').disabled = false; document.getElementById('licMsg').textContent = ''; document.getElementById('licenseModal').classList.remove('hidden'); setTimeout(() => document.getElementById('licKey').focus(), 50); }
