@@ -1985,7 +1985,7 @@ function renderSignals() {
   const lang = localStorage.getItem('mde:lang') || 'en';
   const t = translations[lang] || translations.en;
   const cardList = visibleResults()
-    .sort((a, b) => (Number(isPinned(b.fx.id)) - Number(isPinned(a.fx.id))) || ((b.fx.big || 0) - (a.fx.big || 0)) || (Number(b.v.started) - Number(a.v.started)) || (fxDateTime(a.fx) - fxDateTime(b.fx)));
+    .sort((a, b) => (Number(isPinned(b.fx.id)) - Number(isPinned(a.fx.id))) || (Number(b.v.started) - Number(a.v.started)) || (fxDateTime(a.fx) - fxDateTime(b.fx)));   // pinned, then LIVE on top, then upcoming from the nearest kickoff
   const rendered = [];   // the results whose card was really built: the dashboard counts THESE, not the raw list
   let failed = 0;
   const cardHTMLs = cardList.map(r => {
@@ -2594,7 +2594,7 @@ async function loadPublicFixtures(mode) {
     const data = await r.json();
     // The plan/login can change while this request is in flight (page load): a Pro user must never get the public list (it includes finished matches) painted over the Pro cards.
     if (app ? (!authState.loggedIn || isPro()) : authState.loggedIn) return;
-    const list = (data.fixtures || []).sort((a, b) => ((b.big || 0) - (a.big || 0)) || (fxDateTime(a) - fxDateTime(b)));
+    const list = (data.fixtures || []).sort((a, b) => (Number(b.status === 'started') - Number(a.status === 'started')) || (fxDateTime(a) - fxDateTime(b)));
     const h = JSON.stringify(list.map(f => [f.id, f.status, f.homeScore, f.awayScore, f.home.logo, f.away.logo]));
     if (app) { lpAppList = list; if (h !== lpAppHash) { lpAppHash = h; renderLanding(list, 'cards', "switchTab('unlock')"); } }
     else if (h !== lpHash) { lpHash = h; renderLanding(list); }
