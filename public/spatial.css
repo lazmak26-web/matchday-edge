@@ -256,3 +256,28 @@ body{
 @media (prefers-reduced-motion:reduce){
   .side-menu,.side-menu:not(.open),.side-menu.open{transform:none!important;transition:opacity .12s ease!important}
 }
+
+/* ── profile menu + settings: same motion as the side menu (grow from the origin, items follow one by one, shrink back) ── */
+@keyframes spGrow{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:none}}
+@keyframes spShrink{from{opacity:1;transform:none}to{opacity:0;transform:scale(.12)}}
+@keyframes spItemIn{from{opacity:0;transform:translate3d(-14px,0,0)}to{opacity:1;transform:none}}
+@keyframes spFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spFadeOut{from{opacity:1}to{opacity:0}}
+.profile-menu{transform-origin:calc(100% - 22px) -10px}
+.profile-menu:not(.hidden){animation:spGrow .5s var(--sp-ease) both}
+.profile-menu.closing{animation:spShrink .24s cubic-bezier(.4,0,.6,1) both;pointer-events:none}
+.modal-box{transform-origin:-18% -22%}
+#settingsModal:not(.hidden){animation:spFadeIn .25s ease both}
+#settingsModal:not(.hidden) .modal-box{animation:spGrow .55s var(--sp-ease) both}
+#settingsModal.closing{animation:spFadeOut .24s ease both;pointer-events:none}
+#settingsModal.closing .modal-box{animation:spShrink .24s cubic-bezier(.4,0,.6,1) both}
+.profile-menu:not(.hidden):not(.closing)>*,#settingsModal:not(.hidden):not(.closing) .modal-box>*{animation:spItemIn .45s var(--sp-ease) both;animation-delay:calc(var(--k,0)*50ms + 110ms)}
+.profile-menu>:nth-child(1),#settingsModal .modal-box>:nth-child(1){--k:0}
+.profile-menu>:nth-child(2),#settingsModal .modal-box>:nth-child(2){--k:1}
+.profile-menu>:nth-child(3),#settingsModal .modal-box>:nth-child(3){--k:2}
+.profile-menu>:nth-child(4),#settingsModal .modal-box>:nth-child(4){--k:3}
+.profile-menu>:nth-child(5),#settingsModal .modal-box>:nth-child(5){--k:4}
+.profile-menu>:nth-child(n+6),#settingsModal .modal-box>:nth-child(n+6){--k:5}
+@media (prefers-reduced-motion:reduce){
+  .profile-menu:not(.hidden),#settingsModal:not(.hidden),#settingsModal:not(.hidden) .modal-box,.profile-menu>*,#settingsModal .modal-box>*{animation:none!important}
+}
