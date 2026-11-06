@@ -218,3 +218,41 @@ body{
 .empty-cta:disabled{opacity:.6;cursor:default}
 #cookieBar .cb-btn{min-height:44px}
 .site-footer a,.consent a{display:inline-block;padding:12px 2px}
+
+/* ── smoothness: cheaper tab switch / menu / slider repaint ── */
+.tab-view.active{animation:none}                       /* group-fading a view full of glass cards forces an offscreen pass every frame */
+.tab-view.active{contain:layout style}
+.match{content-visibility:auto;contain-intrinsic-size:auto 230px}   /* off-screen cards skip layout+paint while sliders re-render the list */
+.side-menu{-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);will-change:transform}
+.modal-box{-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
+.app-header,.bottom-nav{-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%)}
+.side-overlay{transition:opacity .2s}
+
+/* ── side menu: items glide in one after another, leave together ── */
+.side-menu .side-head,.side-menu .side-item{
+  opacity:0;transform:translate3d(-18px,0,0);
+  transition:opacity .18s ease,transform .22s ease,background .25s,color .25s;
+}
+.side-menu.open .side-head,.side-menu.open .side-item{
+  opacity:1;transform:none;
+  transition:opacity .4s ease calc(var(--i,0)*55ms + 120ms),transform .55s var(--sp-ease) calc(var(--i,0)*55ms + 120ms),background .25s,color .25s;
+}
+@media (prefers-reduced-motion:reduce){
+  .side-menu .side-head,.side-menu .side-item{transform:none!important;transition:opacity .12s ease!important}
+  .side-menu.open .side-head,.side-menu.open .side-item{transition:opacity .12s ease!important}
+}
+
+/* ── side menu: grows out of the menu button (top-left) and shrinks back into it ── */
+.side-menu{transform-origin:34px 34px}
+.side-menu:not(.open){
+  transform:scale(.12);opacity:0;pointer-events:none;
+  transition:transform .3s cubic-bezier(.4,0,.6,1),opacity .2s ease .05s;
+}
+.side-menu.open{
+  transform:none;opacity:1;
+  transition:transform .55s var(--sp-ease),opacity .22s ease;
+}
+.side-overlay{transition:opacity .25s ease}
+@media (prefers-reduced-motion:reduce){
+  .side-menu,.side-menu:not(.open),.side-menu.open{transform:none!important;transition:opacity .12s ease!important}
+}
