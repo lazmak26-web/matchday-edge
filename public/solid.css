@@ -1,0 +1,13 @@
+/* LuciBet: solid background + no glow on the tab bar.
+   Loaded after spatial.css. Nothing else about the design changes.
+   To revert: remove the <link> to solid.css from index.html. */
+
+/* one solid background: no gradients, no coloured light behind the page */
+html,body{background:var(--bg)!important;background-image:none!important}
+.aurora{display:none!important}
+
+/* tab bar: no light coming out of it. The bar keeps its border, the active tab is a flat fill. */
+.bottom-nav{box-shadow:none!important}
+.nav-item,.nav-item:hover,.nav-item.active{box-shadow:none!important;text-shadow:none!important;filter:none!important}
+.nav-item.active{background:color-mix(in srgb,var(--brand) 22%,var(--card))!important;color:var(--ink)!important}
+[data-theme="light"] .nav-item.active,[data-theme="mist"] .nav-item.active,[data-theme="sand"] .nav-item.active,[data-theme="mono"] .nav-item.active,[data-theme="arctic"] .nav-item.active,[data-theme="mint"] .nav-item.active{background:color-mix(in srgb,var(--brand) 16%,var(--card))!important}
