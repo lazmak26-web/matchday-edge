@@ -1314,7 +1314,8 @@ function updateAuthUI() {
 function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
 function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authError').textContent = ''; resetAuthSteps(); document.getElementById('loginPass').value = ''; setAuthMode('login'); }
 function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('menuSetBtn').classList.add('active'); }
-function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); document.getElementById('menuSetBtn').classList.remove('active'); }
+function animHide(el) { if (!el || el.classList.contains('hidden') || el.classList.contains('closing')) return; if (matchMedia('(prefers-reduced-motion:reduce)').matches) { el.classList.add('hidden'); return; } el.classList.add('closing'); setTimeout(() => { el.classList.add('hidden'); el.classList.remove('closing'); }, 240); }
+function closeSettingsModal() { animHide(document.getElementById('settingsModal')); document.getElementById('menuSetBtn').classList.remove('active'); }
 function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); }
 function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); }
 
@@ -2544,13 +2545,13 @@ function setLang(l) {
   if (act && act.id === 'view-weekly') renderWeekly();
 }
 
-$('profileBtn').onclick = e => { e.stopPropagation(); $('profileMenu').classList.toggle('hidden'); renderProfile(); };
-document.addEventListener('click', e => { const m = $('profileMenu'); if (!m.classList.contains('hidden') && !m.contains(e.target)) m.classList.add('hidden'); });
+$('profileBtn').onclick = e => { e.stopPropagation(); const m = $('profileMenu'); if (m.classList.contains('hidden')) { m.classList.remove('closing'); m.classList.remove('hidden'); } else animHide(m); renderProfile(); };
+document.addEventListener('click', e => { const m = $('profileMenu'); if (!m.classList.contains('hidden') && !m.contains(e.target)) animHide(m); });
 $('profileMenu').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.lang) { setLang(b.dataset.lang); return; }
   if (b.id === 'pmCopy') { try { navigator.clipboard.writeText($('pmUid').textContent); } catch (x) {} b.textContent = '✓'; setTimeout(() => { b.textContent = tNow().copy; }, 1200); return; }
-  $('profileMenu').classList.add('hidden');
+  animHide($('profileMenu'));
 });
 
 function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
