@@ -49,6 +49,25 @@
   setInterval(ping, 45000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) ping(); });
 
+  /* ───────────── overlay watcher ─────────────
+     While a modal or the side menu is open the page behind it is hidden under a scrim, so the globe stops drawing and the
+     header/nav blur is dropped (html.ui-overlay). Without this the globe repaints a full-screen canvas under the open animation. */
+  var overlayOpen = false;
+  (function watchOverlays() {
+    var root = document.documentElement;
+    var els = document.querySelectorAll('.modal-overlay, .side-menu');
+    function sync() {
+      var open = !!document.querySelector('.modal-overlay:not(.hidden), .side-menu.open');
+      if (open === overlayOpen) return;
+      overlayOpen = open;
+      root.classList.toggle('ui-overlay', open);
+    }
+    if (!els.length || !window.MutationObserver) return;
+    var mo = new MutationObserver(sync);
+    for (var i = 0; i < els.length; i++) mo.observe(els[i], { attributes: true, attributeFilter: ['class'] });
+    sync();
+  })();
+
   /* ───────────── globe ───────────── */
   var card = document.getElementById('globeCard');
   if (!card) return;
@@ -105,7 +124,7 @@
     requestAnimationFrame(frame);
     if (document.hidden) return;
     if (lenis) lenis.raf(t);
-    if (!globe) return;
+    if (!globe || overlayOpen) return;
     var dt = t - last;
     if (dt < MIN_FRAME - 1) return;
     last = t;
