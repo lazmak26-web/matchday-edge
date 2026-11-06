@@ -448,7 +448,37 @@ function cleanNameForSearch(name) {
     .trim();
 }
 
+// SportsAPI Pro (optional): used ONLY to find team logos. Needs SPORTSAPIPRO_KEY in the environment (never committed).
+// 1) search the team name -> competitor id (key sent as x-api-key), 2) logo = the free V1 image URL (no key, no quota, usable directly in <img>).
+const SAP_KEY = process.env.SPORTSAPIPRO_KEY || '';
+function pickSapCompetitor(list, name) {
+  const want = logoKey(name), want2 = logoKey(cleanNameForSearch(name));
+  const c = (Array.isArray(list) ? list : []).filter(x => x && x.id != null && x.name && (x.sportId == null || x.sportId === 1));
+  return c.find(x => logoKey(x.name) === want || logoKey(x.name) === want2)
+    || c.find(x => { const k = logoKey(x.name); return want2.length >= 4 && (k.startsWith(want2 + ' ') || want2.startsWith(k + ' ')) && Math.abs(k.length - want2.length) <= 6; })
+    || null;
+}
+async function fetchLogoSportsApiPro(name) {
+  if (!SAP_KEY) return undefined;
+  try {
+    const r = await fetch(`https://api.sportsapipro.com/v1/search?q=${encodeURIComponent(cleanNameForSearch(name))}&filter=competitors&sportId=1`, { headers: { 'x-api-key': SAP_KEY }, signal: AbortSignal.timeout(12000) });
+    if (r.status === 429) return 'rate_limited';
+    if (!r.ok) return undefined;
+    const d = await r.json();
+    const best = pickSapCompetitor(d && d.data && d.data.competitors, name);
+    if (!best) return null;
+    const url = `https://api.sportsapipro.com/v1/football/images/competitors/${encodeURIComponent(best.id)}`;
+    // a missing crest comes back as HTTP 200 with a tiny grey placeholder: check it is a real image
+    const img = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    if (!img.ok || !/^image\//.test(img.headers.get('content-type') || '')) return null;
+    const buf = await img.arrayBuffer();
+    return buf.byteLength >= 1500 ? url : null;
+  } catch (e) { return undefined; }
+}
+
 async function fetchLogoByName(name) {
+  const sap = await fetchLogoSportsApiPro(name);
+  if (typeof sap === 'string' && sap !== 'rate_limited') return sap;
   try {
     const searchName = cleanNameForSearch(name);
     const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(searchName)}`, { signal: AbortSignal.timeout(15000) });
