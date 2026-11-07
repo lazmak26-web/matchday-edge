@@ -1596,6 +1596,21 @@ const fxDateTime = fx => {
 };
 const _timeFmt = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 const fxLocalDate = fx => { const d = fxDateTime(fx); return isNaN(d.getTime()) ? String(fx.date).slice(0, 10) : localDateStr(d); };
+/* Women's matches: the team name shows "(W)" after it (a trailing "W" / "Women" / "Féminin"... from the provider is folded into it) */
+const W_NAME_RE = /\s*(\(\s*w\s*\)|\bwomen'?s?|\bladies|\bf[eé]minin[ea]?|\bfemen[ií]n?[oa]?|\bfemminile|\bfrauen|\bfeminino|\bw)\s*$/i;
+const W_LEAGUE_RE = /\b(women|womens|woman|ladies|f[eé]minin[ea]?|femen[ií]n?[oa]?|femminile|frauen|feminino|nwsl|wsl|damallsvenskan)\b|\(w\)|\bliga f\b/i;
+function isWomenFx(fx) {
+  if (!fx) return false;
+  if (W_LEAGUE_RE.test(String(fx.league || ''))) return true;
+  const n = x => x && x.name && / (\(\s*w\s*\)|w|women'?s?|ladies|f[eé]minin[ea]?|femen[ií]n?[oa]?|femminile|frauen|feminino)$/i.test(String(x.name).trim());
+  return !!(n(fx.home) || n(fx.away));
+}
+function teamDisp(team, fx) {
+  const name = String((team && team.name) || '');
+  if (!isWomenFx(fx)) return name;
+  const base = name.replace(W_NAME_RE, '').trim() || name;
+  return base + ' (W)';
+}
 const _dateFmtCache = {};
 function fxDateLabel(fx) {
   const d = fxDateTime(fx); if (isNaN(d.getTime())) return String(fx.date || '').slice(0, 10);
@@ -2130,11 +2145,11 @@ function buildCard(r, t) {
         </div>
       </div>
       <div class="m-teams">
-        <div class="team home">${crestHTML(H)}<div class="t-name">${esc(H.name)}</div></div>
+        <div class="team home">${crestHTML(H)}<div class="t-name">${esc(teamDisp(H, fx))}</div></div>
         <div class="m-mid">${v.started
           ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
           : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`}</div>
-        <div class="team away">${crestHTML(A)}<div class="t-name">${esc(A.name)}</div></div>
+        <div class="team away">${crestHTML(A)}<div class="t-name">${esc(teamDisp(A, fx))}</div></div>
       </div>
       ${probHTML}
       <div class="kv">
@@ -2198,9 +2213,9 @@ function renderHistory() {
         <span>${t.finished}</span>
       </div>
       <div class="hc-teams">
-        <span class="hc-team">${crestHTML(fx.home)}<span>${esc(fx.home.name)}</span></span>
+        <span class="hc-team">${crestHTML(fx.home)}<span>${esc(teamDisp(fx.home, fx))}</span></span>
         <span class="hc-score">${hs} - ${as}</span>
-        <span class="hc-team">${crestHTML(fx.away)}<span>${esc(fx.away.name)}</span></span>
+        <span class="hc-team">${crestHTML(fx.away)}<span>${esc(teamDisp(fx.away, fx))}</span></span>
       </div>
       <div class="hc-footer">
         <span>${t.pick}: <strong>${esc(v.main1x2.sel)}</strong></span>
@@ -2649,9 +2664,9 @@ function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
     return `<article class="match ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
       <div class="m-top"><div class="m-league">${esc(fx.league)}</div></div>
       <div class="m-teams">
-        <div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(fx.home.name)}</div></div>
+        <div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(teamDisp(fx.home, fx))}</div></div>
         <div class="m-mid">${mid}</div>
-        <div class="team away">${crestHTML(fx.away)}<div class="t-name">${esc(fx.away.name)}</div></div>
+        <div class="team away">${crestHTML(fx.away)}<div class="t-name">${esc(teamDisp(fx.away, fx))}</div></div>
       </div>
       <div class="lp-lock" onclick="${unlockCall}" role="button" tabindex="0" aria-label="${esc(t.lp_show)}">
         <div class="tiles"><div class="tile"><i>${t.home}</i><b>??%</b></div><div class="tile"><i>${t.draw}</i><b>??%</b></div><div class="tile"><i>${t.away}</i><b>??%</b></div></div>
@@ -2809,9 +2824,9 @@ function discoverMatchHTML(m) {
   const t = tNow(), pk = m.pick && m.pick.key;
   const pickName = pk === 'home' ? m.home.name : pk === 'away' ? m.away.name : pk === 'draw' ? t.draw : '';
   const body = `<div class="dc-lg">${esc(m.league || '')}</div><div class="dc-match">
-    <div class="team">${crestHTML(m.home)}<span>${esc(m.home.name)}</span></div>
+    <div class="team">${crestHTML(m.home)}<span>${esc(teamDisp(m.home, m))}</span></div>
     <div class="dc-mid">${mid}</div>
-    <div class="team">${crestHTML(m.away)}<span>${esc(m.away.name)}</span></div></div>
+    <div class="team">${crestHTML(m.away)}<span>${esc(teamDisp(m.away, m))}</span></div></div>
     ${pickName ? `<div class="dc-pick">${t.pick}: <b>${esc(pickName)}</b></div>` : ''}`;
   if (!m.result) return `<div>${body}</div>`;
   return `<div class="dc-settled"><div class="dc-faded">${body}</div><span class="dc-badge ${m.result}">${m.result === 'win' ? t.win : t.loss}</span></div>`;
