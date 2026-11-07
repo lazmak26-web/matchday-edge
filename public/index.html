@@ -2178,7 +2178,7 @@ function buildCard(r, t) {
         <div class="kv-row"><span>${t.scoreline}</span><div>${scoreHTML}</div></div>
         <div class="kv-row"><span>${t.pick_1x2}</span><b>${v.main1x2 ? esc(v.main1x2.sel) + ' (' + pctS(v.main1x2.p) + ')' : NA}</b></div>
         <div class="kv-row"><span>${t.over_under}</span><div>${v.mainOU ? `<b>${esc(v.mainOU.selection)}</b><em>${esc(v.mainOU.confidence)}</em>` : NA}</div></div>
-        ${v.mainOU15 ? `<div class="kv-row"><span>${t.over_under} 1.5</span><div><b>${esc(v.mainOU15.selection)}</b><em>${esc(v.mainOU15.confidence)}</em></div></div>` : ''}
+        ${v.mainOU15 ? `<div class="kv-row"><span>${t.over_under} 1.5</span><div><b>${esc(v.mainOU15.selection)}</b><em>${v.mainOU15.est ? '~' : ''}${esc(v.mainOU15.confidence)}</em></div></div>` : ''}
       </div>
       ${valueHTML}
     </article>`;
@@ -2339,7 +2339,7 @@ function applyServerPred(r, sp) {
   v.p = pr.p; v.source = (pr.source || '').replace('+', ' + ');
   v.main1x2 = [{ sel: H.name + ' Win', key: 'home', p: pr.p.h }, { sel: 'Draw', key: 'draw', p: pr.p.d }, { sel: A.name + ' Win', key: 'away', p: pr.p.a }].sort((x, y) => y.p - x.p)[0];
   v.mainOU = pr.over != null ? (pr.over >= 0.5 ? { selection: 'Over 2.5 Goals', confidence: pctS(pr.over) } : { selection: 'Under 2.5 Goals', confidence: pctS(1 - pr.over) }) : null;
-  v.mainOU15 = pr.over15 != null ? (pr.over15 >= 0.5 ? { selection: 'Over 1.5 Goals', confidence: pctS(pr.over15), p: pr.over15 } : { selection: 'Under 1.5 Goals', confidence: pctS(1 - pr.over15), p: 1 - pr.over15 }) : null;
+  v.mainOU15 = pr.over15 != null ? (pr.over15 >= 0.5 ? { selection: 'Over 1.5 Goals', confidence: pctS(pr.over15), p: pr.over15, est: pr.over15Source === 'market-implied' } : { selection: 'Under 1.5 Goals', confidence: pctS(1 - pr.over15), p: 1 - pr.over15, est: pr.over15Source === 'market-implied' }) : null;
   r.json.scoreline_prediction = { most_likely: pr.top || 'N/A', alternatives: [] };
   r.json.main_prediction = { selection: v.main1x2.sel, confidence: pctS(v.main1x2.p) };
   v.bestEv = rb ? rb.bestEv : (sp.bestEv != null ? sp.bestEv : null);
