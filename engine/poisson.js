@@ -30,15 +30,16 @@ function scoreMatrix(lh, la, rho = -0.08, offset = { h: 0, a: 0 }) {
 
 // Outcome probabilities from a score matrix; `cur` = goals already scored (live).
 function summarize(m, cur = { h: 0, a: 0 }, line = 2.5) {
-  let h = 0, d = 0, a = 0, over = 0, btts = 0, best = { p: -1, s: '0-0' };
+  let h = 0, d = 0, a = 0, over = 0, over15 = 0, btts = 0, best = { p: -1, s: '0-0' };
   for (let x = 0; x < m.length; x++) for (let y = 0; y < m[x].length; y++) {
     const p = m[x][y], X = x + cur.h, Y = y + cur.a;
     if (X > Y) h += p; else if (X === Y) d += p; else a += p;
     if (X + Y > line) over += p;
+    if (X + Y > 1.5) over15 += p;
     if (X > 0 && Y > 0) btts += p;
     if (p > best.p) best = { p, s: X + '-' + Y };
   }
-  return { h, d, a, over, under: 1 - over, btts, top: best.s };
+  return { h, d, a, over, under: 1 - over, over15, under15: 1 - over15, btts, top: best.s };
 }
 
 module.exports = { scoreMatrix, summarize, tau, pois, MAXG };

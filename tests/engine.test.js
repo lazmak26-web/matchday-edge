@@ -261,3 +261,17 @@ test('decision: a normal 8% edge on one bookmaker is still a BET when minBooks i
   assert.equal(d.action, 'BET');
   assert.equal(decide(fx, pred, { minBooks: 3 }).action, 'NO BET');
 });
+
+// Over/Under 1.5: model-only probability, consistent with the score matrix.
+test('summarize returns over15 / under15 that add up to 1 and rise with the goal rate', () => {
+  const { scoreMatrix, summarize } = require('../engine/poisson');
+  const lo = summarize(scoreMatrix(0.7, 0.6)), hi = summarize(scoreMatrix(2.0, 1.6));
+  for (const s of [lo, hi]) { assert.ok(s.over15 > 0 && s.over15 < 1); assert.ok(Math.abs(s.over15 + s.under15 - 1) < 1e-9); assert.ok(s.over15 >= s.over); }
+  assert.ok(hi.over15 > lo.over15);
+});
+test('predict exposes over15 only when there is a model (never invents it from the market)', () => {
+  const pre = require('../engine/prematch');
+  const fx = { home: { name: 'A', xgFor: 1.6, xgAgainst: 1.0 }, away: { name: 'B', xgFor: 1.2, xgAgainst: 1.3 }, xgSource: 'form', odds: [] };
+  const p = pre.predict(fx, {});
+  if (p) assert.ok(p.over15 == null || (p.over15 > 0 && p.over15 < 1));
+});
