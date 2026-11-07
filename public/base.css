@@ -1,0 +1,60 @@
+/* LuciBet base design (green hero header, flat cards, Plus Jakarta Sans).
+   It applies to EVERY theme. A theme only changes colours (the variables in index.html), never the layout.
+   Hero colours are derived from each theme's --brand, so every theme gets its own hero.
+   Loaded after spatial.css. */
+@font-face{font-family:'Plus Jakarta Sans';src:url(/vendor/fonts/PlusJakartaSans.woff2) format('woff2');font-weight:200 800;font-display:swap}
+:root{
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Arabic',sans-serif;
+  --hero:color-mix(in srgb,var(--brand) 52%,#000);
+  --hero-accent:color-mix(in srgb,var(--brand) 38%,#fff);
+  --hero-on:#fff;--hero-on-2:rgba(255,255,255,.72);--hero-tile:rgba(255,255,255,.1);
+  --hdr-h:calc(64px + env(safe-area-inset-top,0px));
+  --edge:0 0 0 1px var(--line);
+}
+[data-theme="fintech"]{--hero:#0B3B2C;--hero-accent:#C6F432}
+
+/* ───────── flat, solid page: no aurora, no glass ───────── */
+html,body{background:var(--bg)}
+body{overflow-x:clip}
+body::before,body::after,.aurora{display:none!important}
+.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.bv,.pf-card,.pf-day,.empty-state,.stat-item{
+  -webkit-backdrop-filter:none;backdrop-filter:none}
+.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.bv,.pf-card,.pf-day,.empty-state{
+  background:var(--card);border-radius:24px;box-shadow:var(--edge),var(--shadow)}
+.perf-card.hero::before,.perf-card.hero::after{background:var(--card);border:1px solid var(--line)}
+.perf-val,.stat-value{font-weight:800;letter-spacing:-.03em}
+.btn-main{background:var(--hero);color:#fff}
+.btn-main:hover{filter:brightness(1.15)}
+.m-live-tag{background:var(--hero-accent);color:var(--hero)}
+.filter-btn{background:var(--card);border:1px solid var(--line);color:var(--ink)}
+#view-signals .section-head .section-label{display:none}
+#view-signals .section-head h2{font-size:18px;font-weight:800;letter-spacing:-.02em}
+
+/* ───────── hero: the header and the match counter are one green shape ───────── */
+.wrap{padding-top:var(--hdr-h)}
+.app-header{
+  top:0;left:0;right:0;height:var(--hdr-h);
+  padding:env(safe-area-inset-top,0px) max(16px,calc((100vw - 1180px)/2 + 20px)) 0;
+  background:var(--hero);border:0;border-radius:0 0 26px 26px;box-shadow:none;
+  -webkit-backdrop-filter:none;backdrop-filter:none;transition:border-radius .25s,box-shadow .25s}
+.app-header.scrolled{border:0;box-shadow:0 14px 30px -18px rgba(0,0,0,.55)}
+body:has(#view-signals.active) .app-header:not(.scrolled){border-radius:0}   /* flows into the counter below */
+.app-header .brand-name{color:var(--hero-on)}
+.app-header .brand-sub{color:var(--hero-on-2)}
+.app-header .brand-mark{background:var(--hero-tile);box-shadow:none}
+.app-header .icon-btn{background:var(--hero-tile);border:0;color:var(--hero-on);box-shadow:none}
+.app-header .icon-btn:hover{background:rgba(255,255,255,.2);color:var(--hero-on)}
+.app-header .live-status{background:var(--hero-tile);border:0;color:var(--hero-accent)}
+.app-header .live-status .dot{background:var(--hero-accent)}
+.tab-view:not(#view-signals),#landingPage{padding-top:18px}
+
+#stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 calc(50% - 50vw) 24px;
+  padding:6px calc(50vw - 50%) 36px;background:var(--hero);border-radius:0 0 40px 40px;box-shadow:none}
+#stats .stat-item{background:var(--hero-tile);border:0;box-shadow:none;color:var(--hero-on);padding:12px;border-radius:18px}
+#stats .stat-value{color:var(--hero-on);font-size:22px}
+#stats .stat-item:nth-child(4) .stat-value{color:var(--hero-accent)}
+#stats .stat-item [class*="label"],#stats .stat-item small,#stats .stat-item span:not(.stat-value){color:var(--hero-on-2)}
+#stats .stat-item:first-child{grid-column:1/-1;background:none;text-align:center;padding:6px 0 8px;display:flex;flex-direction:column;align-items:center;gap:2px}
+#stats .stat-item:first-child .stat-value{font-size:46px;order:2;line-height:1.1}
+#stats .stat-item:first-child .stat-label{order:1;font-size:13px}

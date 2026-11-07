@@ -542,6 +542,7 @@ html.lenis, html.lenis body { height:auto; }
 <link rel="stylesheet" href="/demo-arena.css">
 <link rel="stylesheet" href="/fx.css">
 <link rel="stylesheet" href="/spatial.css">
+<link rel="stylesheet" href="/base.css">
 <link rel="stylesheet" href="/solid.css">
 <script src="/spatial.js" defer></script>
 </head>
@@ -653,16 +654,6 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-signals" class="tab-view active">
       <div class="stat-strip" id="stats"></div>
-      <div class="fin-actions" id="finActions">
-        <button type="button" onclick="document.getElementById('openFilterBtn').click()"><i><svg viewBox="0 0 24 24"><path d="M4 6h16M8 12h8M11 18h2"/></svg></i><span>Filters</span></button>
-        <button type="button" onclick="switchTab('discover')"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg></i><span>Discover</span></button>
-        <button type="button" onclick="switchTab('history')"><i><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M21 19H3"/></svg></i><span>Stats</span></button>
-      </div>
-      <div class="fin-promo" id="finPromo">
-        <div><b>Value bets today.</b><b>Edge before kickoff.</b><button type="button" onclick="document.getElementById('cards').scrollIntoView({behavior:'smooth'})">See picks</button></div>
-        <strong id="finPromoNum">—</strong>
-      </div>
-
       <section>
         <div class="section-head">
           <div>
@@ -2030,7 +2021,6 @@ function renderSignals() {
     <div class="stat-item"><div class="stat-value">${best!=null?sgn(best):'—'}</div><div class="stat-label">${t.best_ev_short}</div></div>
   `;
 
-  { const pn = document.getElementById('finPromoNum'); if (pn) pn.textContent = best != null ? sgn(best) : String(bets.length); }
 
   // One broken fixture (missing odds, missing scoreline...) must not stop the other cards from rendering, and it is never hidden silently: it is counted in `failed`.
   const note = [];
