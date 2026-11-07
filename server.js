@@ -394,7 +394,16 @@ function fcLocalLogo(name) {
   const f = FC_INDEX[k] || FC_INDEX[k2] || FC_INDEX[k.replace(/^(fc|afc|cf|ac|sc|cd|ca|club|as|ss|us)\s+/, '').replace(/\s+(fc|afc|cf|ac|sc|cd|ca)$/, '')];
   return f ? '/logos/fc/' + f : null;
 }
-const cachedLogo = name => { const c = logoCache.get(logoKey(name)); return fcLocalLogo(name) || (c && c.url) || fdCrest(name) || null; };
+// Layer 2 (club logos from JoseArroyave/football-logos, 96px webp) and country flags for national teams.
+let X_INDEX = {}, FLAG_INDEX = {};
+try { X_INDEX = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'logos', 'x', 'index.json'), 'utf8')); } catch (e) { console.log('extra logo index not loaded:', e.message); }
+try { FLAG_INDEX = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'logos', 'flags', 'index.json'), 'utf8')); } catch (e) { console.log('flag index not loaded:', e.message); }
+const stripClubWords = k => k.replace(/^(fc|afc|cf|ac|sc|cd|ca|club|as|ss|us|cs|fk|sk|nk|bk|if)\s+/, '').replace(/\s+(fc|afc|cf|ac|sc|cd|ca|fk|sk|nk|bk|if)$/, '');
+function flagLogo(name) { const c = FLAG_INDEX[fcKey(name).replace(/\s+(u ?\d{2}|w|women|olympic|olympics)$/, '')]; return c ? '/logos/flags/' + c + '.svg' : null; }   // exact country name only ("Brazil"), never "Brazil U20"
+function extraLogo(name) { if (!name) return null; const k = fcKey(name), f = X_INDEX[k] || X_INDEX[fcKey(cleanNameForSearch(name))] || X_INDEX[stripClubWords(k)]; return f ? '/logos/x/' + f : null; }
+// order: FCLOGO vectors, national flag, JoseArroyave club logo
+const localLogo = name => fcLocalLogo(name) || flagLogo(name) || extraLogo(name);
+const cachedLogo = name => { const c = logoCache.get(logoKey(name)); return localLogo(name) || (c && c.url) || fdCrest(name) || null; };
 
 /* Crests from football-data.org (1 call per competition, cached 7 days): fast and reliable for the big leagues + Champions League.
    TheSportsDB below stays as the fallback for every team football-data does not cover. */
@@ -820,7 +829,7 @@ async function getFixtures() {
           home: {
             id: fdMatch?.homeTeam.id || null,
             name: ev.home_team,
-            logo: fcLocalLogo(ev.home_team) || fdMatch?.homeTeam?.crest || ev.home_team_logo || ev.home_logo || cachedLogo(ev.home_team) || null,
+            logo: localLogo(ev.home_team) || fdMatch?.homeTeam?.crest || ev.home_team_logo || ev.home_logo || cachedLogo(ev.home_team) || null,
             form: hf?.form || null,
             gf5: hf?.gf5 ?? null,
             ga5: hf?.ga5 ?? null,
@@ -829,7 +838,7 @@ async function getFixtures() {
           away: {
             id: fdMatch?.awayTeam.id || null,
             name: ev.away_team,
-            logo: fcLocalLogo(ev.away_team) || fdMatch?.awayTeam?.crest || ev.away_team_logo || ev.away_logo || cachedLogo(ev.away_team) || null,
+            logo: localLogo(ev.away_team) || fdMatch?.awayTeam?.crest || ev.away_team_logo || ev.away_logo || cachedLogo(ev.away_team) || null,
             form: af?.form || null,
             gf5: af?.gf5 ?? null,
             ga5: af?.ga5 ?? null,
@@ -858,8 +867,8 @@ async function getFixtures() {
           status: normalizeStatus(m.status, m.utcDate),
           homeScore: m.score?.fullTime?.home ?? 0,
           awayScore: m.score?.fullTime?.away ?? 0,
-          home: { id: m.homeTeam.id, name: m.homeTeam.name, logo: fcLocalLogo(m.homeTeam.name) || m.homeTeam.crest || cachedLogo(m.homeTeam.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null },
-          away: { id: m.awayTeam.id, name: m.awayTeam.name, logo: fcLocalLogo(m.awayTeam.name) || m.awayTeam.crest || cachedLogo(m.awayTeam.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null },
+          home: { id: m.homeTeam.id, name: m.homeTeam.name, logo: localLogo(m.homeTeam.name) || m.homeTeam.crest || cachedLogo(m.homeTeam.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null },
+          away: { id: m.awayTeam.id, name: m.awayTeam.name, logo: localLogo(m.awayTeam.name) || m.awayTeam.crest || cachedLogo(m.awayTeam.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null },
           odds: mergeOdds(odds, m.homeTeam.name, m.awayTeam.name),
           sources: odds ? ['fd', 'bzz'] : ['fd']
         };

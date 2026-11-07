@@ -1,0 +1,1 @@
+Flags: https://github.com/lipis/flag-icons (MIT).

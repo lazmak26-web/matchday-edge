@@ -1721,7 +1721,7 @@ const logoOf = t => {
   const u = t.logo || t.crest || t.badge || t.image || t.img || t.logoUrl || t.crestUrl || t.emblem || t.icon || '';
   if (typeof u !== 'string') return '';
   const url = u.trim().replace(/^http:\/\//i, 'https://');
-  return /^https:\/\//i.test(url) ? url : '';
+  return (/^https:\/\//i.test(url) || /^\/logos\/[\w\-./]+\.(svg|png|webp)$/i.test(url)) ? url : '';   // our own bundled logos/flags are same-origin paths
 };
 
 window.crestFail = function(img) {
