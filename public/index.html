@@ -776,6 +776,12 @@ html.lenis, html.lenis body { height:auto; }
         <div class="adm-wrap"><table class="adm-table"><thead><tr><th>#</th><th>Email</th><th>Plan</th><th>Expires</th><th>Joined</th></tr></thead><tbody id="adminRows"></tbody></table></div>
         <p class="perf-note" id="adminMsg"></p>
       </section>
+      <section style="margin-top:32px;" id="adminLive">
+        <div class="section-head"><div><div class="section-label">🛡️ Admin only</div><h2>Live matches</h2></div>
+          <button class="hide-btn" type="button" onclick="loadAdminLive()">Refresh</button></div>
+        <div class="adm-wrap"><table class="adm-table"><thead><tr><th>League</th><th>Match</th><th>Score</th><th>Discover</th></tr></thead><tbody id="liveRows"></tbody></table></div>
+        <p class="perf-note" id="liveNote"></p>
+      </section>
       <section style="margin-top:32px;" id="adminTracking">
         <div class="section-head"><div><div class="section-label">🛡️ Admin only</div><h2>Pick tracking</h2></div>
           <button class="hide-btn" type="button" onclick="loadTracking()">Refresh</button></div>
@@ -1844,7 +1850,7 @@ function __doSwitch(tab) {
   if (window.__globePause) window.__globePause(250);
   if (tab === 'weekly') setTimeout(() => { if (view.classList.contains('active')) renderWeekly(); }, 90);
   if (tab === 'unlock') setTimeout(() => { if (view.classList.contains('active')) renderUnlock(); }, 90);
-  if (tab === 'admin') setTimeout(() => { if (document.getElementById('view-admin').classList.contains('active')) { loadAdmin(); loadTracking(); } }, 380);
+  if (tab === 'admin') setTimeout(() => { if (document.getElementById('view-admin').classList.contains('active')) { loadAdmin(); loadAdminLive(); loadTracking(); } }, 380);
   if (tab === 'discover') setTimeout(() => { if (view.classList.contains('active')) loadDiscover(); }, 90);
   if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
 }
@@ -2586,6 +2592,31 @@ async function loadTracking() {
     $('trkRows').innerHTML = (d.matches || []).map(m => `<tr><td>${esc(m.match)}<br><small style="color:var(--ink-3)">${esc(m.date)} ${esc(m.kickoff || '')}</small></td><td>${esc(m.score)}</td><td>${m.bet ? trkMark(m.bet.won) + ' ' + esc(m.bet.pick) + ' @' + Number(m.bet.odds).toFixed(2) + (m.bet.clv == null ? '' : ' · CLV ' + (m.bet.clv * 100).toFixed(1) + '%') : '—'}</td><td>${m.x12 ? trkMark(m.x12.won) + ' ' + esc(m.x12.pick) + (m.x12.odds ? ' @' + Number(m.x12.odds).toFixed(2) : '') : '—'}</td><td>${m.ou ? trkMark(m.ou.won) + ' ' + esc(m.ou.pick) + (m.ou.odds ? ' @' + Number(m.ou.odds).toFixed(2) : '') : '—'}</td></tr>`).join('');
     note.textContent = d.note || '';
   } catch (e) { note.textContent = 'Could not load tracking (' + e.message + ').'; }
+}
+async function loadAdminLive() {
+  if (!isAdmin()) return;
+  const note = $('liveNote'), body = $('liveRows');
+  note.textContent = 'Loading…';
+  try {
+    const r = await fetch('/api/admin/live-matches', { headers: { 'Authorization': 'Bearer ' + authState.token } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const ms = (await r.json()).matches || [];
+    body.innerHTML = ms.map(m => `<tr><td>${esc(m.league || '')}</td><td>${esc(m.home.name)} vs ${esc(m.away.name)}</td><td>${m.homeScore ?? 0} - ${m.awayScore ?? 0}</td><td>${m.onDiscover
+      ? '<span style="color:var(--good)">✓ On Discover</span>'
+      : `<button class="hide-btn" type="button" data-live="${esc(m.id)}" onclick="addLiveToDiscover(this)">Add to Discover</button>`}</td></tr>`).join('') || '<tr><td colspan="4">No live matches right now.</td></tr>';
+    note.textContent = ms.length ? ms.length + ' live now' : '';
+  } catch (e) { note.textContent = 'Could not load live matches (' + e.message + ').'; }
+}
+async function addLiveToDiscover(btn) {
+  if (!isAdmin()) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/discover', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token }, body: JSON.stringify({ matchId: btn.dataset.live }) });
+    if (r.ok || r.status === 409) { loadAdminLive(); return; }   // 409 = already on Discover: just refresh the list
+    const e = await r.json().catch(() => ({}));
+    alert(e.error || 'Could not add to Discover');
+  } catch (e) { alert('Could not add to Discover'); }
+  btn.disabled = false;
 }
 { let _adT; document.getElementById('adminSearch').addEventListener('input', () => { clearTimeout(_adT); _adT = setTimeout(renderAdmin, 120); }); }
 

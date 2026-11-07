@@ -1942,6 +1942,19 @@ app.post('/api/discover', authMiddleware, requireAdmin, (req, res) => {
   res.json({ ok: true, post: discoverView(post, match, sessions.get(req.authToken).username) });
 });
 
+// Admin: the matches being played right now, so the admin can choose which ones to put on Discover.
+// Server-built cards only (never the client's copy); onDiscover tells the UI which ones are already shared.
+app.get('/api/admin/live-matches', dataLimiter, authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const list = await getFixtures();
+    const shared = new Set([...discoverPosts.values()].filter(p => p.match).map(p => String(p.match.id)));
+    const matches = (list || []).filter(f => f && f.status === 'started' && f.home && f.away)
+      .sort((a, b) => String(a.league || '').localeCompare(String(b.league || '')) || String(a.kickoff || '').localeCompare(String(b.kickoff || '')))
+      .map(f => Object.assign(matchCard(f), { onDiscover: shared.has(String(f.id)) }));
+    res.json({ matches });
+  } catch (e) { res.status(500).json({ error: 'Server error', matches: [] }); }
+});
+
 // Admin: delete a post (POST, because the global method guard rejects DELETE with 405)
 app.post('/api/discover/:id/delete', authMiddleware, requireAdmin, (req, res) => {
   const p = discoverPosts.get(req.params.id);

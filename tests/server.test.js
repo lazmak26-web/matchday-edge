@@ -227,6 +227,17 @@ test('admin dashboard: only the admin email can list users (with plans), nobody 
   assert.strictEqual((await call(C.base, 'POST', '/api/admin/plan', { ip: '10.2.0.4', headers: { 'x-admin-token': 'x' }, body: {} })).status, 404); // no ADMIN_TOKEN on C
 });
 
+test('admin live-matches list: admin only, never open to normal users', async () => {
+  assert.strictEqual((await call(C.base, 'GET', '/api/admin/live-matches', { ip: '10.2.2.1' })).status, 401);
+  const u = await call(C.base, 'POST', '/api/auth/register', { ip: '10.2.2.2', body: signup('live-normal@example.com') });
+  assert.strictEqual((await call(C.base, 'GET', '/api/admin/live-matches', { ip: '10.2.2.2', token: u.json.token })).status, 404);
+  const a = await call(C.base, 'POST', '/api/auth/register', { ip: '10.2.2.3', body: signup(ADMIN_MAIL) });
+  const r = await call(C.base, 'GET', '/api/admin/live-matches', { ip: '10.2.2.3', token: a.json.token });
+  assert.strictEqual(r.status, 200);
+  assert.ok(Array.isArray(r.json.matches));
+  for (const m of r.json.matches) { assert.strictEqual(m.status, 'started'); assert.strictEqual(typeof m.onDiscover, 'boolean'); }
+});
+
 test('admin dashboard is refused when OTP is off (anyone could have registered the admin email)', async () => {
   const a = await call(A.base, 'POST', '/api/auth/register', { ip: '10.2.1.1', body: signup(ADMIN_MAIL) });
   assert.strictEqual(a.json.profile.isAdmin, false);
