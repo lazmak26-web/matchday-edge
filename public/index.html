@@ -227,6 +227,7 @@ button,select,input{font:inherit;color:inherit}
 .m-time,.m-live-score{font-size:20px;font-weight:700;letter-spacing:-.03em}
 .m-live-score{font-size:24px}
 .m-vs{font-size:11px;color:var(--ink-3);font-weight:600}
+.m-date{font-size:11.5px;font-weight:600;color:var(--ink-3);letter-spacing:0;white-space:nowrap}
 .m-live-tag{font-size:12px;font-weight:700;color:var(--info);background:var(--info-dim);padding:2px 8px;border-radius:999px}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;position:relative}
 .tile{background:var(--soft);border-radius:16px;padding:10px 6px;text-align:center}
@@ -1595,6 +1596,13 @@ const fxDateTime = fx => {
 };
 const _timeFmt = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 const fxLocalDate = fx => { const d = fxDateTime(fx); return isNaN(d.getTime()) ? String(fx.date).slice(0, 10) : localDateStr(d); };
+const _dateFmtCache = {};
+function fxDateLabel(fx) {
+  const d = fxDateTime(fx); if (isNaN(d.getTime())) return String(fx.date || '').slice(0, 10);
+  const lang = localStorage.getItem('mde:lang') || 'en', loc = lang === 'ar' ? 'ar' : lang === 'fr' ? 'fr-FR' : 'en-GB';
+  const f = _dateFmtCache[loc] || (_dateFmtCache[loc] = new Intl.DateTimeFormat(loc, { weekday: 'short', day: 'numeric', month: 'short' }));
+  return f.format(d);
+}
 const fxLocalTime = fx => { const d = fxDateTime(fx); return isNaN(d.getTime()) ? (fx.kickoff || '') : _timeFmt.format(d); };
 
 const Engine = (() => {
@@ -2124,8 +2132,8 @@ function buildCard(r, t) {
       <div class="m-teams">
         <div class="team home">${crestHTML(H)}<div class="t-name">${esc(H.name)}</div></div>
         <div class="m-mid">${v.started
-          ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span>`
-          : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-vs">VS</span>`}</div>
+          ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
+          : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`}</div>
         <div class="team away">${crestHTML(A)}<div class="t-name">${esc(A.name)}</div></div>
       </div>
       ${probHTML}
@@ -2636,8 +2644,8 @@ function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
   el.innerHTML = list.map(fx => {
     const live = fx.status === 'started';
     const mid = live
-      ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">LIVE</span>`
-      : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-vs">VS</span>`;
+      ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">LIVE</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
+      : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`;
     return `<article class="match ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
       <div class="m-top"><div class="m-league">${esc(fx.league)}</div></div>
       <div class="m-teams">
@@ -2796,8 +2804,8 @@ async function submitPost() {
 function discoverMatchHTML(m) {
   const live = m.status === 'started' || m.status === 'finished';
   const mid = live
-    ? `<span class="m-live-score">${m.homeScore ?? 0} - ${m.awayScore ?? 0}</span><span class="m-live-tag">${m.status === 'finished' ? 'FT' : 'LIVE'}</span>`
-    : `<span class="m-time">${esc(fxLocalTime(m))}</span><span class="m-vs">VS</span>`;
+    ? `<span class="m-live-score">${m.homeScore ?? 0} - ${m.awayScore ?? 0}</span><span class="m-live-tag">${m.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(m))}</span>`
+    : `<span class="m-time">${esc(fxLocalTime(m))}</span><span class="m-date">${esc(fxDateLabel(m))}</span><span class="m-vs">VS</span>`;
   const t = tNow(), pk = m.pick && m.pick.key;
   const pickName = pk === 'home' ? m.home.name : pk === 'away' ? m.away.name : pk === 'draw' ? t.draw : '';
   const body = `<div class="dc-lg">${esc(m.league || '')}</div><div class="dc-match">
