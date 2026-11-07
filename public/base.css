@@ -83,3 +83,12 @@ body:has(#view-signals.active) .app-header:not(.scrolled){border-radius:0}   /* 
 .hc-card .hc-footer > span:first-child{min-width:0}
 .hc-card .badge-win,.hc-card .badge-loss,.hc-card .hc-footer .pill{flex:none;padding:5px 14px;line-height:1.2;white-space:nowrap}
 .hc-card .hc-footer:last-child{padding-bottom:2px}
+
+/* tab bar: no coloured glow under the active tab (keeps the glass pill, drops the blue halo) */
+.nav-item.active{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 0 1px rgba(255,255,255,.1)!important}
+.bottom-nav{box-shadow:inset 0 1px 0 var(--hi,rgba(255,255,255,.2)),0 10px 24px -14px rgba(0,0,0,.5)!important}
+
+/* globe: html carries the solid page colour, body is transparent so the fixed globe (z-index:-1) is not painted over by the body box
+   once the cards load */
+html{background:var(--bg)}
+body{background:transparent!important}
