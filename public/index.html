@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="midnight" dir="ltr">
+<html lang="en" data-theme="fintech" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -653,6 +653,15 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-signals" class="tab-view active">
       <div class="stat-strip" id="stats"></div>
+      <div class="fin-actions" id="finActions">
+        <button type="button" onclick="document.getElementById('openFilterBtn').click()"><i><svg viewBox="0 0 24 24"><path d="M4 6h16M8 12h8M11 18h2"/></svg></i><span>Filters</span></button>
+        <button type="button" onclick="switchTab('discover')"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg></i><span>Discover</span></button>
+        <button type="button" onclick="switchTab('history')"><i><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M21 19H3"/></svg></i><span>Stats</span></button>
+      </div>
+      <div class="fin-promo" id="finPromo">
+        <div><b>Value bets today.</b><b>Edge before kickoff.</b><button type="button" onclick="document.getElementById('cards').scrollIntoView({behavior:'smooth'})">See picks</button></div>
+        <strong id="finPromoNum">—</strong>
+      </div>
 
       <section>
         <div class="section-head">
@@ -1209,7 +1218,7 @@ function applyLanguage(lang) {
 function applyTheme(theme) {
   const sel = document.getElementById('themeSelect');
   const valid = sel ? Array.from(sel.options).map(o => o.value) : [];
-  if (!valid.includes(theme)) theme = 'midnight';
+  if (!valid.includes(theme)) theme = 'fintech';
   document.documentElement.setAttribute('data-theme', theme);
   try { localStorage.setItem('mde:theme', theme); } catch (e) {}
   if (sel) sel.value = theme;
@@ -1250,7 +1259,8 @@ function buildThemeGrid() {
 }
 
 const savedLang = localStorage.getItem('mde:lang') || 'en';
-const savedTheme = localStorage.getItem('mde:theme') || 'midnight';
+let savedTheme = 'fintech';
+try { if (localStorage.getItem('mde:themeV2')) savedTheme = localStorage.getItem('mde:theme') || 'fintech'; else localStorage.setItem('mde:themeV2', '1'); } catch (e) {}
 applyLanguage(savedLang);
 buildThemeGrid();
 applyTheme(savedTheme);
@@ -2007,6 +2017,8 @@ function renderSignals() {
     <div class="stat-item"><div class="stat-value">${bets.length}</div><div class="stat-label">${t.value_bets}</div></div>
     <div class="stat-item"><div class="stat-value">${best!=null?sgn(best):'—'}</div><div class="stat-label">${t.best_ev_short}</div></div>
   `;
+
+  { const pn = document.getElementById('finPromoNum'); if (pn) pn.textContent = best != null ? sgn(best) : String(bets.length); }
 
   // One broken fixture (missing odds, missing scoreline...) must not stop the other cards from rendering, and it is never hidden silently: it is counted in `failed`.
   const note = [];
