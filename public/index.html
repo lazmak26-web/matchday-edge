@@ -1601,6 +1601,7 @@ const W_NAME_RE = /\s*(\(\s*w\s*\)|\bwomen'?s?|\bladies|\bf[eé]minin[ea]?|\bfem
 const W_LEAGUE_RE = /\b(women|womens|woman|ladies|f[eé]minin[ea]?|femen[ií]n?[oa]?|femminile|frauen|feminino|nwsl|wsl|damallsvenskan)\b|\(w\)|\bliga f\b/i;
 function isWomenFx(fx) {
   if (!fx) return false;
+  if (fx.women === true) return true;
   if (W_LEAGUE_RE.test(String(fx.league || ''))) return true;
   const n = x => x && x.name && / (\(\s*w\s*\)|w|women'?s?|ladies|f[eé]minin[ea]?|femen[ií]n?[oa]?|femminile|frauen|feminino)$/i.test(String(x.name).trim());
   return !!(n(fx.home) || n(fx.away));
