@@ -275,3 +275,22 @@ test('predict exposes over15 only when there is a model (never invents it from t
   const p = pre.predict(fx, {});
   if (p) assert.ok(p.over15 == null || (p.over15 > 0 && p.over15 < 1));
 });
+
+// Over 1.5 when there is no model: implied from the market's Over 2.5 (J-League style matches with no real xG).
+test('impliedOver15: monotone in Over 2.5, always above it, null when out of range', () => {
+  const { impliedOver15 } = require('../engine/poisson');
+  let prev = 0;
+  for (const p of [0.2, 0.35, 0.5, 0.65, 0.8]) { const v = impliedOver15(p); assert.ok(v > p && v < 1 && v > prev); prev = v; }
+  assert.ok(Math.abs(impliedOver15(0.51) - 0.75) < 0.02);
+  assert.equal(impliedOver15(0.01), null); assert.equal(impliedOver15(null), null); assert.equal(impliedOver15(NaN), null);
+});
+test('predict: a match with no xG but market odds still gets over15 (market-implied); with a model it stays model-based', () => {
+  const pre = require('../engine/prematch');
+  const odds = [{ book: 'A', home: 2.1, draw: 3.4, away: 3.5, over25: 2.0, under25: 1.85 }, { book: 'B', home: 2.15, draw: 3.3, away: 3.45, over25: 2.02, under25: 1.83 }];
+  const noXg = pre.predict({ home: { name: 'A' }, away: { name: 'B' }, xgSource: 'league-avg', odds }, {});
+  assert.ok(noXg && noXg.over != null); assert.ok(noXg.over15 > noXg.over); assert.equal(noXg.over15Source, 'market-implied');
+  const withXg = pre.predict({ home: { name: 'A', xgFor: 1.5, xgAgainst: 1.1, formN: 20 }, away: { name: 'B', xgFor: 1.3, xgAgainst: 1.2, formN: 20 }, xgSource: 'season', odds }, {});
+  assert.equal(withXg.over15Source, 'model');
+  const none = pre.predict({ home: { name: 'A' }, away: { name: 'B' }, xgSource: 'league-avg', odds: [] }, {});
+  assert.equal(none, null);
+});

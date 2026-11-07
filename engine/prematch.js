@@ -85,7 +85,10 @@ function predict(fx, opts = {}) {
   const s = p.h + p.d + p.a; p = { h: p.h / s, d: p.d / s, a: p.a / s };
   const overModel = over;
   if (over != null && mk && mk.over != null) over = w * mk.over + (1 - w) * over; else if (over == null && mk) over = mk.over;
-  return { p, over, over15, lam, top, topSource, source, sources: { model, market: mk && { h: mk.h, d: mk.d, a: mk.a }, elo: eloP }, marketBooks: mk ? mk.n : 0, rho,
+  // No model (no real xG) but the market prices Over 2.5: Over 1.5 is implied from it, so those matches get the 1.5 leg too.
+  let over15Source = over15 != null ? 'model' : null;
+  if (over15 == null && over != null) { over15 = require('./poisson').impliedOver15(over); if (over15 != null) over15Source = 'market-implied'; }
+  return { p, over, over15, over15Source, lam, top, topSource, source, sources: { model, market: mk && { h: mk.h, d: mk.d, a: mk.a }, elo: eloP }, marketBooks: mk ? mk.n : 0, rho,
     blend: { w, eloWeight: we > 0 && eloP ? we : 0, overModel, overMarket: mk ? mk.over : null } };
 }
 module.exports = { predict, lambdas, market, SHRINK_K };

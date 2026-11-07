@@ -42,4 +42,14 @@ function summarize(m, cur = { h: 0, a: 0 }, line = 2.5) {
   return { h, d, a, over, under: 1 - over, over15, under15: 1 - over15, btts, top: best.s };
 }
 
-module.exports = { scoreMatrix, summarize, tau, pois, MAXG };
+// Market-implied Over 1.5. Without real xG there is no model, but the market still prices Over 2.5: find the total-goals rate
+// lambda whose Poisson P(goals >= 3) equals that probability and read P(goals >= 2) from it. Returns null outside a sane range.
+function impliedOver15(pOver25) {
+  if (typeof pOver25 !== 'number' || !isFinite(pOver25) || pOver25 < 0.05 || pOver25 > 0.95) return null;
+  const o25 = l => 1 - Math.exp(-l) * (1 + l + l * l / 2);
+  let lo = 0.2, hi = 9;
+  for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (o25(m) < pOver25) lo = m; else hi = m; }
+  const l = (lo + hi) / 2;
+  return 1 - Math.exp(-l) * (1 + l);
+}
+module.exports = { scoreMatrix, summarize, tau, pois, MAXG, impliedOver15 };

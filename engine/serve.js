@@ -15,7 +15,7 @@ function item(f, o = {}) {
     safety: dec.safety || [], safetyBase: dec.baseSafety || dec.safety || [],
     upsetStatic: { home: staticSignals(f, 'home'), away: staticSignals(f, 'away') },
     xgSource: f.xgSource || null,
-    prediction: pred && { p: pred.p, over: pred.over, over15: pred.over15 == null ? null : pred.over15, top: pred.top, source: pred.source },
+    prediction: pred && { p: pred.p, over: pred.over, over15: pred.over15 == null ? null : pred.over15, over15Source: pred.over15Source || null, top: pred.top, source: pred.source },
     validation: validate.validate(pred, f, { maxGap: o.maxGap }), decision: dec,
     components, prices: decision.bestPrices(f),
     limits: { maxOdds: decision.DEFAULTS.maxOdds, minProb: decision.DEFAULTS.minProb, maxEV: o.decide && o.decide.maxEV != null ? o.decide.maxEV : decision.DEFAULTS.maxEV }
