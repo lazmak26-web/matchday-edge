@@ -1865,6 +1865,7 @@ function getFinishedMatches() {
   const today = localDateStr(new Date());
   const frozen = readFrozen();
   const fresh = {};               // past days not frozen yet -> results computed in this pass
+  const late = {};                // matches that finished after their day was already frozen
   const out = [];
   (historyFixtures || []).forEach(h => {
     if (!h || !h.id || h.status !== 'finished') return;
@@ -1877,6 +1878,8 @@ function getFinishedMatches() {
     } else if (frozen[d]) {                             // already frozen: use the stored pick, never recompute
       const pk = frozen[d].picks && frozen[d].picks[String(fx.id)];
       r = validPickKey(pk) ? resultFromPick(fx, pk) : frozenResult(fx, false);
+      // A late kickoff (e.g. 23:30) that only finished AFTER its day was frozen: add it to that day now, once, so it is counted.
+      if (r && !validPickKey(pk)) (late[d] = late[d] || []).push(r);
     } else {                                            // past day, first time seen: compute now, freeze below
       r = frozenResult(fx, false);
       if (r) (fresh[d] = fresh[d] || []).push(r);
@@ -1889,6 +1892,15 @@ function getFinishedMatches() {
     const e = { wins: 0, losses: 0, picks: {} };
     fresh[d].forEach(r => { const w = pickWon(r); if (w === true) e.wins++; else if (w === false) e.losses++; else return; e.picks[String(r.fx.id)] = pickOf(r); });
     frozen[d] = e; dirty = true;
+  });
+  Object.keys(late).forEach(d => {
+    const e = frozen[d]; if (!e) return;
+    e.picks = e.picks || {};
+    late[d].forEach(r => {
+      const id = String(r.fx.id); if (e.picks[id]) return;
+      const w = pickWon(r); if (w === true) e.wins = (e.wins | 0) + 1; else if (w === false) e.losses = (e.losses | 0) + 1; else return;
+      e.picks[id] = pickOf(r); dirty = true;
+    });
   });
   if (dirty) writeFrozen(frozen);
   return out;
@@ -2080,6 +2092,7 @@ function buildCard(r, t) {
         <div class="kv-row"><span>${t.scoreline}</span><div>${scoreHTML}</div></div>
         <div class="kv-row"><span>${t.pick_1x2}</span><b>${v.main1x2 ? esc(v.main1x2.sel) + ' (' + pctS(v.main1x2.p) + ')' : NA}</b></div>
         <div class="kv-row"><span>${t.over_under}</span><div>${v.mainOU ? `<b>${esc(v.mainOU.selection)}</b><em>${esc(v.mainOU.confidence)}</em>` : NA}</div></div>
+        ${v.mainOU15 ? `<div class="kv-row"><span>${t.over_under} 1.5</span><div><b>${esc(v.mainOU15.selection)}</b><em>${esc(v.mainOU15.confidence)}</em></div></div>` : ''}
       </div>
       ${valueHTML}
     </article>`;
@@ -2260,6 +2273,7 @@ function applyServerPred(r, sp) {
   v.p = pr.p; v.source = (pr.source || '').replace('+', ' + ');
   v.main1x2 = [{ sel: H.name + ' Win', key: 'home', p: pr.p.h }, { sel: 'Draw', key: 'draw', p: pr.p.d }, { sel: A.name + ' Win', key: 'away', p: pr.p.a }].sort((x, y) => y.p - x.p)[0];
   v.mainOU = pr.over != null ? (pr.over >= 0.5 ? { selection: 'Over 2.5 Goals', confidence: pctS(pr.over) } : { selection: 'Under 2.5 Goals', confidence: pctS(1 - pr.over) }) : null;
+  v.mainOU15 = pr.over15 != null ? (pr.over15 >= 0.5 ? { selection: 'Over 1.5 Goals', confidence: pctS(pr.over15), p: pr.over15 } : { selection: 'Under 1.5 Goals', confidence: pctS(1 - pr.over15), p: 1 - pr.over15 }) : null;
   r.json.scoreline_prediction = { most_likely: pr.top || 'N/A', alternatives: [] };
   r.json.main_prediction = { selection: v.main1x2.sel, confidence: pctS(v.main1x2.p) };
   v.bestEv = rb ? rb.bestEv : (sp.bestEv != null ? sp.bestEv : null);

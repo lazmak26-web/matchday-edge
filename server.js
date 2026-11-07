@@ -736,6 +736,17 @@ function stabilizeToday(fresh) {
   const fdDegraded = !!API_KEY && (Date.now() < fdCache.errUntil || Date.now() < fdBlockedUntil || fdCache.day !== day);
   const degraded = bzzIncomplete || fdDegraded;
   let list = fresh.filter(f => f.date === day || f.status === 'started');
+  // The provider is asked for "today" only, so at 00:00 UTC a match that kicked off at 23:30 vanishes from the feed while it is still being played.
+  // Keep it (from the saved snapshot) until it is really finished, so it is neither dropped nor settled early. Cap: 8 hours after kickoff.
+  {
+    const have = new Set(list.map(f => f.id));
+    for (const sn of snapshotStore.values()) {
+      if (!sn || have.has(sn.id) || sn.date >= day || sn.status === 'finished' || sn.status === 'canceled') continue;
+      const t = new Date(sn.date + 'T' + sn.kickoff + ':00Z').getTime();
+      if (isNaN(t) || Date.now() - t > 8 * 60 * 60 * 1000 || Date.now() < t) continue;
+      list.push(Object.assign(JSON.parse(JSON.stringify(sn)), { status: 'started' }));
+    }
+  }
   if (degraded) {
     const seen = new Set(list.map(f => f.id));
     // Only keep matches that are still going to be played / are live. Finished and canceled ones must not come back from the cache.
@@ -917,7 +928,7 @@ function freezePick(f, prevPick) {
       bet = { key: dec.pick.key, odds: dec.pick.odds, book: dec.pick.book, p: +dec.pick.p.toFixed(4), ev: +dec.pick.ev.toFixed(4),
         firstOdds: pb ? (pb.firstOdds || pb.odds) : dec.pick.odds, firstAt: pb ? (pb.firstAt || pb.at || Date.now()) : Date.now(), at: Date.now() };
     }
-    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), ouP: pred.over == null ? null : +Math.max(pred.over, 1 - pred.over).toFixed(4), source: pred.source, bet, at: Date.now() };
+    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), ouP: pred.over == null ? null : +Math.max(pred.over, 1 - pred.over).toFixed(4), ou15: pred.over15 == null ? null : (pred.over15 >= 0.5 ? 'over' : 'under'), ou15P: pred.over15 == null ? null : +Math.max(pred.over15, 1 - pred.over15).toFixed(4), source: pred.source, bet, at: Date.now() };
   } catch (e) { console.error('freezePick error:', e.message); return null; }
 }
 
@@ -1004,8 +1015,15 @@ async function refreshHistoryResults() {
         for (const ev of (data.results || data.data || [])) {
           const snap = snapshotStore.get(`bzz_${ev.id}`);
           if (!snap || snap.status === 'finished') continue;
-          if (normalizeStatus(ev.status, ev.event_date) !== 'finished') continue;
           if (ev.home_score == null || ev.away_score == null) continue;
+          const ns = normalizeStatus(ev.status, ev.event_date);
+          if (ns === 'started') {   // still being played: follow the live score, never settle it
+            if (snap.status !== 'started' || snap.homeScore !== ev.home_score || snap.awayScore !== ev.away_score) {
+              snap.status = 'started'; snap.homeScore = ev.home_score; snap.awayScore = ev.away_score; changed = true;
+            }
+            continue;
+          }
+          if (ns !== 'finished') continue;
           snap.status = 'finished';
           snap.homeScore = ev.home_score;
           snap.awayScore = ev.away_score;
@@ -2045,6 +2063,9 @@ function trackingReport() {
     if (f.pick.ou === 'over' || f.pick.ou === 'under') {
       const won = f.pick.ou === 'over' ? goals > 2.5 : goals < 2.5, o = priceOf(f, f.pick.ou === 'over' ? 'over25' : 'under25');
       add(tot.ou, won, o); add(d.ou, won, o); row.ou = { pick: f.pick.ou, p: f.pick.ouP == null ? null : f.pick.ouP, won, odds: o, goals };
+    }
+    if (f.pick.ou15 === 'over' || f.pick.ou15 === 'under') {   // O/U 1.5: model-only (no 1.5 price in the feed), so hit rate only
+      row.ou15 = { pick: f.pick.ou15, p: f.pick.ou15P == null ? null : f.pick.ou15P, won: f.pick.ou15 === 'over' ? goals > 1.5 : goals < 1.5, goals };
     }
     list.push(row);
   }

@@ -64,8 +64,8 @@ function predict(fx, opts = {}) {
   if (!fx || !fx.home || !fx.away) return null;
   const rho = isNum(opts.rho) ? opts.rho : -0.08, w = isNum(opts.marketWeight) ? clamp(opts.marketWeight, 0, 1) : 0.5;
   const lam = lambdas(fx, opts), mk = market(fx.odds);
-  let model = null, over = null, top = null;
-  if (lam) { const s = summarize(scoreMatrix(lam.h, lam.a, rho)); model = { h: s.h, d: s.d, a: s.a }; over = s.over; top = s.top; }
+  let model = null, over = null, over15 = null, top = null;
+  if (lam) { const s = summarize(scoreMatrix(lam.h, lam.a, rho)); model = { h: s.h, d: s.d, a: s.a }; over = s.over; over15 = s.over15; top = s.top; }
   let eloP = null;
   if (opts.eloBook) {
     // Elo only counts when BOTH teams have enough real finished games behind their rating (default 8).
@@ -85,7 +85,7 @@ function predict(fx, opts = {}) {
   const s = p.h + p.d + p.a; p = { h: p.h / s, d: p.d / s, a: p.a / s };
   const overModel = over;
   if (over != null && mk && mk.over != null) over = w * mk.over + (1 - w) * over; else if (over == null && mk) over = mk.over;
-  return { p, over, lam, top, topSource, source, sources: { model, market: mk && { h: mk.h, d: mk.d, a: mk.a }, elo: eloP }, marketBooks: mk ? mk.n : 0, rho,
+  return { p, over, over15, lam, top, topSource, source, sources: { model, market: mk && { h: mk.h, d: mk.d, a: mk.a }, elo: eloP }, marketBooks: mk ? mk.n : 0, rho,
     blend: { w, eloWeight: we > 0 && eloP ? we : 0, overModel, overMarket: mk ? mk.over : null } };
 }
 module.exports = { predict, lambdas, market, SHRINK_K };
