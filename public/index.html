@@ -101,6 +101,7 @@
 [data-theme="slate"]{ color-scheme:dark; --bg:#0F1522; --card:#171F30; --soft:#1E283D; --ink:#E7ECF5; --ink-2:#A6B1C6; --ink-3:#7783A0; --line:#263149; --line-2:#344260; --brand:#7FA2F5; --brand-2:#9DB8F8; --brand-dim:rgba(127,162,245,.15); --grad:linear-gradient(135deg,#4F78E0,#6C93F0); --good:#4CC9A0; --warn:#E6B450; --bad:#F07A8C; --info:#6CB6EC; --shadow:0 4px 14px -6px rgba(0,0,0,.45); }
 [data-theme="forest"]{ color-scheme:dark; --bg:#0D1512; --card:#15201B; --soft:#1C2B24; --ink:#E8F0EB; --ink-2:#A6B9AE; --ink-3:#74897C; --line:#24352C; --line-2:#324639; --brand:#55B88F; --brand-2:#80CFAC; --brand-dim:rgba(85,184,143,.15); --grad:linear-gradient(135deg,#2E9A72,#4FB38A); --good:#6FD3A6; --warn:#E3B55A; --bad:#EE8090; --info:#6BB9D8; --shadow:0 4px 14px -6px rgba(0,0,0,.45); }
 [data-theme="mist"]{ color-scheme:light; --bg:#EDF1F7; --card:#FFFFFF; --soft:#F2F5FA; --ink:#1F2A3A; --ink-2:#47556A; --ink-3:#74829A; --line:#DCE3EE; --line-2:#C7D1E0; --brand:#4A78D8; --brand-2:#6B93E6; --brand-dim:rgba(74,120,216,.12); --grad:linear-gradient(135deg,#5A86E4,#4A78D8); --good:#25906C; --warn:#B7791F; --bad:#D6455D; --info:#2C7FB8; --shadow:0 6px 20px -10px rgba(31,42,58,.18); }
+[data-theme="fintech"]{ color-scheme:light; --bg:#F7F9F8; --card:#FFFFFF; --soft:#F1F5F3; --ink:#0B1F17; --ink-2:#4A5D55; --ink-3:#82938B; --line:#E4EBE7; --line-2:#D3DDD8; --brand:#12A150; --brand-2:#2DBE6C; --brand-dim:rgba(18,161,80,.1); --grad:linear-gradient(135deg,#17B15A,#0E8A43); --good:#12A150; --warn:#B7791F; --bad:#D6455D; --info:#2C7FB8; --deep:#0B3B2C; --lime:#C6F432; --shadow:0 1px 2px rgba(11,59,44,.04),0 10px 28px -16px rgba(11,59,44,.18); --good-dim:rgba(18,161,80,.12); --good-line:rgba(18,161,80,.35); --warn-dim:rgba(183,121,31,.13); --bad-dim:rgba(214,69,93,.11); --info-dim:rgba(44,127,184,.12); --text-main:var(--ink); --text-sub:var(--ink-2); --on-brand:#fff; --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Arabic',sans-serif; }
 [data-theme="sand"]{ color-scheme:light; --bg:#F4F0E8; --card:#FFFDF9; --soft:#F0EADF; --ink:#2B2926; --ink-2:#55514A; --ink-3:#85806F; --line:#E5DDCD; --line-2:#D4C9B4; --brand:#B5683A; --brand-2:#C98055; --brand-dim:rgba(181,104,58,.12); --grad:linear-gradient(135deg,#C47A4C,#B5683A); --good:#2F8F6A; --warn:#B7791F; --bad:#CC4B5B; --info:#2C7FB8; --shadow:0 6px 20px -10px rgba(60,45,25,.2); }
 
 :root{--font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Arabic',sans-serif;--on-brand:#fff}
@@ -887,6 +888,7 @@ html.lenis, html.lenis body { height:auto; }
           <label class="control-label" data-i18n="theme_label">Theme</label>
           <div id="themeGrid" class="theme-grid" role="radiogroup" aria-label="Theme"></div>
           <select id="themeSelect" class="settings-select" hidden style="display:none">
+            <option value="fintech">Fintech (green &amp; white)</option>
             <option value="mono">Mono (clean light)</option>
             <option value="dark" data-i18n="theme_dark">Dark Mode</option>
             <option value="blue" data-i18n="theme_blue">1uciBet Blue</option>
