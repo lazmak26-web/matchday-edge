@@ -11,6 +11,10 @@ const API_BASE = 'https://api.football-data.org/v4';
 
 const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
 const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
+/* Women's competitions. The provider names the teams without "Women" ("Real Madrid", "Athletic Club") and gives the league only as an id,
+   so women's league ids are listed here. Add more with the env var WOMEN_LEAGUE_IDS="36,41,..." (comma separated). */
+const WOMEN_LEAGUE_IDS = new Set(String(process.env.WOMEN_LEAGUE_IDS || '36').split(/[,\s]+/).filter(Boolean));
+const isWomenFixture = f => !!f && (f.women === true || (/^League #(\d+)$/.exec(String(f.league || '')) ? WOMEN_LEAGUE_IDS.has(RegExp.$1) : false));
 const oddsApi = require('./oddsapi');
 const fdStats = require('./fdstats');
 
@@ -834,6 +838,7 @@ async function getFixtures() {
         const fixture = {
           id: `bzz_${ev.id}`,
           league: fdMatch?.competition?.name || (ev.league_id ? `League #${ev.league_id}` : 'Football'),
+          women: WOMEN_LEAGUE_IDS.has(String(ev.league_id)) || undefined,
           date: kickoff.toISOString().slice(0, 10),
           kickoff: kickoff.toISOString().slice(11, 16),
           status, homeScore, awayScore,
@@ -1635,7 +1640,7 @@ app.get('/api/public/fixtures', async (req, res) => {
   try {
     const fixtures = await getFixtures();
     const out = fixtures.filter(f => f.status === 'notstarted' || f.status === 'started').slice(0, 60).map(f => ({
-      id: f.id, league: f.league, date: f.date, kickoff: f.kickoff, status: f.status,
+      id: f.id, league: f.league, women: isWomenFixture(f) || undefined, date: f.date, kickoff: f.kickoff, status: f.status,
       homeScore: f.status === 'started' ? f.homeScore : null,
       awayScore: f.status === 'started' ? f.awayScore : null,
       home: { name: f.home.name, logo: f.home.logo || null },
@@ -1738,7 +1743,7 @@ app.get('/api/history', dataLimiter, async (req, res) => {
     const cutoff = dateDaysAgo(HISTORY_KEEP_DAYS);
     const fixtures = dedupeFixtures([...snapshotStore.values()].filter(f => f.status === 'finished' && f.date >= cutoff))
       .sort((a, b) => (b.date + b.kickoff).localeCompare(a.date + a.kickoff));
-    res.json({ fixtures });
+    res.json({ fixtures: fixtures.map(f => (isWomenFixture(f) && f.women !== true) ? Object.assign({}, f, { women: true }) : f) });
   } catch (e) {
     res.status(500).json({ error: 'Server error', fixtures: [] });
   }
@@ -1873,7 +1878,7 @@ function findFixture(id) {
 }
 function matchCard(f) {
   return {
-    id: String(f.id), league: String(f.league || '').slice(0, 80), date: f.date, kickoff: f.kickoff,
+    id: String(f.id), league: String(f.league || '').slice(0, 80), women: isWomenFixture(f) || undefined, date: f.date, kickoff: f.kickoff,
     status: f.status, homeScore: f.homeScore, awayScore: f.awayScore,
     home: { name: String(f.home.name).slice(0, 60), logo: f.home.logo || null },
     away: { name: String(f.away.name).slice(0, 60), logo: f.away.logo || null }
