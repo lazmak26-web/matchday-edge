@@ -566,6 +566,7 @@ html.lenis, html.lenis body { height:auto; }
     </div>
 
     <div class="header-actions">
+      <button class="icon-btn hidden" id="searchBtn" type="button" title="Search teams" aria-label="Search teams" aria-expanded="false"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></button>
       <div class="live-status hidden" id="live-status">
         <span class="dot"></span><span id="live-text">LIVE</span>
       </div>
@@ -594,6 +595,11 @@ html.lenis, html.lenis body { height:auto; }
       </div>
     </div>
   </header>
+  <div class="search-bar" id="searchBar" role="search" hidden>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+    <input id="searchInput" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search a team…" aria-label="Search a team">
+    <button type="button" id="searchClose" aria-label="Close search">✕</button>
+  </div>
 
   <div class="ticker" aria-hidden="true"><div class="ticker-track">
     <span data-i18n="tick_1">⚽ Live Odds</span><span data-i18n="tick_2">🎯 +EV Value Bets</span><span data-i18n="tick_3">📊 Poisson Model</span><span data-i18n="tick_4">🏆 Daily Picks</span>
@@ -1300,6 +1306,7 @@ function updateAuthUI() {
   if (!authState.loggedIn) document.getElementById('profileMenu').classList.add('hidden');
   renderProfile(); applyPlanGate();
   document.getElementById('live-status').classList.toggle('hidden', !authState.loggedIn);
+  { const sb = document.getElementById('searchBtn'); if (sb) sb.classList.toggle('hidden', !authState.loggedIn); if (!authState.loggedIn && window.__closeSearch) window.__closeSearch(); }
 
   document.getElementById('landingPage').classList.toggle('hidden', authState.loggedIn);
   document.getElementById('appContent').classList.toggle('hidden', !authState.loggedIn);
@@ -1378,6 +1385,42 @@ async function activateLicense() {
 document.getElementById('loginBtn').onclick = openAuthModal;
 document.getElementById('settingsBtn').onclick = () => setTimeout(openSettingsModal, 280);
 document.getElementById('openFilterBtn').onclick = openFilterModal;
+
+/* team search */
+(function () {
+  const btn = document.getElementById('searchBtn'), bar = document.getElementById('searchBar'), inp = document.getElementById('searchInput'), cls = document.getElementById('searchClose');
+  let tm = 0;
+  function apply() { st.queryRaw = inp.value.trim(); st.query = normQ(inp.value); renderSignals(); }
+  function open() {
+    if (typeof switchTab === 'function') switchTab('signals');
+    bar.hidden = false; requestAnimationFrame(() => bar.classList.add('open')); btn.setAttribute('aria-expanded', 'true');
+    setTimeout(() => inp.focus(), 60);
+  }
+  function close() {
+    const had = !!st.query; inp.value = ''; st.query = ''; st.queryRaw = '';
+    bar.classList.remove('open'); btn.setAttribute('aria-expanded', 'false');
+    setTimeout(() => { if (!bar.classList.contains('open')) bar.hidden = true; }, 220);
+    if (had) renderSignals();
+  }
+  window.__closeSearch = close;
+  btn.addEventListener('click', () => (bar.hidden || !bar.classList.contains('open')) ? open() : close());
+  cls.addEventListener('click', close);
+  inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(apply, 120); });
+  inp.addEventListener('keydown', e => { if (e.key === 'Escape') close(); if (e.key === 'Enter') inp.blur(); });
+})();
+
+/* logo tile: if the tile behind the LuciBet logo is white, make it black (any other colour stays as it is) */
+(function () {
+  function fix() {
+    const m = document.querySelector('.brand-mark'); if (!m) return;
+    m.classList.remove('is-dark');
+    const c = (getComputedStyle(m).backgroundColor.match(/[\d.]+/g) || []).map(Number);
+    const a = c.length > 3 ? c[3] : 1;
+    if (c.length >= 3 && a > 0.6 && c[0] > 225 && c[1] > 225 && c[2] > 225) m.classList.add('is-dark');
+  }
+  fix();
+  new MutationObserver(fix).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
 
 document.getElementById('logoutBtn').onclick = async () => {
   try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token } }); } catch(e) {}
@@ -1711,7 +1754,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const NA = '<span class="na">N/A</span>';
 
-const st = { fixtures: [], mw: 0.85, mev: 0.045, results: [] };
+const st = { fixtures: [], mw: 0.85, mev: 0.045, results: [], query: '', queryRaw: '' };
 
 const pct1 = x => (x * 100).toFixed(1) + '%';
 const sgn = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(2) + '%';
@@ -1992,8 +2035,16 @@ function visibleResults() {
     if (!r || !r.fx || r.fx.status === 'finished' || r.fx.status === 'canceled') return false;
     const id = String(r.fx.id);
     if (seen.has(id)) return false;
-    seen.add(id); return true;
+    seen.add(id);
+    return matchesQuery(r.fx);
   });
+}
+// Team search: case, accents and punctuation do not matter; every typed word must be found in either team name.
+const normQ = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff ]+/g, ' ').replace(/\s+/g, ' ').trim();
+function matchesQuery(fx) {
+  const q = st.query; if (!q) return true;
+  const hay = normQ((fx.home && fx.home.name) + ' ' + (fx.away && fx.away.name));
+  return q.split(' ').every(w => hay.includes(w));
 }
 function renderSignals() {
   renderProfile();
@@ -2028,7 +2079,7 @@ function renderSignals() {
   if (st.feedDegraded) note.push('The data feed is incomplete right now: some of today\'s matches may be missing. The list updates by itself.');
   const noteHTML = note.length ? `<div class="empty-state" style="grid-column:1/-1;padding:10px 14px;text-align:left;font-size:13px">⚠️ ${esc(note.join(' · '))}</div>` : '';
   const cardsHTML = cardHTMLs.join('');
-  $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + `<div class="empty-state"><strong>${t.no_upcoming}</strong><p>Picks appear here as soon as bookmakers post prices for upcoming matches.</p><button type="button" class="empty-cta" onclick="this.disabled=true;this.textContent='Checking…';pollFeed().finally(()=>{this.disabled=false;this.textContent='Check for new matches'})">Check for new matches</button></div>`));
+  $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + (st.query ? `<div class="empty-state"><strong>No team matches “${esc(st.queryRaw)}”.</strong><p>Check the spelling or try a shorter name.</p><button type="button" class="empty-cta" onclick="window.__closeSearch()">Clear search</button></div>` : `<div class="empty-state"><strong>${t.no_upcoming}</strong><p>Picks appear here as soon as bookmakers post prices for upcoming matches.</p><button type="button" class="empty-cta" onclick="this.disabled=true;this.textContent='Checking…';pollFeed().finally(()=>{this.disabled=false;this.textContent='Check for new matches'})">Check for new matches</button></div>`)));
   const inDom = $('cards').querySelectorAll('article.match').length;
   if (inDom !== rendered.length) console.warn('Signals: dashboard counts', rendered.length, 'but', inDom, 'cards are in the page');
   syncStatsFromCards();
