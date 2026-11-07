@@ -1863,13 +1863,16 @@ function writeFrozen(o) { try { localStorage.setItem(FROZEN_KEY, JSON.stringify(
 
 function resultFromPick(fx, pk) {
   const sel = pk.key === 'home' ? fx.home.name + ' Win' : pk.key === 'away' ? fx.away.name + ' Win' : 'Draw';
-  const mainOU = pk.ou ? { selection: pk.ou === 'over' ? 'Over 2.5 Goals' : 'Under 2.5 Goals' } : null;
-  return { fx, v: { main1x2: { sel, key: pk.key, p: pk.p }, mainOU } };
+  const mainOU = pk.ou ? { selection: pk.ou === 'over' ? 'Over 2.5 Goals' : 'Under 2.5 Goals', p: pk.ouP == null ? null : pk.ouP } : null;
+  const mainOU15 = pk.ou15 ? { selection: pk.ou15 === 'over' ? 'Over 1.5 Goals' : 'Under 1.5 Goals', p: pk.ou15P == null ? null : pk.ou15P } : null;
+  return { fx, v: { main1x2: { sel, key: pk.key, p: pk.p }, mainOU, mainOU15 } };
 }
 const validPickKey = pk => !!pk && (pk.key === 'home' || pk.key === 'draw' || pk.key === 'away');
 function pickOf(r) {
   const o = /^over/i.test((r.v.mainOU && r.v.mainOU.selection) || '') ? 'over' : (r.v.mainOU && r.v.mainOU.selection ? 'under' : null);
-  return { key: r.v.main1x2.key, p: r.v.main1x2.p, ou: o };
+  const o15 = r.v.mainOU15 && r.v.mainOU15.selection ? (/^over/i.test(r.v.mainOU15.selection) ? 'over' : 'under') : null;
+  const pp = x => (x && typeof x.p === 'number') ? +x.p.toFixed(4) : null;
+  return { key: r.v.main1x2.key, p: r.v.main1x2.p, ou: o, ouP: pp(r.v.mainOU), ou15: o15, ou15P: pp(r.v.mainOU15) };
 }
 
 // Result row for one finished match. `dynamic` = the match is from today: always re-run the engine with the CURRENT
@@ -1886,7 +1889,9 @@ function liveSliderPick(fx) {
   const p = rb && rb.p ? rb.p : sp.prediction.p;
   const over = rb && rb.over != null ? rb.over : sp.prediction.over;
   const key = [['home', p.h], ['draw', p.d], ['away', p.a]].sort((x, y) => y[1] - x[1])[0];
-  return { key: key[0], p: key[1], ou: over == null ? null : (over >= 0.5 ? 'over' : 'under') };
+  const o15 = sp.prediction.over15;   // model-only (the market has no 1.5 line), so the sliders do not change it
+  return { key: key[0], p: key[1], ou: over == null ? null : (over >= 0.5 ? 'over' : 'under'), ouP: over == null ? null : Math.max(over, 1 - over),
+           ou15: o15 == null ? null : (o15 >= 0.5 ? 'over' : 'under'), ou15P: o15 == null ? null : Math.max(o15, 1 - o15) };
 }
 
 function frozenResult(fx, dynamic) {
@@ -1904,13 +1909,29 @@ function frozenResult(fx, dynamic) {
   return r.v.main1x2 ? { fx, v: r.v } : null;
 }
 
-function pickWon(r) {
-  // FIX 9: missing score = no verdict (do NOT treat as 0-0)
-  const hs = r.fx.homeScore, as = r.fx.awayScore;
-  if (!Number.isInteger(hs) || !Number.isInteger(as)) return null;
-  const k = r.v.main1x2.key;
-  return (k === 'home' && hs > as) || (k === 'away' && as > hs) || (k === 'draw' && hs === as);
+/* A match card is a SLIP with up to three predictions: the team (1X2), Over/Under 2.5 and Over/Under 1.5.
+   The slip WINS if at least one prediction wins, and it only LOSES when every prediction lost.
+   A winning slip lists only its winning predictions; a losing slip lists all of them. Performance counts one win or one loss per slip. */
+function slipLegs(r) {
+  const fx = r.fx, v = r.v, hs = fx.homeScore, as = fx.awayScore;
+  if (!Number.isInteger(hs) || !Number.isInteger(as)) return null;   // missing score = no verdict (never treated as 0-0)
+  const goals = hs + as, legs = [], k = v.main1x2 && v.main1x2.key;
+  if (k) legs.push({ kind: 'x12', label: v.main1x2.sel, p: v.main1x2.p, won: (k === 'home' && hs > as) || (k === 'away' && as > hs) || (k === 'draw' && hs === as) });
+  const ou = (leg, kind, line) => {
+    if (!leg || !leg.selection) return;
+    const over = /^over/i.test(leg.selection);
+    legs.push({ kind, label: leg.selection, p: typeof leg.p === 'number' ? leg.p : null, won: over ? goals > line : goals < line });
+  };
+  ou(v.mainOU, 'ou25', 2.5); ou(v.mainOU15, 'ou15', 1.5);
+  return legs;
 }
+function slipVerdict(r) {
+  const legs = slipLegs(r);
+  if (!legs || !legs.length) return null;
+  const won = legs.some(l => l.won);
+  return { won, legs, shown: won ? legs.filter(l => l.won) : legs };
+}
+function pickWon(r) { const s = slipVerdict(r); return s ? s.won : null; }
 
 // A past day is only frozen once none of its matches is still unfinished (e.g. a late kickoff that ends after midnight).
 function dayHasOpenMatch(dateStr) {
@@ -2183,46 +2204,26 @@ function renderHistory() {
   const wins = todayTot.wins, losses = todayTot.losses;
 
   $('history-list').innerHTML = finished.map(r => {
-    const fx = r.fx, v = r.v;
-    // FIX 9d: null score → null verdict (badge hidden, not counted)
-    const hs = fx.homeScore, as = fx.awayScore;
-    const pickKey = v.main1x2.key;
-
-    let botWon = null;
-    if (Number.isInteger(hs) && Number.isInteger(as)) {
-      if (pickKey === 'home' && hs > as) botWon = true;
-      else if (pickKey === 'away' && as > hs) botWon = true;
-      else if (pickKey === 'draw' && hs === as) botWon = true;
-      else botWon = false;
-    }
-
-    let ouRow = '';
-    const ou = v.mainOU;
-    if (ou && ou.selection && Number.isInteger(hs) && Number.isInteger(as)) {
-      const goals = hs + as;
-      const isOver = /^over/i.test(ou.selection);
-      const ouWon = isOver ? goals > 2.5 : goals < 2.5;
-      ouRow = `<div class="hc-footer hc-ou">
-        <span>${t.over_under}: <strong>${esc(ou.selection)}</strong></span>
-        ${ouWon ? `<span class="badge-win">${t.win}</span>` : `<span class="badge-loss">${t.loss}</span>`}
-      </div>`;
-    }
+    const fx = r.fx, hs = fx.homeScore, as = fx.awayScore;
+    const sv = slipVerdict(r);   // null while the score is missing: no badge, not counted
+    const legRows = sv ? sv.shown.map(l => {
+      const name = l.kind === 'x12' ? t.pick : t.over_under;
+      const pct = typeof l.p === 'number' ? ` <em>${Math.round(l.p * 100)}%</em>` : '';
+      return `<div class="hc-footer"><span>${name}: <strong>${esc(l.label)}</strong>${pct}</span>${l.won ? `<span class="badge-win">${t.win}</span>` : `<span class="badge-loss">${t.loss}</span>`}</div>`;
+    }).join('') : `<div class="hc-footer"><span>${t.pick}: <strong>${esc(r.v.main1x2.sel)}</strong></span><span class="pill">—</span></div>`;
+    const head = sv ? (sv.won ? `<span class="badge-win">${t.win}</span>` : `<span class="badge-loss">${t.loss}</span>`) : `<span>${t.finished}</span>`;
 
     return `<div class="hc-card">
       <div class="hc-header">
         <span>${esc(fx.league)}</span>
-        <span>${t.finished}</span>
+        ${head}
       </div>
       <div class="hc-teams">
         <span class="hc-team">${crestHTML(fx.home)}<span>${esc(teamDisp(fx.home, fx))}</span></span>
         <span class="hc-score">${hs} - ${as}</span>
         <span class="hc-team">${crestHTML(fx.away)}<span>${esc(teamDisp(fx.away, fx))}</span></span>
       </div>
-      <div class="hc-footer">
-        <span>${t.pick}: <strong>${esc(v.main1x2.sel)}</strong></span>
-        ${botWon === true ? `<span class="badge-win">${t.win}</span>` : botWon === false ? `<span class="badge-loss">${t.loss}</span>` : `<span class="pill">—</span>`}
-      </div>
-      ${ouRow}
+      ${legRows}
     </div>`;
   }).join('');
 
