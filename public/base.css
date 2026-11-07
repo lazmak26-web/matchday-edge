@@ -75,3 +75,11 @@ body:has(#view-signals.active) .app-header:not(.scrolled){border-radius:0}   /* 
 .search-bar input::-webkit-search-cancel-button{display:none}
 .search-bar button{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:var(--soft);color:var(--ink-2);cursor:pointer;font-size:14px}
 @media (prefers-reduced-motion:reduce){.search-bar{transition:none}}
+
+/* History card: each prediction is its own row with room around it (the Win/Loss badges used to touch each other) */
+.hc-card .hc-teams{margin-bottom:6px}
+.hc-card .hc-footer{gap:12px;margin-top:0;padding:10px 0;border-top:1px solid var(--line);line-height:1.35}
+.hc-card .hc-footer + .hc-footer{margin-top:0}
+.hc-card .hc-footer > span:first-child{min-width:0}
+.hc-card .badge-win,.hc-card .badge-loss,.hc-card .hc-footer .pill{flex:none;padding:5px 14px;line-height:1.2;white-space:nowrap}
+.hc-card .hc-footer:last-child{padding-bottom:2px}
