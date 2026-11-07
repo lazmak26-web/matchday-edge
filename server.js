@@ -933,7 +933,7 @@ function freezePick(f, prevPick) {
       bet = { key: dec.pick.key, odds: dec.pick.odds, book: dec.pick.book, p: +dec.pick.p.toFixed(4), ev: +dec.pick.ev.toFixed(4),
         firstOdds: pb ? (pb.firstOdds || pb.odds) : dec.pick.odds, firstAt: pb ? (pb.firstAt || pb.at || Date.now()) : Date.now(), at: Date.now() };
     }
-    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), ouP: pred.over == null ? null : +Math.max(pred.over, 1 - pred.over).toFixed(4), ou15: pred.over15 == null ? null : (pred.over15 >= 0.5 ? 'over' : 'under'), ou15P: pred.over15 == null ? null : +Math.max(pred.over15, 1 - pred.over15).toFixed(4), source: pred.source, bet, at: Date.now() };
+    return { key: best[0], p: +best[1].toFixed(4), ou: pred.over == null ? null : (pred.over >= 0.5 ? 'over' : 'under'), ouP: pred.over == null ? null : +Math.max(pred.over, 1 - pred.over).toFixed(4), ou15: pred.over15 == null ? null : (pred.over15 >= 0.5 ? 'over' : 'under'), ou15P: pred.over15 == null ? null : +Math.max(pred.over15, 1 - pred.over15).toFixed(4), ou15Est: pred.over15Source === 'market-implied' ? true : undefined, source: pred.source, bet, at: Date.now() };
   } catch (e) { console.error('freezePick error:', e.message); return null; }
 }
 
