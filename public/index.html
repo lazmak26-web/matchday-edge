@@ -252,6 +252,14 @@ button,select,input{font:inherit;color:inherit}
 .lp-unlock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;border:0;cursor:pointer;font-weight:600;font-size:13px;color:var(--on-brand);background:var(--brand);padding:10px 18px;border-radius:999px;transition:transform .2s}
 .lp-lock:hover .lp-unlock{transform:translate(-50%,-50%) scale(1.06)}
 .hc-card{padding:16px;border-radius:22px}
+.hist-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 16px;margin:0 0 14px;border-radius:24px;background:var(--soft);border:1px solid var(--line,rgba(127,127,127,.2))}
+.hist-search:focus-within{border-color:var(--brand)}
+.hist-search svg{flex:none;color:var(--ink-3)}
+.hist-search input{flex:1;min-width:0;height:100%;border:0;background:transparent;color:var(--ink);font:600 16px var(--font);outline:0}
+.hist-search input::placeholder{color:var(--ink-3);font-weight:500}
+.hist-search input::-webkit-search-cancel-button{display:none}
+.hist-search button{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:transparent;color:var(--ink-2);cursor:pointer;font-size:14px}
+.hist-search button[hidden]{display:none}
 .hc-header{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3)}
 .pick-teams{display:flex;align-items:center;gap:8px}.pick-teams .crest{width:32px;height:32px;border-radius:11px;font-size:11px;flex:none}.pick-teams .crest+.crest{margin-left:-14px}
 .dc-match{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;border:1px solid var(--line-2);border-radius:18px;background:var(--soft)}.dc-match .team{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;text-align:center;font-weight:600;font-size:13px}.dc-match .crest{width:44px;height:44px;border-radius:14px}.dc-mid{text-align:center;display:flex;flex-direction:column;gap:2px;font-weight:700}.dc-lg{font-size:12px;color:var(--ink-3);margin-bottom:6px}
@@ -699,6 +707,11 @@ html.lenis, html.lenis body { height:auto; }
     <div id="view-history" class="tab-view">
       <section style="margin-top:24px;">
         <div class="section-head"><div class="section-label">⏱️ <span data-i18n="past_matches">Past Matches</span></div><h2 data-i18n="bot_history">Bot History</h2></div>
+        <div class="hist-search" role="search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+          <input id="historySearch" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search a team…" data-i18n-ph="hist_search_ph" aria-label="Search past matches by team">
+          <button type="button" id="historySearchClear" aria-label="Clear search" hidden>✕</button>
+        </div>
         <div class="history-grid" id="history-list"></div>
       </section>
     </div>
@@ -1044,7 +1057,7 @@ const translations = {
     get_key: "Get your Key from Telegram",
     value_board: "Value Board", best_ev: "Best positive-EV prices",
     fixtures: "Fixtures", matches: "Matches",
-    past_matches: "Past Matches", bot_history: "Bot History",
+    past_matches: "Past Matches", bot_history: "Bot History", hist_search_ph: "Search a team…", hist_no_match: "No matches found",
     bot_stats: "Bot Stats", perf_overview: "Performance Overview",
     win_rate_today: "Today's Win Rate", win_rate: "Overall Win Rate", total_picks: "Total Picks",
     perf_history: "Performance History",
@@ -1099,7 +1112,7 @@ const translations = {
     get_key: "Obtenez votre clé sur Telegram",
     value_board: "Tableau des Valeurs", best_ev: "Meilleurs prix +EV",
     fixtures: "Matchs", matches: "Rencontres",
-    past_matches: "Matchs Passés", bot_history: "Historique du Bot",
+    past_matches: "Matchs Passés", bot_history: "Historique du Bot", hist_search_ph: "Rechercher une équipe…", hist_no_match: "Aucun match trouvé",
     bot_stats: "Statistiques du Bot", perf_overview: "Aperçu des Performances",
     win_rate_today: "Taux de réussite du jour", win_rate: "Taux de Réussite Global", total_picks: "Total des Paris",
     perf_history: "Historique des Performances",
@@ -1154,7 +1167,7 @@ const translations = {
     get_key: "احصل على مفتاحك من تيليجرام",
     value_board: "لوحة القيمة", best_ev: "أفضل الأسعار الإيجابية",
     fixtures: "المباريات", matches: "المباريات",
-    past_matches: "المباريات السابقة", bot_history: "سجل البوت",
+    past_matches: "المباريات السابقة", bot_history: "سجل البوت", hist_search_ph: "ابحث عن فريق…", hist_no_match: "لم يتم العثور على مباريات",
     bot_stats: "إحصائيات البوت", perf_overview: "نظرة عامة على الأداء",
     win_rate_today: "معدل فوز اليوم", win_rate: "معدل الفوز العام", total_picks: "إجمالي التوقعات",
     perf_history: "سجل الأداء",
@@ -2186,9 +2199,33 @@ function buildCard(r, t) {
   }
 }
 
+let histQuery = '', histQueryRaw = '';
+function matchesHistoryQuery(fx, q) {
+  const hay = normQ(((fx.home && fx.home.name) || '') + ' ' + ((fx.away && fx.away.name) || '') + ' ' + (fx.league || ''));
+  return q.split(' ').every(w => hay.includes(w));
+}
+(function () {
+  const inp = document.getElementById('historySearch'), clr = document.getElementById('historySearchClear');
+  if (!inp) return;
+  let tm = 0;
+  function apply() {
+    histQueryRaw = inp.value.trim(); histQuery = normQ(inp.value);
+    clr.hidden = !inp.value;
+    renderHistory();
+  }
+  inp.addEventListener('input', () => { clr.hidden = !inp.value; clearTimeout(tm); tm = setTimeout(apply, 120); });
+  inp.addEventListener('keydown', e => { if (e.key === 'Escape') { inp.value = ''; apply(); } if (e.key === 'Enter') inp.blur(); });
+  clr.addEventListener('click', () => { inp.value = ''; apply(); inp.focus(); });
+})();
 function renderHistory() {
   const t = translations[localStorage.getItem('mde:lang') || 'en'] || translations.en;
   const finished = getFinishedMatches();
+  // History search: only the list below is filtered; the win-rate numbers always cover every finished match.
+  const hq = histQuery;
+  const listed = hq ? finished.filter(r => matchesHistoryQuery(r.fx, hq)) : finished;
+  if (finished.length && !listed.length) {
+    $('history-list').innerHTML = `<div class="empty-state"><strong>${esc(t.hist_no_match || 'No matches found')}</strong><p>“${esc(histQueryRaw)}”</p></div>`;
+  }
   if (!finished.length) {
     $('history-list').innerHTML = `<div class="empty-state"><strong>${t.no_finished}</strong><p>Results and the win rate of our picks show up here once matches are over.</p></div>`;
     $('perf-winrate').textContent = '0%';
@@ -2203,7 +2240,7 @@ function renderHistory() {
   const todayTot = getDailyTotals(finished)[localDateStr(new Date())] || { wins: 0, losses: 0 };
   const wins = todayTot.wins, losses = todayTot.losses;
 
-  $('history-list').innerHTML = finished.map(r => {
+  if (listed.length) $('history-list').innerHTML = listed.map(r => {
     const fx = r.fx, hs = fx.homeScore, as = fx.awayScore;
     const sv = slipVerdict(r);   // null while the score is missing: no badge, not counted
     const legRows = sv ? sv.shown.map(l => {
