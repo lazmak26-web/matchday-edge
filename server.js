@@ -124,7 +124,10 @@ if (BZZ_LOW) console.log(`🐢 Low Bzzoiro quota mode (${BZZ_DAILY_BUDGET}/day):
 const bzzUsage = { day: null, n: 0 };
 function bzzRoll() { const d = new Date().toISOString().slice(0, 10); if (bzzUsage.day !== d) { bzzUsage.day = d; bzzUsage.n = 0; } }
 function bzzCount() { bzzRoll(); bzzUsage.n++; if (bzzUsage.n % 100 === 0) console.log(`📈 Bzzoiro requests today: ${bzzUsage.n}/${BZZ_DAILY_BUDGET}`); }
-function bzzBudgetOk() { bzzRoll(); return bzzUsage.n < BZZ_DAILY_BUDGET; }
+// The last 25% of the daily quota is reserved for the live events list (statuses + scores). Forms, odds and result back-fills stop before it:
+// they used to eat the whole quota by the evening, after which every match froze on its last status ("LIVE 0-0" for hours).
+const BZZ_RESERVE = Math.floor(BZZ_DAILY_BUDGET * 0.25);
+function bzzBudgetOk(essential) { bzzRoll(); return bzzUsage.n < (essential ? BZZ_DAILY_BUDGET : BZZ_DAILY_BUDGET - BZZ_RESERVE); }
 
 function isActive() {
   if (!lastFixtures) return true;
@@ -147,40 +150,8 @@ const { normalizeTeamKey, normalizeName, squadKey, teamsFuzzyMatch, teamsMatchAn
 /* ═══════════════════════════════════════════════════════════
    STATUS NORMALIZATION
    ═══════════════════════════════════════════════════════════ */
-const STATUS_FINISHED = new Set(['finished','ft','ended','full_time','fulltime','after_extra_time','after_penalties','aet','pen','ended_after_extra_time','ended_after_penalties','full-time','end']);
-const STATUS_CANCELED = new Set(['canceled','cancelled','abandoned','postponed','suspended','interrupted']);
-const STATUS_LIVE = new Set(['in_play','inplay','live','started','halftime','ht','in_progress','1h','2h','first_half','second_half','playing','paused','break','int','in-progress','half_time']);
-const STATUS_NOTSTARTED = new Set(['not_started','notstarted','scheduled','timed','tbd','pre','upcoming','not-started']);
-
-function normalizeStatus(rawStatus, kickoffDate) {
-  const s = String(rawStatus || '').toLowerCase().trim().replace(/[\s\-]+/g, '_');
-  if (STATUS_FINISHED.has(s)) return 'finished';
-  if (STATUS_CANCELED.has(s)) return 'canceled';
-  if (STATUS_LIVE.has(s)) return 'started';
-  if (STATUS_NOTSTARTED.has(s) || !s) {
-    if (kickoffDate) {
-      const e = Date.now() - new Date(kickoffDate).getTime();
-      if (!isNaN(e)) {
-        if (e > 4 * 60 * 60 * 1000) return 'finished';
-        if (e > 10 * 60 * 1000) return 'started';
-      }
-    }
-    return 'notstarted';
-  }
-  if (kickoffDate) {
-    const e = Date.now() - new Date(kickoffDate).getTime();
-    if (!isNaN(e)) {
-      if (e > 4 * 60 * 60 * 1000) return 'finished';
-      if (e > 10 * 60 * 1000) return 'started';
-    }
-  }
-  return 'notstarted';
-}
-
-function pickBetterStatus(a, b) {
-  const o = { finished: 4, started: 3, canceled: 2, notstarted: 1 };
-  return (o[a] || 0) >= (o[b] || 0) ? a : b;
-}
+// Pure helpers live in status.js (tested in tests/status.test.js). A feed that still says "live" 3.5 h after kick-off is stuck: the match is over.
+const { normalizeStatus, pickBetterStatus, expireStaleLive, mergeEvents } = require('./status');
 
 /* ═══════════════════════════════════════════════════════════
    APIs & DATA FETCHING
@@ -561,11 +532,16 @@ let bzzLastPages = 1;
 const BZZ_RETRY_MS = 15 * 1000;   // how soon an incomplete / failed events fetch is retried
 let bzzTruncated = false;   // true when today has more event pages than BZZ_EVENT_PAGES: the rest is NOT shown
 let bzzIncomplete = false;   // true while the events list may be missing matches (a page failed, budget used up, provider down)
+// True while our copy of today's events was fetched completely and recently (so its scores are current, not left over from an hour ago).
+function eventsFresh() {
+  const ttl = (isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE) * 2 + 60 * 1000;
+  return !bzzIncomplete && !!eventsCache.ts && Date.now() - eventsCache.ts < ttl;
+}
 async function fetchBzzoiroEvents() {
   if (!BZZOIRO_API_KEY) return [];
   const eventsTtl = (isActive() ? EVENTS_TTL_ACTIVE : EVENTS_TTL_IDLE) * (bzzLastPages > 2 ? 2 : 1);   // more pages cost more of the daily budget: refresh less often
   if (eventsCache.data && (eventsCache.retryAt ? Date.now() < eventsCache.retryAt : Date.now() - eventsCache.ts < eventsTtl)) return eventsCache.data;
-  if (!bzzBudgetOk()) { bzzIncomplete = true; return eventsCache.data || []; }
+  if (!bzzBudgetOk(true)) { bzzIncomplete = true; return eventsCache.data || []; }
   if (eventsFetchInProgress) return eventsFetchInProgress;
   eventsFetchInProgress = (async () => {
     try {
@@ -591,8 +567,10 @@ async function fetchBzzoiroEvents() {
       bzzTruncated = !!(url && complete);
       // retryAt (not a shortened ts): the TTL differs between active (60 s) and idle (10 min) mode and can change before the retry is due.
       if (!complete && known.length > events.length) {
-        // A later page failed: keep the fuller list we already have and retry soon, instead of showing fewer matches.
-        console.log(`⚠️ Bzzoiro events: a page failed (${events.length} < ${known.length} known). Keeping the previous list.`);
+        // A later page failed: keep the fuller list we already know, but lay what we DID just fetch over it (by event id), so those matches
+        // get their fresh status and score. Throwing the new pages away froze every match on its old status ("LIVE 0-0") while a page kept failing.
+        console.log(`⚠️ Bzzoiro events: a page failed (${events.length} < ${known.length} known). Keeping the known list, updated with the ${events.length} fresh events.`);
+        eventsCache.data = mergeEvents(known, events); eventsCache.ts = Date.now(); eventsCache.day = day;
         eventsCache.retryAt = Date.now() + BZZ_RETRY_MS;
       } else if (events.length > 0 || !known.length) {
         eventsCache.data = events; eventsCache.ts = Date.now(); eventsCache.day = day;
@@ -646,7 +624,7 @@ async function fetchOdds() {
       const now = Date.now();
       const queue = valid.filter(ev => {
         const c = oddsByEvent.get(ev.id);
-        if (!bzzBudgetOk()) return false;
+        if (!bzzBudgetOk(false)) return false;
         const st = normalizeStatus(ev.status, ev.event_date);
         if (st === 'finished' || st === 'canceled') return false;   // only pre-match prices are used: never spend budget on these
         if (c && st === 'started') return false;
@@ -655,6 +633,7 @@ async function fetchOdds() {
       });
       const workers = Array.from({ length: ODDS_CONCURRENCY }, async () => {
         while (queue.length) {
+          if (!bzzBudgetOk(false)) { queue.length = 0; break; }
           const ev = queue.shift();
           const raw = await fetchEventOdds(ev.id);
           const parsed = parseBzzoiroOdds(raw);
@@ -759,10 +738,13 @@ function stabilizeToday(fresh) {
   }
   for (const f of list) {
     const pf = stableToday.map.get(f.id);
-    if (pf && pf.status === 'finished' && f.status !== 'finished' && Number.isInteger(pf.homeScore) && Number.isInteger(pf.awayScore)) {
-      f.status = 'finished'; f.homeScore = pf.homeScore; f.awayScore = pf.awayScore;
+    if (pf && pf.status === 'finished' && Number.isInteger(pf.homeScore) && Number.isInteger(pf.awayScore)
+        && (f.status !== 'finished' || !Number.isInteger(f.homeScore) || !Number.isInteger(f.awayScore))) {
+      f.status = 'finished'; f.homeScore = pf.homeScore; f.awayScore = pf.awayScore; delete f.resultPending;
     }
   }
+  // Whatever is still "live" long after kick-off (a stale copy kept while the feed is degraded, a stuck provider) is over: never LIVE for ever.
+  for (const f of list) if (expireStaleLive(f)) console.log(`⏱️ ${f.home.name} v ${f.away.name}: still "live" more than 3.5 h after kick-off, now shown as finished (score pending)`);
   if (!degraded) stableToday.map = new Map();
   for (const f of list) stableToday.map.set(f.id, f);
   if (list.length !== stableToday.count) {
@@ -834,14 +816,20 @@ async function getFixtures() {
           awayScore = ev.away_score ?? 0;
         }
 
-        if (status === 'finished' && !fdHasScore && (ev.home_score == null || ev.away_score == null)) status = 'started';
+        // Finished but the feed has no score (yet): it is FINISHED with an unknown score, never "LIVE 0-0" for ever.
+        // The real score is filled in as soon as the provider sends it; until then nothing is graded on it.
+        // Same when only the CLOCK made it finished (the feed still says "live" hours after kick-off) and our copy of the feed is old:
+        // the score in it may be the 0-0 of minute one, so it is not a verified final result.
+        const clockOnly = status === 'finished' && normalizeStatus(ev.status, null) !== 'finished' && fdS !== 'finished';
+        let resultPending;
+        if (status === 'finished' && !fdHasScore && (ev.home_score == null || ev.away_score == null || (clockOnly && !eventsFresh()))) { homeScore = null; awayScore = null; resultPending = true; }
         const fixture = {
           id: `bzz_${ev.id}`,
           league: fdMatch?.competition?.name || (ev.league_id ? `League #${ev.league_id}` : 'Football'),
           women: WOMEN_LEAGUE_IDS.has(String(ev.league_id)) || undefined,
           date: kickoff.toISOString().slice(0, 10),
           kickoff: kickoff.toISOString().slice(11, 16),
-          status, homeScore, awayScore,
+          status, homeScore, awayScore, resultPending,
           home: {
             id: fdMatch?.homeTeam.id || null,
             name: ev.home_team,
@@ -888,7 +876,7 @@ async function getFixtures() {
           odds: mergeOdds(odds, m.homeTeam.name, m.awayTeam.name),
           sources: odds ? ['fd', 'bzz'] : ['fd']
         };
-        if (fixture.status === 'finished' && (m.score?.fullTime?.home == null || m.score?.fullTime?.away == null)) fixture.status = 'started';
+        if (fixture.status === 'finished' && (m.score?.fullTime?.home == null || m.score?.fullTime?.away == null)) { fixture.homeScore = null; fixture.awayScore = null; fixture.resultPending = true; }
         estimateXGForFixture(fixture);
         fixtures.push(fixture);
       }
@@ -981,7 +969,10 @@ function recordSnapshots(fixtures) {
     }
 
     if (f.status !== 'canceled' && (prev.status !== f.status || prev.homeScore !== f.homeScore || prev.awayScore !== f.awayScore)) {
-      if (prev.status !== 'finished' || f.status === 'finished') {
+      const prevFinal = prev.status === 'finished' && Number.isInteger(prev.homeScore) && Number.isInteger(prev.awayScore);
+      const fHasScore = Number.isInteger(f.homeScore) && Number.isInteger(f.awayScore);
+      // A settled result is never overwritten by a feed that has no score (or went back to "live").
+      if ((prev.status !== 'finished' || f.status === 'finished') && !(prevFinal && !fHasScore)) {
         prev.status = f.status; prev.homeScore = f.homeScore; prev.awayScore = f.awayScore;
         changed = true;
       }
@@ -992,54 +983,73 @@ function recordSnapshots(fixtures) {
   if (changed) saveSnapshotsSoon();
 }
 
+// A snapshot that is still not settled this many days after kick-off is given up on: the provider will not settle it, and asking for it
+// every few minutes for ever (postponed / dropped matches) is what used to burn the whole daily request quota.
+const RESULTS_LOOKBACK_DAYS = 4;
+const toScore = v => { if (v == null || v === '') return null; const n = Number(v); return Number.isInteger(n) && n >= 0 ? n : null; };
+const settledSnap = f => f.status === 'canceled' || (f.status === 'finished' && Number.isInteger(f.homeScore) && Number.isInteger(f.awayScore));
+
 async function refreshHistoryResults() {
   if (!BZZOIRO_API_KEY) return;
   if (Date.now() - historyCache.ts < RESULTS_REFRESH_TTL) return;
-  if (!bzzBudgetOk()) return;
+  if (!bzzBudgetOk(false)) return;
   if (resultsRefreshInProgress) return resultsRefreshInProgress;
 
-  const unfinished = [...snapshotStore.values()].filter(f => {
-    if (f.status === 'finished' || !String(f.id).startsWith('bzz_')) return false;
+  const now = Date.now(), oldestT = now - RESULTS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
+  const pending = new Map();   // snapshot id -> snapshot: played (kick-off passed), recent, and without a final score yet
+  for (const f of snapshotStore.values()) {
+    if (!f || !String(f.id).startsWith('bzz_') || settledSnap(f) || (f.notFound | 0) >= 3) continue;   // notFound: the provider no longer lists it (3 full scans): stop asking
     const t = new Date(f.date + 'T' + f.kickoff + ':00Z').getTime();
-    return isNaN(t) || t < Date.now();
-  });
-  if (!unfinished.length) { historyCache.ts = Date.now(); return; }
+    if (isNaN(t) || t > now || t < oldestT) continue;
+    pending.set(f.id, f);
+  }
+  if (!pending.size) { historyCache.ts = Date.now(); return; }
 
   resultsRefreshInProgress = (async () => {
     try {
-      const oldest = unfinished.reduce((m, f) => (f.date < m ? f.date : m), todayStr());
-      const dateFrom = oldest < dateDaysAgo(14) ? dateDaysAgo(14) : oldest;
+      const oldest = [...pending.values()].reduce((m, f) => (f.date < m ? f.date : m), todayStr());
+      const dateFrom = oldest < dateDaysAgo(RESULTS_LOOKBACK_DAYS) ? dateDaysAgo(RESULTS_LOOKBACK_DAYS) : oldest;
       let url = `${BZZOIRO_API_BASE}/v2/events/?date_from=${dateFrom}&date_to=${todayStr()}`;
       let changed = false;
+      const seen = new Set();
 
-      for (let page = 0; url && page < (BZZ_LOW ? 3 : 10); page++) {
+      for (let page = 0; url && pending.size && page < (BZZ_LOW ? 3 : 10); page++) {
+        if (!bzzBudgetOk(false)) break;
         bzzCount();
         const r = await fetch(url, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
         if (!r.ok) throw new Error(`Results refresh HTTP ${r.status}`);
         const data = await r.json();
         for (const ev of (data.results || data.data || [])) {
-          const snap = snapshotStore.get(`bzz_${ev.id}`);
-          if (!snap || snap.status === 'finished') continue;
-          if (ev.home_score == null || ev.away_score == null) continue;
+          const id = `bzz_${ev.id}`, snap = pending.get(id);
+          if (!snap) continue;
+          seen.add(id);
           const ns = normalizeStatus(ev.status, ev.event_date);
+          if (ns === 'canceled') { snap.status = 'canceled'; pending.delete(id); changed = true; continue; }   // postponed / abandoned: nothing will ever settle it
+          const hs = toScore(ev.home_score), as = toScore(ev.away_score);
+          if (hs == null || as == null) continue;
           if (ns === 'started') {   // still being played: follow the live score, never settle it
-            if (snap.status !== 'started' || snap.homeScore !== ev.home_score || snap.awayScore !== ev.away_score) {
-              snap.status = 'started'; snap.homeScore = ev.home_score; snap.awayScore = ev.away_score; changed = true;
+            if (snap.status !== 'started' || snap.homeScore !== hs || snap.awayScore !== as) {
+              snap.status = 'started'; snap.homeScore = hs; snap.awayScore = as; changed = true;
             }
             continue;
           }
           if (ns !== 'finished') continue;
           snap.status = 'finished';
-          snap.homeScore = ev.home_score;
-          snap.awayScore = ev.away_score;
+          snap.homeScore = hs;
+          snap.awayScore = as;
+          delete snap.resultPending;
+          pending.delete(id);
           changed = true;
         }
         url = typeof data.next === 'string' && data.next ? data.next : null;
       }
-      if (changed) saveSnapshotsSoon();
+      // The whole date range was read and a match is still not in it: count it, and give up after 3 such scans (instead of asking for ever).
+      if (!url) for (const [id, snap] of pending) if (!seen.has(id)) { snap.notFound = (snap.notFound | 0) + 1; changed = true; }
+      if (changed) { saveSnapshotsSoon(); fixturesCache.data = null; }
       historyCache.ts = Date.now();
     } catch (e) {
       console.error(e.message);
+      historyCache.ts = Date.now() - RESULTS_REFRESH_TTL + 60 * 1000;   // failed: try again in a minute, not on every request
     } finally { resultsRefreshInProgress = null; }
   })();
   return resultsRefreshInProgress;
@@ -1169,6 +1179,20 @@ app.use('/api/', (req, res, next) => {
 
 app.use(express.json({ limit: '10kb' }));
 app.use(pageLimiter);
+// Visit counter / live users: BEFORE express.static, which answers '/' and '/index.html' itself and never calls next() (the counter used to stay at 0).
+app.use((req, res, next) => {
+  if (req.method === 'GET') {
+    const ip = req.ip || 'unknown';
+    if (req.path === '/' || req.path.startsWith('/api/')) {
+      activeUsers.set(ip, Date.now());
+    }
+    if (req.path === '/' || req.path === '/index.html') {
+      totalVisits++;
+      saveStatsSoon();
+    }
+  }
+  next();
+});
 // The same pure odds core runs in the browser (sharp weighting, outlier filter, best price), so the Value Board matches the server engine.
 app.get('/odds-core.js', (req, res) => { res.type('application/javascript').set('Cache-Control', 'public, max-age=300').sendFile(path.join(__dirname, 'engine', 'odds.js')); });
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -1206,20 +1230,6 @@ setInterval(() => {
   const now = Date.now();
   for (const [ip, time] of activeUsers) if (now - time > 5 * 60 * 1000) activeUsers.delete(ip);
 }, 60 * 1000).unref();
-
-app.use((req, res, next) => {
-  if (req.method === 'GET') {
-    const ip = req.ip || 'unknown';
-    if (req.path === '/' || req.path.startsWith('/api/')) {
-      activeUsers.set(ip, Date.now());
-    }
-    if (req.path === '/' || req.path === '/index.html') {
-      totalVisits++;
-      saveStatsSoon();
-    }
-  }
-  next();
-});
 
 /* ═══════════════════════════════════════════════════════════
    EMAIL ACCOUNTS
@@ -1301,16 +1311,20 @@ async function sendOtp(email) {
   if (now - cap.t > 3600000) { cap.n = 0; cap.t = now; }
   if (cap.n >= OTP_MAX_SENDS_PER_HOUR) return { error: 'Too many codes requested. Try again later.', status: 429 };
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  // Reserve the slot BEFORE awaiting the mail: two quick requests (double click, login + resend) used to both pass the resend-gap check,
+  // send two different codes, and the user then typed the one that had been overwritten.
+  otps.set(email, { hash: otpHash(email, code), exp: now + OTP_TTL, tries: 0, sentAt: now });
+  cap.n++; otpSends.set(email, cap);
   try {
     await sendMail(email, 'Your LuciBet login code',
       `Your LuciBet verification code is ${code}. It expires in 10 minutes. If you did not request it, you can ignore this email.`,
       `<div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:24px"><h2 style="margin:0 0 12px">LuciBet</h2><p>Your verification code is:</p><p style="font-size:32px;letter-spacing:6px;font-weight:800;margin:12px 0">${code}</p><p style="color:#666">It expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`);
   } catch (e) {
     console.error('OTP mail error:', e.message);
+    if (prev) otps.set(email, prev); else otps.delete(email);   // nothing was delivered: give the slot (and the send allowance) back
+    cap.n = Math.max(0, cap.n - 1);
     return { error: 'Could not send the code. Please try again.', status: 502 };
   }
-  otps.set(email, { hash: otpHash(email, code), exp: now + OTP_TTL, tries: 0, sentAt: now });
-  cap.n++; otpSends.set(email, cap);
   return { ok: true, resendIn: OTP_RESEND_GAP / 1000 };
 }
 
@@ -1597,7 +1611,8 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   if (typeof username !== 'string' || typeof password !== 'string' || username.length > 100 || password.length > 200 || (hwid != null && (typeof hwid !== 'string' || hwid.length > 200))) {
     return res.status(400).json({ error: 'Invalid input' });
   }
-  const uKey = username.toLowerCase();
+  // trimmed (emails are trimmed by localLogin, so " a@b.c" must share a@b.c's counter) and prefixed (so it cannot collide with the 'lic:' license counters)
+  const uKey = 'login:' + (username.includes('@') ? username.trim() : username).toLowerCase();
   const uf = userFails.get(uKey);
   if (uf && uf.n >= 8 && Date.now() - uf.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
   if (username.includes('@')) return localLogin(res, username.trim().toLowerCase(), password, uKey);
@@ -1741,7 +1756,7 @@ app.get('/api/history', dataLimiter, async (req, res) => {
   try {
     await refreshHistoryResults().catch(e => console.error(e.message));
     const cutoff = dateDaysAgo(HISTORY_KEEP_DAYS);
-    const fixtures = dedupeFixtures([...snapshotStore.values()].filter(f => f.status === 'finished' && f.date >= cutoff))
+    const fixtures = dedupeFixtures([...snapshotStore.values()].filter(f => f.status === 'finished' && f.date >= cutoff && Number.isInteger(f.homeScore) && Number.isInteger(f.awayScore)))   // score still pending: not listed yet
       .sort((a, b) => (b.date + b.kickoff).localeCompare(a.date + a.kickoff));
     res.json({ fixtures: fixtures.map(f => (isWomenFixture(f) && f.women !== true) ? Object.assign({}, f, { women: true }) : f) });
   } catch (e) {
@@ -1765,15 +1780,6 @@ async function backgroundTick() {
 }
 setTimeout(backgroundTick, 10 * 1000);
 setInterval(backgroundTick, 3 * 60 * 1000).unref();
-
-app.use((err, req, res, next) => {
-  if (res.headersSent) return next(err);
-  const status = err && (err.status || err.statusCode);
-  if (status === 413) return res.status(413).json({ error: 'Request too large' });
-  if (status >= 400 && status < 500) return res.status(status).json({ error: 'Bad request' });
-  console.error('Unhandled error:', err && err.message);
-  res.status(500).json({ error: 'Server error' });
-});
 
 const server = app.listen(PORT, () => console.log(`✅ Server on ${PORT}`));
 server.headersTimeout = 15 * 1000;
@@ -1905,8 +1911,12 @@ function settleMatch(m) {
 
 // Visible to every logged-in user (Pro and Free). Shared matches get their live status/score refreshed on each read.
 // What a viewer may see of a post: counts and their own vote. Voter e-mails never leave the server.
+// What other users see instead of an account name: never the e-mail (not even the part before the @).
+const publicHandle = username => { const u = users.get(username); return u ? 'USR' + String(u.seq).padStart(6, '0') : 'USER-' + tokHash(username).slice(0, 6).toUpperCase(); };
+const HANDLE_RE = /^(USR\d{6}|USER-[0-9A-F]{6})$/;
+const discoverComments = p => (p.comments || []).slice(-200).map(c => HANDLE_RE.test(String(c.user)) ? c : Object.assign({}, c, { user: 'USER-' + tokHash(String(c.user)).slice(0, 6).toUpperCase() }));   // old comments stored the e-mail's local part
 const discoverView = (p, match, me) => ({
-  id: p.id, text: p.text, image: p.image, match: match || null, date: p.date, comments: p.comments || [],
+  id: p.id, text: p.text, image: p.image, match: match || null, date: p.date, comments: discoverComments(p),
   likes: (p.likes || []).length, dislikes: (p.dislikes || []).length,
   isLiked: (p.likes || []).includes(me), isDisliked: (p.dislikes || []).includes(me)
 });
@@ -1995,8 +2005,9 @@ app.post('/api/discover/:id/comment', dataLimiter, authMiddleware, (req, res) =>
   const text = String((req.body || {}).text || '').trim();
   if (!text || text.length > 500) return res.status(400).json({ error: 'Comment must be 1-500 chars.' });
   
+  if ((p.comments || (p.comments = [])).length >= 200) return res.status(429).json({ error: 'This post has reached its comment limit.' });
   const user = sessions.get(req.authToken).username;
-  const comment = { id: crypto.randomBytes(4).toString('hex'), user: user.split('@')[0], text, date: Date.now() };
+  const comment = { id: crypto.randomBytes(4).toString('hex'), user: publicHandle(user), text, date: Date.now() };
   p.comments.push(comment);
   saveDiscoverSoon();
   res.json({ ok: true, comment });
@@ -2085,6 +2096,16 @@ function trackingReport() {
 app.get('/api/admin/tracking', dataLimiter, authMiddleware, requireAdmin, async (req, res) => {
   try { await refreshHistoryResults().catch(() => {}); res.json(trackingReport()); }
   catch (e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// Error handler LAST among the routes: Express only sends errors to handlers registered after the route that threw (Discover/uploads used to answer with an HTML 500).
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err && (err.status || err.statusCode);
+  if (status === 413) return res.status(413).json({ error: 'Request too large' });
+  if (status >= 400 && status < 500) return res.status(status).json({ error: 'Bad request' });
+  console.error('Unhandled error:', err && err.message);
+  res.status(500).json({ error: 'Server error' });
 });
 
 // ✅ Express 5 JSON 404 fallback
