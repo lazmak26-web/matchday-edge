@@ -1790,6 +1790,8 @@ const Engine = (() => {
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const NA = '<span class="na">N/A</span>';
+// "2 - 1"; a finished match whose score the feed does not have yet shows "– - –" (never a made-up 0 - 0).
+const scoreTxt = fx => (Number.isInteger(fx.homeScore) && Number.isInteger(fx.awayScore)) ? `${fx.homeScore} - ${fx.awayScore}` : (fx.status === 'finished' ? '– - –' : '0 - 0');
 
 const st = { fixtures: [], mw: 0.85, mev: 0.045, results: [], query: '', queryRaw: '' };
 
@@ -1962,7 +1964,7 @@ function getFinishedMatches() {
   (historyFixtures || []).forEach(h => {
     if (!h || !h.id || h.status !== 'finished') return;
     const l = live.get(String(h.id));
-    const fx = l && l.status === 'finished' ? Object.assign({}, h, { homeScore: l.homeScore, awayScore: l.awayScore }) : h;
+    const fx = l && l.status === 'finished' && Number.isInteger(l.homeScore) && Number.isInteger(l.awayScore) ? Object.assign({}, h, { homeScore: l.homeScore, awayScore: l.awayScore }) : h;
     const d = fx.date ? fxLocalDate(fx) : today;
     let r;
     if (d >= today) {                                   // today: dynamic, never frozen
@@ -2182,7 +2184,7 @@ function buildCard(r, t) {
       <div class="m-teams">
         <div class="team home">${crestHTML(H)}<div class="t-name">${esc(teamDisp(H, fx))}</div></div>
         <div class="m-mid">${v.started
-          ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
+          ? `<span class="m-live-score">${scoreTxt(fx)}</span><span class="m-live-tag">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
           : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`}</div>
         <div class="team away">${crestHTML(A)}<div class="t-name">${esc(teamDisp(A, fx))}</div></div>
       </div>
@@ -2698,7 +2700,7 @@ function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
   el.innerHTML = list.map(fx => {
     const live = fx.status === 'started';
     const mid = live
-      ? `<span class="m-live-score">${fx.homeScore ?? 0} - ${fx.awayScore ?? 0}</span><span class="m-live-tag">LIVE</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
+      ? `<span class="m-live-score">${scoreTxt(fx)}</span><span class="m-live-tag">LIVE</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
       : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`;
     return `<article class="match ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
       <div class="m-top"><div class="m-league">${esc(fx.league)}</div></div>
@@ -2858,7 +2860,7 @@ async function submitPost() {
 function discoverMatchHTML(m) {
   const live = m.status === 'started' || m.status === 'finished';
   const mid = live
-    ? `<span class="m-live-score">${m.homeScore ?? 0} - ${m.awayScore ?? 0}</span><span class="m-live-tag">${m.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(m))}</span>`
+    ? `<span class="m-live-score">${scoreTxt(m)}</span><span class="m-live-tag">${m.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(m))}</span>`
     : `<span class="m-time">${esc(fxLocalTime(m))}</span><span class="m-date">${esc(fxDateLabel(m))}</span><span class="m-vs">VS</span>`;
   const t = tNow(), pk = m.pick && m.pick.key;
   const pickName = pk === 'home' ? m.home.name : pk === 'away' ? m.away.name : pk === 'draw' ? t.draw : '';
