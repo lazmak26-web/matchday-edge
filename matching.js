@@ -97,18 +97,33 @@ function fixtureQuality(f) {
 
 // Merges real duplicates. The merged fixture keeps the Bzzoiro id when there is one, so its id (and the snapshot / frozen pick stored under it)
 // does not flip between "bzz_123" and a football-data id depending on which side happens to have more logos that minute.
+// Same result as comparing every fixture with every kept one (first match in list order wins), but only fixtures whose
+// kick-offs fall in neighbouring 15-minute buckets are compared: sameMatch() can only be true within +-15 min.
+// The plain all-pairs scan took ~19 s on 60 days of history (8,850 matches) and blocked the whole server.
+const DEDUPE_WINDOW = 15 * 60 * 1000;
+const kickoffMs = x => Date.parse(x.date + 'T' + (x.kickoff || '00:00') + ':00Z');
 function dedupeFixtures(fixtures) {
-  const result = [];
+  const result = [], buckets = new Map();
+  const bucketOf = t => Math.floor(t / DEDUPE_WINDOW);
+  const put = i => { const t = kickoffMs(result[i]); if (isNaN(t)) return; const k = bucketOf(t); const b = buckets.get(k); if (b) b.push(i); else buckets.set(k, [i]); };
+  const drop = i => { const t = kickoffMs(result[i]); if (isNaN(t)) return; const b = buckets.get(bucketOf(t)); const j = b ? b.indexOf(i) : -1; if (j >= 0) b.splice(j, 1); };
   const bzz = x => String(x.id).startsWith('bzz_');
   for (const f of fixtures) {
-    const i = result.findIndex(r => sameMatch(r, f));
-    if (i < 0) { result.push(f); continue; }
+    let i = -1;
+    const t = kickoffMs(f);
+    if (!isNaN(t)) {
+      const k = bucketOf(t);
+      for (let d = -1; d <= 1; d++) for (const j of buckets.get(k + d) || []) if ((i < 0 || j < i) && sameMatch(result[j], f)) i = j;
+    }
+    if (i < 0) { result.push(f); put(result.length - 1); continue; }
     const r = result[i], keep = fixtureQuality(f) > fixtureQuality(r) ? f : r, other = keep === f ? r : f;
     const seen = new Set((keep.odds || []).map(o => String(o.book).toLowerCase()));
     const odds = (keep.odds || []).concat((other.odds || []).filter(o => o && !seen.has(String(o.book).toLowerCase())));
+    drop(i);
     result[i] = Object.assign({}, keep, { id: bzz(keep) ? keep.id : bzz(other) ? other.id : keep.id, odds,
       home: Object.assign({}, keep.home, { logo: keep.home.logo || other.home.logo || null }),
       away: Object.assign({}, keep.away, { logo: keep.away.logo || other.away.logo || null }) });
+    put(i);
   }
   return result;
 }

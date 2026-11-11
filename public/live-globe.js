@@ -185,6 +185,7 @@
     }
     function sample() {
       lastSample = performance.now();
+      if (!active()) return;                           // nothing to colour (logged in / landing hidden): never read the GPU canvas
       if (!globe || !canvas || !canvas.width) { data = null; return; }
       try { sx.clearRect(0, 0, S, S); sx.drawImage(canvas, 0, 0, S, S); data = sx.getImageData(0, 0, S, S).data; } catch (e) { data = null; }
     }
@@ -222,8 +223,9 @@
     function schedule() { if (!queued) { queued = true; requestAnimationFrame(recolor); } }
     addEventListener('scroll', schedule, { passive: true });
     addEventListener('resize', schedule);
+    // theme switch only (Lenis toggles classes on <html> during every scroll: watching 'class' re-read the canvas constantly)
     if (window.MutationObserver) new MutationObserver(function () { setTimeout(function () { sample(); schedule(); }, 50); })
-      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     schedule();
     return {
       afterDraw: function () { if (active() && performance.now() - lastSample > 350) { sample(); schedule(); } },
