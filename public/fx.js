@@ -10,7 +10,8 @@
     var g = G(); if (!el) return;
     if (!g || !isFinite(to)) { el.textContent = fmt(to); return; }
     var o = { v: from == null ? 0 : from };
-    g.to(o, { v: to, duration: .9, ease: 'power2.out', onUpdate: function () { el.textContent = fmt(o.v); }, onComplete: function () { el.textContent = fmt(to); } });
+    if (el.__tw) el.__tw.kill();                     // a new render replaces a count-up still in flight (no two tweens writing one number)
+    el.__tw = g.to(o, { v: to, duration: .9, ease: 'power2.out', onUpdate: function () { el.textContent = fmt(o.v); }, onComplete: function () { el.textContent = fmt(to); } });
   }
 
   function mark() {

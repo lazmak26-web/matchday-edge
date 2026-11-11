@@ -551,7 +551,6 @@ html.lenis, html.lenis body { height:auto; }
 <link rel="stylesheet" href="/fx.css">
 <link rel="stylesheet" href="/spatial.css">
 <link rel="stylesheet" href="/base.css">
-<link rel="stylesheet" href="/solid.css">
 <script src="/spatial.js" defer></script>
 </head>
 <body>
@@ -692,8 +691,8 @@ html.lenis, html.lenis body { height:auto; }
         
         <div id="adminPostForm" class="chart-card hidden" style="margin-bottom:20px;">
           <h3 style="margin-bottom:12px; font-size:16px;">Create a Post</h3>
-          <textarea id="postText" class="auth-input" placeholder="What's happening?" style="height:80px; resize:none; margin-bottom:8px;"></textarea>
-          <input type="file" id="postImage" class="auth-input" accept="image/*" style="padding:10px; margin-bottom:8px;">
+          <textarea id="postText" class="auth-input" placeholder="What's happening?" style="height:80px; resize:none; margin-bottom:8px; font:inherit;"></textarea>
+          <input type="file" id="postImage" class="auth-input" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" style="padding:10px; margin-bottom:8px;">
           <button class="btn-main" onclick="submitPost()" style="width:100%; padding:10px; font-size:14px;">Post</button>
         </div>
 
@@ -1005,7 +1004,9 @@ html.lenis, html.lenis body { height:auto; }
 <script>
 (function () {
   var d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
-  var MEMO = { cards: 1, board: 1, 'history-list': 1, stats: 1, weeklyTop: 1, weeklyDays: 1, planBox: 1, discoverFeed: 1 };
+  // Skip re-writing identical HTML (saves layout work on the 30 s refresh). Not used for #stats: the count-up animation changes
+  // its text in place, so "same HTML as last time" no longer means "same thing on screen" there (it left numbers like 2 instead of 9).
+  var MEMO = { cards: 1, board: 1, 'history-list': 1, weeklyTop: 1, weeklyDays: 1, planBox: 1, discoverFeed: 1 };
   Object.defineProperty(Element.prototype, 'innerHTML', {
     configurable: true, get: d.get,
     set: function (v) { if (MEMO[this.id]) { if (this.__h === v) return; this.__h = v; } d.set.call(this, v); }
@@ -2151,7 +2152,7 @@ function syncStatsFromCards() {
   const vals = box.querySelectorAll('.stat-value'); if (vals.length < 3) return;
   const cards = Array.from(grid.querySelectorAll('article.match'));
   const n = [cards.length, cards.filter(c => c.dataset.odds === '1').length, cards.filter(c => c.classList.contains('is-value')).length];
-  n.forEach((v, i) => { if (vals[i].textContent.trim() !== String(v)) { console.warn('Signals: stat', i, 'showed', vals[i].textContent.trim(), 'but the page has', v); vals[i].textContent = String(v); } });
+  n.forEach((v, i) => { if (vals[i].__tw && vals[i].__tw.isActive()) return; if (vals[i].textContent.trim() !== String(v)) { console.warn('Signals: stat', i, 'showed', vals[i].textContent.trim(), 'but the page has', v); vals[i].textContent = String(v); } });
 }
 
 function buildCard(r, t) {
@@ -2177,7 +2178,7 @@ function buildCard(r, t) {
         <div class="m-league">${esc(fx.league)}</div>
         <div class="m-top-right">
           <span class="mh-quality ${fx.dataQuality || 'very-low'}">${(fx.dataQuality || 'EST').toUpperCase()}</span>
-          ${isAdmin() ? `<button class="pin-btn share-btn" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="Share on Discover" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}
+          ${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}
         </div>
       </div>
       <div class="m-teams">
@@ -2747,6 +2748,7 @@ async function loadDiscover() {
     if (!r.ok) return;
     const data = await r.json();
     const posts = data.posts || [];
+    posts.forEach(p => { if (p.match && p.match.id != null) sharedIds.add(String(p.match.id)); });
 
     if (!posts.length) {
       feed.innerHTML = `<div class="empty-state">No posts yet. Check back later!</div>`;
@@ -2801,6 +2803,23 @@ async function loadDiscover() {
   } catch (e) { console.error(e); }
 }
 
+// Phone photos are often over the 5 MB limit or in a format the server does not take (HEIC): shrink/convert them to JPEG
+// in the browser first (max 1600 px). Small JPG/PNG/WebP/GIF files are sent unchanged (GIFs keep their animation).
+async function prepareImage(file) {
+  const okType = /^image\/(jpeg|png|webp|gif)$/.test(file.type);
+  if (okType && (file.size <= 1.5 * 1024 * 1024 || file.type === 'image/gif')) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+    if (blob) return new File([blob], 'image.jpg', { type: 'image/jpeg' });
+  } catch (e) { /* the browser cannot decode it: send the original and let the server explain */ }
+  if (!okType) throw new Error('This image format is not supported. Please use JPG, PNG, WebP or GIF.');
+  return file;
+}
+
 async function submitPost() {
   const text = document.getElementById('postText').value.trim();
   const fileInput = document.getElementById('postImage');
@@ -2818,7 +2837,8 @@ async function submitPost() {
     if (file) {
       btn.textContent = 'Uploading image...';
       const fd = new FormData();
-      fd.append('image', file);
+      const img = await prepareImage(file);
+      fd.append('image', img, img.name || 'image.jpg');
       
       const upRes = await fetch('/api/upload', {
         method: 'POST',
@@ -2873,14 +2893,30 @@ function discoverMatchHTML(m) {
   return `<div class="dc-settled"><div class="dc-faded">${body}</div><span class="dc-badge ${m.result}">${m.result === 'win' ? t.win : t.loss}</span></div>`;
 }
 
+// Matches already on Discover: keeps the share button lit across the 30 s re-renders of the cards.
+const sharedIds = new Set();
+function miniToast(msg, bad) {
+  let el = document.getElementById('miniToast');
+  if (!el) { el = document.createElement('div'); el.id = 'miniToast'; el.setAttribute('role', 'status'); el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:9999;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);transition:opacity .25s;pointer-events:none'; document.body.appendChild(el); }
+  el.textContent = msg; el.style.background = bad ? '#B42318' : '#0B3B2E'; el.style.color = '#fff'; el.style.opacity = '1';
+  clearTimeout(miniToast._t); miniToast._t = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+}
 async function shareMatch(id, btn) {
-  if (!isAdmin()) return;
+  if (!isAdmin() || (btn && btn.disabled)) return;
+  if (btn) btn.disabled = true;
   try {
     const r = await fetch('/api/discover', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token }, body: JSON.stringify({ matchId: id }) });
     const e = r.ok ? {} : await r.json().catch(() => ({}));
-    if (r.ok) { if (btn) { btn.classList.add('on'); btn.title = 'Shared'; } return; }
-    alert(e.error || 'Could not share');
-  } catch (e) { alert('Could not share'); }
+    if (r.ok || r.status === 409) {
+      sharedIds.add(String(id));
+      if (btn) { btn.classList.add('on'); btn.title = 'Shared on Discover'; }
+      miniToast(r.ok ? 'Shared on Discover ✓' : 'Already on Discover');
+      if (r.ok && document.getElementById('view-discover') && document.getElementById('view-discover').classList.contains('active')) loadDiscover();
+      return;
+    }
+    miniToast(e.error || 'Could not share', true);
+  } catch (e) { miniToast('Could not share (network)', true); }
+  finally { if (btn) btn.disabled = false; }
 }
 
 async function deletePost(id) {
