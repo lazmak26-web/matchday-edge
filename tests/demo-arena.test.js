@@ -283,3 +283,19 @@ test('prediction list filters: active vs pending vs settled', () => {
   assert.strictEqual(store.listPredictions(U, { filter: 'active' }).total, 1);
   assert.strictEqual(store.listPredictions(U, { filter: 'all' }).items[0].phase, 'active');
 });
+
+test('idempotency keys named like Object.prototype members cannot confuse the duplicate check', () => {
+  const { store } = mk(), fx = fixture();
+  // "constructor" is an inherited property of every plain object: it must not be mistaken for a stored request
+  const a = place(store, fx, { requestId: 'constructor' });
+  assert.strictEqual(a.ok, true); assert.ok(!a.duplicate);
+  const b = place(store, fx, { requestId: 'constructor' });
+  assert.strictEqual(b.duplicate, true, 'a real retry with the same key is still recognised');
+  assert.strictEqual(b.prediction.id, a.prediction.id);
+  // "__proto__" cannot be stored as an own key: it is ignored as an idempotency key instead of silently breaking it
+  const c = place(store, fx, { requestId: '__proto__' });
+  assert.strictEqual(c.ok, true); assert.ok(!c.duplicate);
+  assert.strictEqual(Object.getPrototypeOf(store.s.wallets[U].idem), Object.prototype, 'the idem map prototype is untouched');
+  assert.strictEqual(store.s.wallets[U].openIds.length, 2);
+  ledgerOk(store, U);
+});

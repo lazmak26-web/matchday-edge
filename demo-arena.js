@@ -229,8 +229,11 @@ class DemoStore {
     const cfg = this.s.config, now = this.now();
     const w = this.ensureWallet(userKey);
     req = req || {};
-    const rq = typeof req.requestId === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(req.requestId) ? req.requestId : null;
-    if (rq && w.idem[rq] && this.s.predictions[w.idem[rq]]) return { ok: true, duplicate: true, prediction: this.s.predictions[w.idem[rq]] };
+    // Idempotency keys are user input used as object keys: only the wallet's OWN entries count (never inherited ones such as
+    // "constructor"), and the special "__proto__" key is refused outright.
+    const rq = typeof req.requestId === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(req.requestId) && req.requestId !== '__proto__' ? req.requestId : null;
+    const prevId = rq && Object.prototype.hasOwnProperty.call(w.idem, rq) ? w.idem[rq] : null;
+    if (prevId && Object.prototype.hasOwnProperty.call(this.s.predictions, prevId)) return { ok: true, duplicate: true, prediction: this.s.predictions[prevId] };
     if (!fx) return fail(404, 'match_not_found', 'Match not found. Refresh the list and try again.');
     if (fx.status !== 'notstarted' || !(startMs(fx) > now)) return fail(409, 'closed', 'Predictions are closed for this match.');
     const market = req.market, sel = req.selection;

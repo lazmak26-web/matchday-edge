@@ -3,3 +3,6 @@ Lenis - darkroom.engineering (MIT)
 Barlow - Jeremy Tribby (SIL OFL 1.1), see public/fonts
 
 React Bits (David Haz) - effect ideas rebuilt in vanilla JS, see public/fx.js
+Chart.js 4.6.1 - Chart.js Contributors (MIT), chart.umd.min.js from the npm package
+cobe 2.0.1 - shuding (MIT), cobe.esm.js = dist/index.esm.js from the npm package
+These are self-hosted and version-pinned on purpose: the CSP allows scripts from our own origin only.

@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>1uciBet — Pro Sports Analytics</title>
 <link rel="icon" type="image/png" href="logo.png">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <style>
 :root, [data-theme="dark"] {
   color-scheme: dark;
@@ -1018,7 +1017,7 @@ function loadChartLib() {
   if (typeof Chart !== 'undefined') return Promise.resolve();
   return _chartLib || (_chartLib = new Promise((ok, no) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    s.src = '/vendor/chart.umd.min.js';   // pinned Chart.js 4.6.1 served from our own origin (no third-party script host)
     s.onload = () => { Chart.defaults.animation = false; ok(); };
     s.onerror = () => { _chartLib = null; no(new Error('chart.js failed')); };
     document.head.appendChild(s);
@@ -2755,8 +2754,9 @@ async function loadDiscover() {
     }
 
     feed.innerHTML = posts.map(p => {
-      const isLiked = p.likes.includes(authState.profile ? authState.profile.username : '');
-      const isDisliked = p.dislikes.includes(authState.profile ? authState.profile.username : '');
+      // The server sends counts plus the viewer's own vote (voter identities never leave the server).
+      const isLiked = p.isLiked === true, isDisliked = p.isDisliked === true;
+      const nLikes = Number(p.likes) || 0, nDislikes = Number(p.dislikes) || 0;
       const dateStr = new Date(p.date).toLocaleDateString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
       
       const commentsHtml = (p.comments || []).map(c => `<div class="dc-comment"><b>${esc(c.user)}</b>: ${esc(c.text)}</div>`).join('');
@@ -2776,11 +2776,11 @@ async function loadDiscover() {
           <div class="dc-actions">
             <button class="dc-btn ${isLiked ? 'active' : ''}" onclick="likePost('${p.id}', 'like')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-              <span>${p.likes.length}</span>
+              <span>${nLikes}</span>
             </button>
             <button class="dc-btn ${isDisliked ? 'active' : ''}" onclick="likePost('${p.id}', 'dislike')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2"/></svg>
-              <span>${p.dislikes.length}</span>
+              <span>${nDislikes}</span>
             </button>
             <button class="dc-btn" onclick="toggleComments('${p.id}')">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
