@@ -1,5 +1,5 @@
 /* LuciBet live globe v3 (site-wide background, optimized + self-healing)
- *  - Globe ...... cobe (jsDelivr), plain JS
+ *  - Globe ...... cobe (self-hosted in /vendor), plain JS
  *  - Scrolling .. Lenis, desktop wheel only, same rAF loop as the globe
  *  - Presence ... heartbeat only
  *  - Short pause only while switching tabs (not on scroll); rebuilds itself if the GPU drops the WebGL context
@@ -8,8 +8,8 @@
   'use strict';
 
   var CDN = {
-    cobe: 'https://cdn.jsdelivr.net/npm/cobe@2.0.1/+esm',
-    lenis: 'https://cdn.jsdelivr.net/npm/lenis@1.3.4/dist/lenis.min.js'
+    cobe: '/vendor/cobe.esm.js',          // cobe 2.0.1, pinned and self-hosted
+    lenis: '/vendor/lenis.min.js'
   };
   var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
@@ -204,7 +204,7 @@
 
   function boot() {
     if (!reduced && !coarse) {
-      loadScript(CDN.lenis).then(function () {
+      (window.Lenis ? Promise.resolve() : loadScript(CDN.lenis)).then(function () {
         if (!window.Lenis) return;
         document.querySelectorAll('.modal-box, .side-menu, .profile-menu').forEach(function (el) { el.setAttribute('data-lenis-prevent', ''); });
         lenis = new window.Lenis({ lerp: 0.09, wheelMultiplier: 0.95 });

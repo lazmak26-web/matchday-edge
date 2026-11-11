@@ -11,6 +11,13 @@ const API_BASE = 'https://api.football-data.org/v4';
 
 const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
 const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
+// Pagination links come from the provider's response. Follow them only on the provider's own HTTPS origin: every request carries
+// the BZZOIRO_API_KEY in its Authorization header, so a "next" link pointing anywhere else would hand the key to that host.
+const BZZ_ORIGIN = new URL(BZZOIRO_API_BASE).origin;
+function bzzNextUrl(next) {
+  if (typeof next !== 'string' || !next) return null;
+  try { const u = new URL(next, BZZ_ORIGIN); return u.origin === BZZ_ORIGIN ? u.toString() : null; } catch (e) { return null; }
+}
 /* Women's competitions. The provider names the teams without "Women" ("Real Madrid", "Athletic Club") and gives the league only as an id,
    so women's league ids are listed here. Add more with the env var WOMEN_LEAGUE_IDS="36,41,..." (comma separated). */
 const WOMEN_LEAGUE_IDS = new Set(String(process.env.WOMEN_LEAGUE_IDS || '36').split(/[,\s]+/).filter(Boolean));
@@ -324,7 +331,7 @@ async function ensureBzzForms() {
           if (!r.ok) throw new Error(`Bzz forms HTTP ${r.status}`);
           const data = await r.json();
           events.push(...(data.results || data.data || []));
-          url = typeof data.next === 'string' && data.next ? data.next : null;
+          url = bzzNextUrl(data.next);
         }
         if (need.size && d >= 1) {
           const m = buildBzzFormMap(events, finished);
@@ -558,7 +565,7 @@ async function fetchBzzoiroEvents() {
         const part = data.results || data.data || [];
         if (Array.isArray(part)) events.push(...part);
         pages++;
-        url = typeof data.next === 'string' && data.next ? data.next : null;
+        url = bzzNextUrl(data.next);
       }
       bzzLastPages = pages;
       if (url && complete) console.log(`⚠️ Bzzoiro events: more than ${BZZ_EVENT_PAGES} pages today, the rest is NOT shown (raise BZZ_EVENT_PAGES)`);
@@ -1041,7 +1048,7 @@ async function refreshHistoryResults() {
           pending.delete(id);
           changed = true;
         }
-        url = typeof data.next === 'string' && data.next ? data.next : null;
+        url = bzzNextUrl(data.next);
       }
       // The whole date range was read and a match is still not in it: count it, and give up after 3 such scans (instead of asking for ever).
       if (!url) for (const [id, snap] of pending) if (!seen.has(id)) { snap.notFound = (snap.notFound | 0) + 1; changed = true; }
@@ -1105,7 +1112,9 @@ function authMiddleware(req, res, next) {
 app.disable('x-powered-by');
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+  // Every script is self-hosted (public/vendor): no third-party script origin is trusted. 'unsafe-inline' remains because index.html
+  // uses inline <script> blocks and onclick handlers; removing it needs nonces/hashes (see SECURITY_AUDIT_REPORT.md).
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data: https:",
@@ -1291,8 +1300,10 @@ setInterval(() => {
 }, 10 * 60 * 1000).unref();
 const otpHash = (email, code) => crypto.createHmac('sha256', OTP_SECRET).update(email + ':' + code).digest('hex');
 
+// MAIL_API_URL is honoured ONLY under NODE_ENV=test (a local fake mail server for the OTP tests); production always uses Resend.
+const MAIL_API_URL = process.env.NODE_ENV === 'test' && /^http:\/\/127\.0\.0\.1:\d+\//.test(process.env.MAIL_API_URL || '') ? process.env.MAIL_API_URL : 'https://api.resend.com/emails';
 async function sendMail(to, subject, text, html) {
-  const r = await fetch('https://api.resend.com/emails', {
+  const r = await fetch(MAIL_API_URL, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from: MAIL_FROM, to: [to], subject, text, html }),
@@ -1326,6 +1337,12 @@ async function sendOtp(email) {
     return { error: 'Could not send the code. Please try again.', status: 502 };
   }
   return { ok: true, resendIn: OTP_RESEND_GAP / 1000 };
+}
+
+// Security audit trail for privileged actions. One JSON line per event on stdout (collected by the host's log service).
+// Never pass secrets (tokens, passwords, license keys) in `detail`.
+function auditLog(action, req, detail) {
+  try { console.log('AUDIT ' + JSON.stringify({ at: new Date().toISOString(), action, ip: (req && req.ip) || null, ...(detail || {}) })); } catch (e) { /* logging must never break a request */ }
 }
 
 function planOf(sess) {
@@ -1411,12 +1428,26 @@ app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) =
   if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
   const taken = u => u && u.verified !== false;
   if (taken(users.get(email))) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
+  // A sign-up still waiting for its emailed code must not have its password replaced by a second sign-up: otherwise someone else
+  // could re-register the address with THEIR password and the real owner, typing the code from their inbox, would verify an
+  // account whose password the other person chose. Same password = the same person retrying -> just (re)send the code.
+  const pendingSignup = () => { const u = users.get(email), o = otps.get(email); return OTP_ENABLED && u && u.verified === false && o && Date.now() < o.exp ? u : null; };
+  const samePassword = async u => { const dk = await scryptAsync(password, Buffer.from(u.salt, 'hex')); return crypto.timingSafeEqual(dk, Buffer.from(u.hash, 'hex')); };
+  const PENDING_MSG = 'A sign-up for this email is already waiting for its verification code. Check your inbox, or try again in 10 minutes.';
   try {
+    const pend = pendingSignup();
+    if (pend) {
+      if (!(await samePassword(pend))) return res.status(409).json({ error: PENDING_MSG, code: 'signup_pending' });
+      const o = await sendOtp(email);
+      if (!o.ok) return res.status(o.status).json({ error: o.error });
+      return res.json({ otpRequired: true, email, resendIn: o.resendIn });
+    }
     const salt = crypto.randomBytes(16);
     const hash = await scryptAsync(password, salt);
     const cur = users.get(email);
     if (taken(cur)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
-    if (cur) { cur.salt = salt.toString('hex'); cur.hash = hash.toString('hex'); }
+    if (pendingSignup()) return res.status(409).json({ error: PENDING_MSG, code: 'signup_pending' });   // a parallel sign-up won the race
+    if (cur) { cur.salt = salt.toString('hex'); cur.hash = hash.toString('hex'); otps.delete(email); }
     else {
       const seq = [...users.values()].reduce((m, u) => Math.max(m, u.seq || 0), 0) + 1;
       users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: !OTP_ENABLED, consentAt: Date.now(), termsVersion: TERMS_VERSION });
@@ -1486,19 +1517,21 @@ app.post('/api/admin/plan', adminLimiter, (req, res) => {
   const tok = process.env.ADMIN_TOKEN;
   if (!tok) return res.status(404).end();
   const a = Buffer.from(String(req.headers['x-admin-token'] || '')), b = Buffer.from(tok);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(403).json({ error: 'Forbidden' });
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) { auditLog('admin_token_rejected', req, { route: 'plan' }); return res.status(403).json({ error: 'Forbidden' }); }
   const { email, plan, days } = req.body || {};
   const u = users.get(String(email || '').trim().toLowerCase());
   if (!u) return res.status(404).json({ error: 'No such account' });
   if (plan === 'pro') { u.plan = 'pro'; u.planUntil = Number(days) > 0 ? Date.now() + Math.min(Number(days), 3650) * 86400000 : null; }
   else { u.plan = 'free'; u.planUntil = null; }
   saveUsersSoon();
+  auditLog('admin_plan', req, { email: u.email, plan: u.plan, planUntil: u.planUntil });
   res.json({ ok: true, email: u.email, plan: u.plan, planUntil: u.planUntil });
 });
 
 /* ═══════════════════════════════════════════════════════════
    LICENSE KEYS
    ═══════════════════════════════════════════════════════════ */
+if (process.env.ADMIN_TOKEN && process.env.ADMIN_TOKEN.length < 32) console.error('⚠️ ADMIN_TOKEN is shorter than 32 characters: use a long random value (e.g. `openssl rand -hex 32`). It grants Pro plans and creates license keys.');
 const LICENSES_FILE = process.env.LICENSES_FILE || path.join(path.dirname(HISTORY_FILE), 'licenses.json');
 const licenses = new Map();
 try {
@@ -1527,7 +1560,7 @@ function adminOk(req) {
 app.post('/api/admin/license', adminLimiter, (req, res) => {
   const ok = adminOk(req);
   if (ok === null) return res.status(404).end();
-  if (!ok) return res.status(403).json({ error: 'Forbidden' });
+  if (!ok) { auditLog('admin_token_rejected', req, { route: 'license' }); return res.status(403).json({ error: 'Forbidden' }); }
   const days = Math.max(0, Math.min(3650, Math.floor(Number((req.body || {}).days) || 30)));
   const count = Math.max(1, Math.min(50, Math.floor(Number((req.body || {}).count) || 1)));
   const note = String((req.body || {}).note || '').slice(0, 80);
@@ -1538,6 +1571,7 @@ app.post('/api/admin/license', adminLimiter, (req, res) => {
     keys.push(key);
   }
   saveLicensesSoon();
+  auditLog('admin_license_create', req, { count, days, note });
   res.json({ ok: true, days, keys });
 });
 
@@ -1602,6 +1636,7 @@ app.post('/api/license/activate', licenseLimiter, authMiddleware, async (req, re
     u.planUntil = until === null ? null : Math.max(until, active ? u.planUntil : 0);
   }
   saveUsersSoon(); saveLicensesSoon();
+  auditLog('license_activate', req, { email: u.email, source: extendDays !== null ? 'local' : 'keyauth', planUntil: u.planUntil });
   res.json({ ok: true, profile: profileOf(sess) });
 });
 
@@ -1847,6 +1882,16 @@ app.use('/uploads', express.static(UPLOADS_DIR, {
   setHeaders(res) { res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox"); }
 }));
 
+function imageSignatureOk(file, mimetype) {
+  let b;
+  try { const fd = fs.openSync(file, 'r'); b = Buffer.alloc(12); fs.readSync(fd, b, 0, 12, 0); fs.closeSync(fd); } catch (e) { return false; }
+  const hex = b.toString('hex'), ascii = b.toString('latin1');
+  if (mimetype === 'image/jpeg') return hex.startsWith('ffd8ff');
+  if (mimetype === 'image/png') return hex.startsWith('89504e470d0a1a0a');
+  if (mimetype === 'image/gif') return ascii.startsWith('GIF87a') || ascii.startsWith('GIF89a');
+  if (mimetype === 'image/webp') return ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP';
+  return false;
+}
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
@@ -1873,7 +1918,14 @@ app.post('/api/upload', dataLimiter, authMiddleware, requireAdmin, (req, res, ne
   });
 }, (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+  // The MIME type above comes from the browser. Check the file's real signature too, so only genuine JPG/PNG/WebP/GIF data is ever served.
+  if (!imageSignatureOk(req.file.path, req.file.mimetype)) {
+    fs.unlink(req.file.path, () => {});
+    auditLog('upload_rejected', req, { reason: 'signature_mismatch', mimetype: req.file.mimetype });
+    return res.status(400).json({ error: 'The file is not a valid JPG, PNG, WebP or GIF image.' });
+  }
   const url = '/uploads/' + req.file.filename;
+  auditLog('upload', req, { file: req.file.filename, bytes: req.file.size, by: sessions.get(req.authToken).username });
   res.json({ ok: true, url });
 });
 
@@ -1949,6 +2001,7 @@ app.post('/api/discover', authMiddleware, requireAdmin, (req, res) => {
   const post = { id, text: String(text || '').slice(0, 1000), image: img, match, date: Date.now(), likes: [], dislikes: [], comments: [] };
   discoverPosts.set(id, post);
   saveDiscoverSoon();
+  auditLog('discover_post', req, { id, by: sessions.get(req.authToken).username, match: match ? match.id : null });
   res.json({ ok: true, post: discoverView(post, match, sessions.get(req.authToken).username) });
 });
 
@@ -1958,6 +2011,7 @@ app.post('/api/discover/:id/delete', authMiddleware, requireAdmin, (req, res) =>
   if (!p) return res.status(404).json({ error: 'Post not found' });
   discoverPosts.delete(p.id);
   saveDiscoverSoon();
+  auditLog('discover_delete', req, { id: p.id, by: sessions.get(req.authToken).username });
   if (typeof p.image === 'string' && p.image.startsWith('/uploads/')) {
     const name = path.basename(p.image);
     const stillUsed = [...discoverPosts.values()].some(o => o.image === p.image);
@@ -1999,6 +2053,7 @@ app.post('/api/discover/:id/dislike', dataLimiter, authMiddleware, (req, res) =>
   res.json({ ok: true, likes: p.likes.length, dislikes: p.dislikes.length, isLiked: p.likes.includes(user), isDisliked: p.dislikes.includes(user) });
 });
 
+const COMMENTS_PER_USER = 10;
 app.post('/api/discover/:id/comment', dataLimiter, authMiddleware, (req, res) => {
   const p = discoverPosts.get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Post not found' });
@@ -2006,8 +2061,10 @@ app.post('/api/discover/:id/comment', dataLimiter, authMiddleware, (req, res) =>
   if (!text || text.length > 500) return res.status(400).json({ error: 'Comment must be 1-500 chars.' });
   
   if ((p.comments || (p.comments = [])).length >= 200) return res.status(429).json({ error: 'This post has reached its comment limit.' });
-  const user = sessions.get(req.authToken).username;
-  const comment = { id: crypto.randomBytes(4).toString('hex'), user: publicHandle(user), text, date: Date.now() };
+  const user = sessions.get(req.authToken).username, handle = publicHandle(user);
+  // The post-wide cap is 200: without a per-account cap a single account could use all of it and silence everyone else.
+  if (p.comments.filter(c => c.user === handle).length >= COMMENTS_PER_USER) return res.status(429).json({ error: `You can post at most ${COMMENTS_PER_USER} comments on one post.` });
+  const comment = { id: crypto.randomBytes(4).toString('hex'), user: handle, text, date: Date.now() };
   p.comments.push(comment);
   saveDiscoverSoon();
   res.json({ ok: true, comment });
