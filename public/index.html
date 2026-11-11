@@ -157,6 +157,9 @@ button,select,input{font:inherit;color:inherit}
 .hero-title{order:2;grid-column:1/-1;font-size:clamp(44px,9.5vw,112px);line-height:.98;letter-spacing:-.045em;font-weight:700;margin:6px 0 4px;color:var(--text-main)}
 .hero-title .w{display:inline-block;will-change:transform,filter}
 .hero-subtitle{order:3;grid-column:1/-1;max-width:54ch;font-size:clamp(16px,2vw,20px);color:var(--text-sub);line-height:1.5}
+.adapt-ink .aw{transition:color .35s ease,text-shadow .35s ease}
+.adapt-ink .aw.ink-light{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+.adapt-ink .aw.ink-dark{color:#0B1F17;text-shadow:0 1px 8px rgba(255,255,255,.45)}
 .cta-box{order:4;grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:8px 0 28px}
 .cta-title{display:none}
 .cta-desc{order:3;width:100%;font-size:13px;color:var(--text-sub)}
@@ -617,7 +620,7 @@ html.lenis, html.lenis body { height:auto; }
     <div class="landing-left">
       <div class="hero-badge" data-i18n="hero_badge">🔥 Live Odds · +EV Scanner</div>
       <h1 class="hero-title" data-i18n="hero_title">Match analytics.<br>The decision is yours.</h1>
-      <p class="hero-subtitle" data-i18n="hero_sub">Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.</p>
+      <p class="hero-subtitle adapt-ink" data-i18n="hero_sub">Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.</p>
 
       <div class="feature-grid">
         <div class="feature-card">
@@ -647,12 +650,8 @@ html.lenis, html.lenis body { height:auto; }
     <div class="landing-right">
       <div class="cta-box">
         <div class="cta-title" data-i18n="get_started">Get Started Now</div>
-        <div class="cta-desc" data-i18n="cta_desc">Create a free account or log in to open the dashboard and daily value bets.</div>
+        <div class="cta-desc adapt-ink" data-i18n="cta_desc">Create a free account or log in to open the dashboard and daily value bets.</div>
         <button class="btn-main" onclick="openAuthModal()" data-i18n="login_dash">Login to Dashboard</button>
-        <a href="https://t.me/l1uci7er" target="_blank" class="btn-tg">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4.873 8.034c-.156.77-.866 4.128-1.226 5.497-.153.593-.335.792-.512.81-.358.036-.63-.236-.976-.464-1.658-1.087-2.467-1.636-2.978-1.956-1.328-.84-1.36-1.288-.74-1.75.137-.1.878-.8 1.44-1.31 1.022-.926 1.248-1.135 1.59-1.135.252 0 .486.12.627.34.19.296.36.835.49 1.338.128.5.19.748.326.748.137 0 .26-.135.47-.396.282-.35.742-.927.938-1.244.197-.317.395-.236.594-.236.2 0 .42.135.614.372.195.237.324.558.435.88.11.323.21.66.296.955.086.297.156.555.266.79.11.236.21.34.36.34z"/></svg>
-          <span data-i18n="get_key">Get your Key from Telegram</span>
-        </a>
       </div>
     </div>
 

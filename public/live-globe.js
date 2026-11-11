@@ -151,6 +151,87 @@
     if (slow > 40) { SPEED = 0; intro = 0; }
   }
 
+  /* ───────────── adaptive text colour ─────────────
+     Text marked .adapt-ink (hero subtitle, CTA note) is split into words, and every word picks a light or dark colour from
+     what is really behind it: the page background blended with the globe pixels at that spot (read from a 96 px copy of
+     the WebGL canvas, a few times per second at most). Dark behind -> white text, light behind -> dark text, for every theme. */
+  var ink = (function () {
+    var S = 96, sc = document.createElement('canvas'); sc.width = sc.height = S;
+    var sx = sc.getContext('2d', { willReadFrequently: true });
+    var data = null, lastSample = 0, queued = false;
+
+    function split(el) {
+      if (el.querySelector('.aw')) return;
+      var f = document.createDocumentFragment();
+      el.textContent.split(/(\s+)/).forEach(function (p) {
+        if (!p) return;
+        if (/^\s+$/.test(p)) { f.appendChild(document.createTextNode(' ')); return; }
+        var w = document.createElement('span'); w.className = 'aw'; w.textContent = p; f.appendChild(w);
+      });
+      el.textContent = ''; el.appendChild(f);
+    }
+    var hosts = document.querySelectorAll('.adapt-ink');
+    for (var i = 0; i < hosts.length; i++) {
+      split(hosts[i]);
+      // a language switch rewrites the text: split it again and recolour
+      if (window.MutationObserver) new MutationObserver((function (el) { return function () { if (!el.querySelector('.aw')) { split(el); schedule(); } }; })(hosts[i])).observe(hosts[i], { childList: true });
+    }
+    function active() { return hosts.length && hosts[0].offsetParent !== null; }
+
+    function rgbOf(c) { var m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/.exec(c || ''); return m && (m[4] === undefined || +m[4] > 0.5) ? [+m[1], +m[2], +m[3]] : null; }
+    function pageBg() {
+      var cs = getComputedStyle(document.documentElement);
+      return rgbOf(getComputedStyle(document.body).backgroundColor) || rgbOf(cs.backgroundColor) || rgbOf(cs.getPropertyValue('--bg')) || [245, 247, 246];
+    }
+    function sample() {
+      lastSample = performance.now();
+      if (!globe || !canvas || !canvas.width) { data = null; return; }
+      try { sx.clearRect(0, 0, S, S); sx.drawImage(canvas, 0, 0, S, S); data = sx.getImageData(0, 0, S, S).data; } catch (e) { data = null; }
+    }
+    function lum(c) { // relative luminance (WCAG)
+      var f = function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+    }
+    function recolor() {
+      queued = false;
+      if (!active()) return;
+      var bg = pageBg(), r = canvas ? canvas.getBoundingClientRect() : null;
+      var op = data && r && r.width && card.classList.contains('is-ready') && !card.classList.contains('is-fallback') ? (parseFloat(getComputedStyle(stage).opacity) || 0) : 0;
+      var words = document.querySelectorAll('.adapt-ink .aw');
+      for (var i = 0; i < words.length; i++) {
+        var w = words[i], b = w.getBoundingClientRect(), acc = 0, n = 0;
+        if (!b.width) continue;
+        for (var gx = 0; gx < 3; gx++) for (var gy = 0; gy < 3; gy++) {
+          var x = b.left + b.width * (gx + 0.5) / 3, y = b.top + b.height * (gy + 0.5) / 3, c = bg;
+          if (op > 0) {
+            var u = Math.floor((x - r.left) / r.width * S), v = Math.floor((y - r.top) / r.height * S);
+            if (u >= 0 && v >= 0 && u < S && v < S) {
+              var k = (v * S + u) * 4, a = data[k + 3] / 255 * op;
+              c = [bg[0] * (1 - a) + data[k] * a, bg[1] * (1 - a) + data[k + 1] * a, bg[2] * (1 - a) + data[k + 2] * a];
+            }
+          }
+          acc += lum(c); n++;
+        }
+        var L = acc / n, light = w.classList.contains('ink-light'), dark = w.classList.contains('ink-dark');
+        // Anything that is not clearly light (the grey globe measures L ~0.17-0.30) gets white text with a soft dark halo;
+        // the small band between the two limits keeps words from flickering as the dots pass by.
+        var wantLight = light ? L < 0.36 : dark ? L < 0.28 : L < 0.32;
+        if (wantLight !== light || !(light || dark)) { w.classList.toggle('ink-light', wantLight); w.classList.toggle('ink-dark', !wantLight); }
+      }
+    }
+    function schedule() { if (!queued) { queued = true; requestAnimationFrame(recolor); } }
+    addEventListener('scroll', schedule, { passive: true });
+    addEventListener('resize', schedule);
+    if (window.MutationObserver) new MutationObserver(function () { setTimeout(function () { sample(); schedule(); }, 50); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+    schedule();
+    return {
+      afterDraw: function () { if (active() && performance.now() - lastSample > 350) { sample(); schedule(); } },
+      now: function () { sample(); schedule(); },
+      later: function (ms) { setTimeout(schedule, ms); }
+    };
+  })();
+
   function frame(t) {
     requestAnimationFrame(frame);
     if (document.hidden) { prevT = 0; return; }
@@ -167,7 +248,7 @@
       st.phi += step; intro -= step;
     }
     if (SPEED) st.phi += SPEED * dt / 1000;
-    if (SPEED || intro > 0.0005) globe.update({ phi: st.phi, theta: st.theta });
+    if (SPEED || intro > 0.0005) { globe.update({ phi: st.phi, theta: st.theta }); ink.afterDraw(); }
   }
 
   function size() { return Math.round(stage.clientWidth) || 320; }
@@ -191,12 +272,14 @@
         var nw = size();
         if (globe && nw !== curW) { curW = nw; globe.update({ width: nw, height: nw }); }
       }).observe(stage);
-      new MutationObserver(function () { if (globe) globe.update(palette()); })
+      new MutationObserver(function () { if (globe) { globe.update(palette()); ink.now(); } })
         .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     }
 
     globe.update({ phi: st.phi, theta: st.theta });
+    ink.now();
     card.classList.add('is-ready');
+    ink.later(400); ink.later(1200); ink.later(2300);   // the globe fades in over 2 s: recolour as it becomes visible
   }
 
   /* mobile GPUs sometimes drop the WebGL context under memory pressure: rebuild on a fresh canvas */
