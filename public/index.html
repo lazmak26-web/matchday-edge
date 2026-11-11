@@ -253,7 +253,9 @@ button,select,input{font:inherit;color:inherit}
 .match.is-locked .m-top,.match.is-locked .m-teams{filter:blur(7px);opacity:.7;pointer-events:none;user-select:none;-webkit-user-select:none}
 .lp-unlock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;border:0;cursor:pointer;font-weight:600;font-size:13px;color:var(--on-brand);background:var(--brand);padding:10px 18px;border-radius:999px;transition:transform .2s}
 .lp-lock:hover .lp-unlock{transform:translate(-50%,-50%) scale(1.06)}
-.hc-card{padding:16px;border-radius:22px}
+.hc-card{padding:16px;border-radius:22px;content-visibility:auto;contain-intrinsic-size:auto 170px}
+.hist-more{grid-column:1/-1;justify-self:center;margin:8px auto 4px;padding:12px 22px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.hist-more small{color:var(--ink-3);font-weight:600}
 .hist-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 16px;margin:0 0 14px;border-radius:24px;background:var(--soft);border:1px solid var(--line,rgba(127,127,127,.2))}
 .hist-search:focus-within{border-color:var(--brand)}
 .hist-search svg{flex:none;color:var(--ink-3)}
@@ -1054,6 +1056,7 @@ const translations = {
     cta_desc: "Create a free account or log in to open the dashboard and daily value bets.",
     login_dash: "Login to Dashboard",
     get_key: "Get your Key from Telegram",
+    show_more: "Show more",
     value_board: "Value Board", best_ev: "Best positive-EV prices",
     fixtures: "Fixtures", matches: "Matches",
     past_matches: "Past Matches", bot_history: "Bot History", hist_search_ph: "Search a team…", hist_no_match: "No matches found",
@@ -1109,6 +1112,7 @@ const translations = {
     cta_desc: "Créez un compte gratuit ou connectez-vous pour ouvrir le tableau de bord.",
     login_dash: "Se connecter au tableau de bord",
     get_key: "Obtenez votre clé sur Telegram",
+    show_more: "Voir plus",
     value_board: "Tableau des Valeurs", best_ev: "Meilleurs prix +EV",
     fixtures: "Matchs", matches: "Rencontres",
     past_matches: "Matchs Passés", bot_history: "Historique du Bot", hist_search_ph: "Rechercher une équipe…", hist_no_match: "Aucun match trouvé",
@@ -1164,6 +1168,7 @@ const translations = {
     cta_desc: "أنشئ حسابًا مجانيًا أو سجل الدخول لفتح لوحة التحكم والرهانات اليومية.",
     login_dash: "تسجيل الدخول للوحة التحكم",
     get_key: "احصل على مفتاحك من تيليجرام",
+    show_more: "عرض المزيد",
     value_board: "لوحة القيمة", best_ev: "أفضل الأسعار الإيجابية",
     fixtures: "المباريات", matches: "المباريات",
     past_matches: "المباريات السابقة", bot_history: "سجل البوت", hist_search_ph: "ابحث عن فريق…", hist_no_match: "لم يتم العثور على مباريات",
@@ -2201,6 +2206,11 @@ function buildCard(r, t) {
 }
 
 let histQuery = '', histQueryRaw = '';
+// The History list shows HIST_PAGE cards at a time ("Show more" adds the next page). Rendering every finished match of the
+// last 60 days (thousands of cards and crest images) froze the page for seconds when leaving or re-rendering the tab.
+const HIST_PAGE = 40;
+let histShown = HIST_PAGE;
+function histMore() { histShown += HIST_PAGE; renderHistory(); }
 function matchesHistoryQuery(fx, q) {
   const hay = normQ(((fx.home && fx.home.name) || '') + ' ' + ((fx.away && fx.away.name) || '') + ' ' + (fx.league || ''));
   return q.split(' ').every(w => hay.includes(w));
@@ -2211,6 +2221,7 @@ function matchesHistoryQuery(fx, q) {
   let tm = 0;
   function apply() {
     histQueryRaw = inp.value.trim(); histQuery = normQ(inp.value);
+    histShown = HIST_PAGE;   // a new search starts from the top
     clr.hidden = !inp.value;
     renderHistory();
   }
@@ -2241,7 +2252,7 @@ function renderHistory() {
   const todayTot = getDailyTotals(finished)[localDateStr(new Date())] || { wins: 0, losses: 0 };
   const wins = todayTot.wins, losses = todayTot.losses;
 
-  if (listed.length) $('history-list').innerHTML = listed.map(r => {
+  if (listed.length) $('history-list').innerHTML = listed.slice(0, histShown).map(r => {
     const fx = r.fx, hs = fx.homeScore, as = fx.awayScore;
     const sv = slipVerdict(r);   // null while the score is missing: no badge, not counted
     const legRows = sv ? sv.shown.map(l => {
@@ -2263,7 +2274,7 @@ function renderHistory() {
       </div>
       ${legRows}
     </div>`;
-  }).join('');
+  }).join('') + (listed.length > histShown ? `<button type="button" class="hist-more" onclick="histMore()">${esc((t.show_more || 'Show more'))} <small>(${listed.length - histShown})</small></button>` : '');
 
   const total = wins + losses;
   const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;

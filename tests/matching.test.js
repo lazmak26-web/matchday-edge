@@ -73,3 +73,29 @@ test('teamsFuzzyMatch / teamsLooseMatch never equate senior, women and youth sid
   assert.ok(!m.teamsMatchAny('France', 'France U21'));
   assert.ok(m.teamsMatchAny('Deportivo de A Coruña', 'RC Deportivo La Coruña'));
 });
+
+test('dedupeFixtures stays fast on 60 days of history and matches the all-pairs result', () => {
+  const teams = ['Real Madrid', 'Barcelona', 'Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Juventus', 'Inter', 'Napoli', 'Roma'];
+  const list = [];
+  for (let d = 0; d < 60; d++) for (let i = 0; i < 100; i++) {
+    const date = new Date(Date.UTC(2026, 8, 1) + d * 86400000).toISOString().slice(0, 10), kickoff = String(12 + (i % 10)).padStart(2, '0') + ':' + (i % 2 ? '30' : '00');
+    const f = { id: `bzz_${d}_${i}`, date, kickoff, league: 'L', home: { name: teams[i % 10] + ' ' + i, logo: null }, away: { name: teams[(i + 3) % 10] + ' ' + i, logo: null }, odds: [] };
+    list.push(f);
+    if (i % 7 === 0) list.push(Object.assign({}, f, { id: `fd_${d}_${i}`, kickoff: kickoff.slice(0, 3) + (i % 2 ? '40' : '10'), odds: [{ book: 'X', home: 2, draw: 3, away: 4 }] }));   // same match from a 2nd source
+  }
+  const naive = arr => {   // the original all-pairs algorithm
+    const out = [];
+    for (const f of arr) {
+      const i = out.findIndex(r => m.sameMatch(r, f));
+      if (i < 0) { out.push(f); continue; }
+      const r = out[i], keep = m.fixtureQuality(f) > m.fixtureQuality(r) ? f : r, other = keep === f ? r : f, bz = x => String(x.id).startsWith('bzz_');
+      const seen = new Set((keep.odds || []).map(o => String(o.book).toLowerCase()));
+      out[i] = Object.assign({}, keep, { id: bz(keep) ? keep.id : bz(other) ? other.id : keep.id, odds: (keep.odds || []).concat((other.odds || []).filter(o => o && !seen.has(String(o.book).toLowerCase()))),
+        home: Object.assign({}, keep.home, { logo: keep.home.logo || other.home.logo || null }), away: Object.assign({}, keep.away, { logo: keep.away.logo || other.away.logo || null }) });
+    }
+    return out;
+  };
+  const t0 = Date.now(), fast = m.dedupeFixtures(list), ms = Date.now() - t0;
+  assert.ok(ms < 3000, `dedupe of ${list.length} fixtures took ${ms} ms`);
+  assert.deepStrictEqual(m.dedupeFixtures(list.slice(0, 1500)), naive(list.slice(0, 1500)));
+});

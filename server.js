@@ -3,6 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
 const multer = require('multer');
+const compression = require('compression');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -954,7 +955,9 @@ const snapshotSaver = makeSaver('History', () => {
   for (const [id, f] of snapshotStore) if (f.date < cutoff) snapshotStore.delete(id);
   writeAtomic(HISTORY_FILE, JSON.stringify([...snapshotStore.values()]));
 }, 2000);
-const saveSnapshotsSoon = snapshotSaver.soon;
+// snapshotVersion changes with every saved change to the history: /api/history reuses its JSON until then.
+let snapshotVersion = 0;
+const saveSnapshotsSoon = () => { snapshotVersion++; snapshotSaver.soon(); };
 
 function recordSnapshots(fixtures) {
   let changed = false;
@@ -1187,6 +1190,9 @@ app.use('/api/', (req, res, next) => {
   next();
 });
 
+// gzip/brotli-less compression for text responses (/api/history alone was ~7 MB of JSON uncompressed).
+// Auth responses are excluded: they carry session tokens next to user input (no compression = no BREACH-style size oracle).
+app.use(compression({ threshold: 1024, filter: (req, res) => !req.path.startsWith('/api/auth/') && compression.filter(req, res) }));
 app.use(express.json({ limit: '10kb' }));
 app.use(pageLimiter);
 // Visit counter / live users: BEFORE express.static, which answers '/' and '/index.html' itself and never calls next() (the counter used to stay at 0).
@@ -1788,13 +1794,20 @@ app.get('/api/engine/predictions', dataLimiter, authMiddleware, requirePro, asyn
   } catch (e) { res.status(500).json({ error: 'Server error', predictions: [] }); }
 });
 
+const historyResponseCache = { body: null, version: -1, cutoff: null, at: 0 };
 app.get('/api/history', dataLimiter, async (req, res) => {
   try {
     await refreshHistoryResults().catch(e => console.error(e.message));
     const cutoff = dateDaysAgo(HISTORY_KEEP_DAYS);
+    // Same data as last time (no saved change, same day, < 60 s old): send the cached body instead of rebuilding ~6 MB of JSON.
+    const hc = historyResponseCache;
+    if (hc.body && hc.version === snapshotVersion && hc.cutoff === cutoff && Date.now() - hc.at < 60 * 1000) return res.type('application/json').send(hc.body);
     const fixtures = dedupeFixtures([...snapshotStore.values()].filter(f => f.status === 'finished' && f.date >= cutoff && Number.isInteger(f.homeScore) && Number.isInteger(f.awayScore)))   // score still pending: not listed yet
       .sort((a, b) => (b.date + b.kickoff).localeCompare(a.date + a.kickoff));
-    res.json({ fixtures: fixtures.map(f => (isWomenFixture(f) && f.women !== true) ? Object.assign({}, f, { women: true }) : f) });
+    // openOdds (opening prices, server-side tracking only) is not used by the page: leave it out (~11% of the payload).
+    const body = JSON.stringify({ fixtures: fixtures.map(f => { const o = Object.assign({}, f); delete o.openOdds; if (isWomenFixture(f) && f.women !== true) o.women = true; return o; }) });
+    Object.assign(historyResponseCache, { body, version: snapshotVersion, cutoff, at: Date.now() });
+    res.type('application/json').send(body);
   } catch (e) {
     res.status(500).json({ error: 'Server error', fixtures: [] });
   }

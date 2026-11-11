@@ -1,7 +1,7 @@
 {
   "name": "matchday-edge",
   "version": "1.0.0",
-  "description": "Matchday Edge \u2014 Pro football analytics",
+  "description": "Matchday Edge — Pro football analytics",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,6 +12,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "compression": "^1.8.2",
     "express": "^4.18.2",
     "multer": "^2.0.2"
   },
