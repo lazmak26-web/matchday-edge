@@ -10,7 +10,8 @@ const API_KEY = process.env.FOOTBALL_API_KEY;
 const API_BASE = 'https://api.football-data.org/v4';
 
 const BZZOIRO_API_KEY = process.env.BZZOIRO_API_KEY;
-const BZZOIRO_API_BASE = 'https://sports.bzzoiro.com/api';
+// BZZOIRO_API_BASE may point at a local mock ONLY under NODE_ENV=test (browser/UI tests with realistic fixtures).
+const BZZOIRO_API_BASE = process.env.NODE_ENV === 'test' && /^http:\/\/127\.0\.0\.1:\d+\/api$/.test(process.env.BZZOIRO_API_BASE || '') ? process.env.BZZOIRO_API_BASE : 'https://sports.bzzoiro.com/api';
 // Pagination links come from the provider's response. Follow them only on the provider's own HTTPS origin: every request carries
 // the BZZOIRO_API_KEY in its Authorization header, so a "next" link pointing anywhere else would hand the key to that host.
 const BZZ_ORIGIN = new URL(BZZOIRO_API_BASE).origin;
@@ -1985,14 +1986,17 @@ app.get('/api/discover', authMiddleware, (req, res) => {
   res.json({ posts });
 });
 
-app.post('/api/discover', authMiddleware, requireAdmin, (req, res) => {
+app.post('/api/discover', authMiddleware, requireAdmin, async (req, res) => {
   const { text, image, matchId } = req.body || {};
   const img = String(image || '').trim();
   if (img && !/^(\/uploads\/[a-f0-9]{16}\.(jpg|png|webp|gif)|https:\/\/[^\s"'<>]{1,480})$/i.test(img)) return res.status(400).json({ error: 'Invalid image URL.' });
   let match = null;
   if (matchId != null && matchId !== '') {
-    const f = findFixture(matchId);
-    if (!f) return res.status(404).json({ error: 'Match not found (refresh the page).' });
+    // The in-memory list can be empty right after a restart or while it is being refreshed: load it before giving up,
+    // then fall back to the saved snapshots (finished / earlier matches the admin may still see on screen).
+    let f = findFixture(matchId);
+    if (!f) { try { await getFixtures(); } catch (e) { /* feed down: try the snapshots */ } f = findFixture(matchId) || snapshotStore.get(String(matchId)) || null; }
+    if (!f || !f.home || !f.away) return res.status(404).json({ error: 'Match not found (refresh the page).' });
     if ([...discoverPosts.values()].some(p => p.match && String(p.match.id) === String(f.id))) return res.status(409).json({ error: 'This match is already on Discover.' });
     match = matchCard(f); match.pick = pickFor(f);
   }

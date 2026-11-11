@@ -75,10 +75,14 @@
   var canvas = document.getElementById('globeCanvas');
 
   var globe = null, lenis = null, curW = 0, running = false, observersBound = false, retries = 0;
-  var SPEED = reduced ? 0 : 0.2;                  // rad / second
-  var MIN_FRAME = coarse ? 1000 / 30 : 1000 / 60;
+  /* Performance budget. The globe is a full-screen WebGL background drawn at ~55% opacity and mostly off-screen (it sits low and
+     wider than the viewport), so it does not need a high resolution or 60 fps: it spins slowly. Drawing it at 1500 px / 60 fps
+     was the main source of UI lag (measured: 7 fps with the globe, 60 fps without). Low-power devices get a still globe. */
+  var lowPower = coarse && ((navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4);
+  var SPEED = reduced || lowPower ? 0 : 0.2;      // rad / second
+  var MIN_FRAME = coarse ? 1000 / 24 : 1000 / 30;
   var st = { phi: reduced ? 0.6 : 0.6 - 2.2, theta: 0.28 };
-  var intro = reduced ? 0 : 2.2;
+  var intro = reduced || lowPower ? 0 : 2.2;
   var last = 0, busyUntil = 0;
 
   /* brief freeze ONLY while tabs swap (never while scrolling): the globe keeps spinning during scroll */
@@ -137,11 +141,22 @@
     return { dark: 1, diffuse: 1.1, mapBrightness: 6, baseColor: d[0], glowColor: d[1], markerColor: d[2] };
   }
 
+  /* Self-healing: if the device cannot keep up (frames much slower than the budget, e.g. software WebGL or an old phone),
+     the globe stops spinning and stays as a still image, so the rest of the page stays smooth. */
+  var slow = 0, prevT = 0;
+  function watchSpeed(t) {
+    var gap = prevT ? t - prevT : 0; prevT = t;
+    if (!SPEED || !gap || gap > 250) return;          // 250+ ms = tab switch / pause, not slowness
+    slow = gap > 45 ? slow + 1 : Math.max(0, slow - 1);
+    if (slow > 40) { SPEED = 0; intro = 0; }
+  }
+
   function frame(t) {
     requestAnimationFrame(frame);
-    if (document.hidden) return;
+    if (document.hidden) { prevT = 0; return; }
     if (lenis) lenis.raf(t);
-    if (!globe || overlayOpen) return;
+    if (!globe || overlayOpen) { prevT = 0; return; }
+    watchSpeed(t);
     var dt = t - last;
     if (dt < MIN_FRAME - 1) return;
     last = t;
@@ -159,8 +174,8 @@
 
   function start() {
     curW = size();
-    var maxPx = coarse ? 900 : 1500;
-    var dpr = Math.max(0.6, Math.min(window.devicePixelRatio || 1, 1.5, maxPx / curW));
+    var maxPx = coarse ? 560 : 900;                 // backing-store size in device pixels (CSS scales it up; soft is fine for a background)
+    var dpr = Math.max(0.3, Math.min(window.devicePixelRatio || 1, 1, maxPx / curW));
 
     globe = window.__createGlobe(canvas, Object.assign({
       width: curW, height: curW, devicePixelRatio: dpr,

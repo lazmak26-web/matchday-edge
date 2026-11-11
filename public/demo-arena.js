@@ -90,8 +90,9 @@
     },
     intro(root) {
       const g = G(); if (!g) return;
-      g.from(root.querySelector('.da-hero'), { opacity: 0, y: 18, duration: .55, ease: 'power3.out', clearProps: 'all' });
-      g.from(root.querySelectorAll('.da-brand,.da-hero h1,.da-bal-l,.da-mini div,.da-recov'), { opacity: 0, y: 10, duration: .45, stagger: .06, delay: .15, ease: 'power2.out', clearProps: 'all' });
+      const hero = root.querySelector('.da-hero'), parts = root.querySelectorAll('.da-brand,.da-hero h1,.da-bal-l,.da-mini div,.da-recov');
+      if (hero) g.from(hero, { opacity: 0, y: 18, duration: .55, ease: 'power3.out', clearProps: 'all' });   // the wallet may not be rendered yet
+      if (parts.length) g.from(parts, { opacity: 0, y: 10, duration: .45, stagger: .06, delay: .15, ease: 'power2.out', clearProps: 'all' });
     },
     reveal(el) {
       const g = G(); if (!g) return;
