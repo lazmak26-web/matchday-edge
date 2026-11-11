@@ -26,6 +26,7 @@ const WOMEN_LEAGUE_IDS = new Set(String(process.env.WOMEN_LEAGUE_IDS || '36').sp
 const isWomenFixture = f => !!f && (f.women === true || (/^League #(\d+)$/.exec(String(f.league || '')) ? WOMEN_LEAGUE_IDS.has(RegExp.$1) : false));
 const oddsApi = require('./oddsapi');
 const fdStats = require('./fdstats');
+const apiFootball = require('./apifootball');
 
 /* ═══════════════════════════════════════════════════════════
    KEYAUTH CONFIG
@@ -771,6 +772,7 @@ async function getFixtures() {
     try {
       const eventsP = fetchBzzoiroEvents().catch(() => []);
       const fdP = API_KEY ? fetchFdMatches() : Promise.resolve([]);
+      const afP = apiFootball.fetchToday().catch(() => []);   // optional 3rd source (APIFOOTBALL_KEY): many more leagues
 
       let oddsMap = oddsCache.data;
       if (!oddsMap || Date.now() - oddsCache.ts > ODDS_TTL) {
@@ -886,6 +888,24 @@ async function getFixtures() {
           sources: odds ? ['fd', 'bzz'] : ['fd']
         };
         if (fixture.status === 'finished' && (m.score?.fullTime?.home == null || m.score?.fullTime?.away == null)) { fixture.homeScore = null; fixture.awayScore = null; fixture.resultPending = true; }
+        estimateXGForFixture(fixture);
+        fixtures.push(fixture);
+      }
+
+      // API-Football: added last, so a match the other sources already have is merged into theirs by dedupeFixtures (same
+      // kick-off +-15 min and same pairing) and keeps the Bzzoiro id, odds and forms.
+      for (const a of await afP) {
+        const hf = bzzFormCache.map.get(teamNameKey(a.home.name)) || null, af = bzzFormCache.map.get(teamNameKey(a.away.name)) || null;
+        const iso = a.date + 'T' + a.kickoff + ':00Z';
+        const fixture = Object.assign({}, a, {
+          status: normalizeStatus(a.rawStatus, iso),
+          home: Object.assign({}, a.home, { logo: localLogo(a.home.name) || a.home.logo || cachedLogo(a.home.name) || null, form: hf?.form || null, gf5: hf?.gf5 ?? null, ga5: hf?.ga5 ?? null, formN: hf?.n ?? null }),
+          away: Object.assign({}, a.away, { logo: localLogo(a.away.name) || a.away.logo || cachedLogo(a.away.name) || null, form: af?.form || null, gf5: af?.gf5 ?? null, ga5: af?.ga5 ?? null, formN: af?.n ?? null }),
+          odds: mergeOdds(oddsMap.get(normalizeTeamKey(a.home.name, a.away.name)), a.home.name, a.away.name)
+        });
+        delete fixture.rawStatus;
+        if (fixture.status === 'canceled') continue;
+        if (fixture.status === 'finished' && fixture.resultPending) { fixture.homeScore = null; fixture.awayScore = null; }
         estimateXGForFixture(fixture);
         fixtures.push(fixture);
       }
@@ -2113,8 +2133,9 @@ const demoArena = require('./demo-arena').create({
   getFeed: demoFeed,
   lookupMatch: demoLookup,
   providerStatus: () => ({
-    configured: !!(BZZOIRO_API_KEY || API_KEY),
-    providers: { bzzoiro: !!BZZOIRO_API_KEY, footballData: !!API_KEY },
+    configured: !!(BZZOIRO_API_KEY || API_KEY || apiFootball.status().enabled),
+    providers: { bzzoiro: !!BZZOIRO_API_KEY, footballData: !!API_KEY, apiFootball: apiFootball.status().enabled },
+    apiFootball: apiFootball.status(),
     bzzoiroRequestsToday: bzzUsage.n, bzzoiroDailyBudget: BZZ_DAILY_BUDGET,
   }),
   planOfUserKey: key => {
