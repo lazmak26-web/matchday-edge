@@ -45,6 +45,11 @@
     fresh = fresh.filter(function (n) { var r = n.getBoundingClientRect(); return r.bottom > 0 && r.top < vh; }).slice(0, 10);
     if (!fresh.length) return;
     g.from(fresh, { y: 22, opacity: 0, duration: .5, stagger: { each: .05, amount: .4 }, ease: 'power3.out', clearProps: 'transform,opacity' });
+    // probability bars draw themselves in, one segment after the other (only on cards that just appeared)
+    fresh.forEach(function (n, k) {
+      var segs = n.querySelectorAll('.pbar i');
+      if (segs.length) g.from(segs, { scaleX: 0, duration: .7, delay: .15 + k * .05, stagger: .09, ease: 'power3.out', clearProps: 'transform' });
+    });
   }
 
   function after() {
