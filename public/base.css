@@ -1,7 +1,7 @@
 /* LuciBet base design (green hero header, flat cards, Plus Jakarta Sans).
    It applies to EVERY theme. A theme only changes colours (the variables in index.html), never the layout.
    Hero colours are derived from each theme's --brand, so every theme gets its own hero.
-   Loaded before edge.css (the "Matchday Programme" design layer), which restyles these surfaces. */
+   Loaded after spatial.css. */
 @font-face{font-family:'Plus Jakarta Sans';src:url(/vendor/fonts/PlusJakartaSans.woff2) format('woff2');font-weight:200 800;font-display:swap}
 :root{
   --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Arabic',sans-serif;

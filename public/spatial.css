@@ -1,0 +1,383 @@
+/* LuciBet spatial layer.
+   Loaded last, so it restyles the existing surfaces without touching the app's markup or logic.
+   Idea: the page is a room, not a sheet. Light sits in the room (soft orbs), every panel is a pane of glass at a set
+   height, and height is shown three ways: how much blur, how big the shadow, how bright the top edge is.
+     z1  content panes (cards, tiles)        z2  chrome (header, tab bar, side menu)        z3  modals, cookie notice
+   To revert the whole look, remove the <link> and <script> for spatial.* from index.html. */
+
+:root{
+  --sp-ease:cubic-bezier(.22,1,.36,1);
+  --sp-spec:rgba(255,255,255,.34);          /* top edge highlight */
+  --sp-spec-soft:rgba(255,255,255,.07);
+  --sp-edge:inset 0 1px 0 var(--sp-spec),inset 0 0 0 1px rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.18);
+  --sp-z1:0 1px 2px rgba(0,0,0,.22),0 10px 22px -10px rgba(0,0,0,.34),0 26px 48px -28px rgba(0,0,0,.42);
+  --sp-z2:0 2px 4px rgba(0,0,0,.2),0 18px 36px -14px rgba(0,0,0,.45),0 40px 70px -34px rgba(0,0,0,.5);
+  --sp-z3:0 4px 8px rgba(0,0,0,.22),0 34px 70px -20px rgba(0,0,0,.6),0 70px 120px -50px rgba(0,0,0,.6);
+  --sp-r1:30px; --sp-r2:22px;
+  --sp-pane:linear-gradient(158deg,rgba(255,255,255,.085),rgba(255,255,255,.02) 38%,rgba(255,255,255,0) 72%);
+  --sp-tint:color-mix(in srgb,var(--card) 58%,transparent);
+}
+/* light themes: lighter shadows, a white pane needs a visible edge instead of a bright one */
+[data-theme="light"],[data-theme="mist"],[data-theme="sand"],[data-theme="mono"],[data-theme="arctic"],[data-theme="mint"]{
+  --sp-spec:rgba(255,255,255,.95);
+  --sp-edge:inset 0 1px 0 var(--sp-spec),inset 0 0 0 1px rgba(255,255,255,.55),0 0 0 1px rgba(20,30,50,.07);
+  --sp-z1:0 1px 2px rgba(30,40,70,.08),0 12px 24px -12px rgba(30,40,70,.2),0 28px 50px -30px rgba(30,40,70,.22);
+  --sp-z2:0 2px 4px rgba(30,40,70,.08),0 20px 38px -16px rgba(30,40,70,.26),0 44px 70px -36px rgba(30,40,70,.28);
+  --sp-z3:0 4px 8px rgba(30,40,70,.1),0 36px 70px -22px rgba(30,40,70,.34),0 70px 120px -52px rgba(30,40,70,.34);
+  --sp-pane:linear-gradient(158deg,rgba(255,255,255,.7),rgba(255,255,255,.2) 45%,rgba(255,255,255,0) 80%);
+  --sp-tint:color-mix(in srgb,var(--card) 66%,transparent);
+}
+
+/* ───────── The room: soft light sources that drift a little with the pointer ───────── */
+body{
+  background:
+    radial-gradient(120% 70% at 50% 108%,color-mix(in srgb,var(--brand) 16%,transparent),transparent 62%),
+    linear-gradient(180deg,color-mix(in srgb,var(--bg) 100%,#000 0%),color-mix(in srgb,var(--bg) 86%,var(--brand) 14%) 100%);
+  background-attachment:fixed;
+}
+.aurora i{
+  width:62vmax;height:62vmax;opacity:.34;
+  transform:translate3d(calc(var(--sp-x,0)*var(--d,24px)),calc(var(--sp-y,0)*var(--d,24px)),0);
+  transition:transform 1.2s var(--sp-ease);
+}
+.aurora i:nth-child(1){--d:-34px}
+.aurora i:nth-child(2){--d:26px;opacity:.26}
+.aurora i:nth-child(3){--d:-16px;opacity:.16}
+
+/* ───────── z1: content panes ───────── */
+.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item,.bv,.pf-card,.pf-day,.empty-state{
+  background:
+    radial-gradient(460px circle at var(--px,16%) var(--py,-14%),rgba(255,255,255,var(--sp-glow,.10)),transparent 62%),
+    var(--sp-pane),
+    var(--sp-tint);
+  border:0;
+  border-radius:var(--sp-r1);
+  box-shadow:var(--sp-edge),var(--sp-z1);
+}
+.empty-state{box-shadow:var(--sp-edge);--sp-glow:.05}
+.match.is-value{box-shadow:var(--sp-edge),0 0 0 1.5px var(--good-line),0 0 38px -10px var(--good-dim),var(--sp-z1)}
+.match.is-live-card{box-shadow:var(--sp-edge),0 0 0 1.5px var(--info),0 0 38px -10px var(--info-dim),var(--sp-z1)}
+.match.is-pinned{box-shadow:var(--sp-edge),0 0 0 1.5px var(--brand),0 0 38px -10px var(--brand-dim),var(--sp-z1)}
+.bv{box-shadow:var(--sp-edge),0 0 0 1.5px var(--good-line),0 0 44px -12px var(--good-dim),var(--sp-z1)}
+
+/* inner pieces sit one step "into" the pane: recessed glass, not flat grey chips */
+.tile,.vb,.pf-chart,.pf-stat{
+  background:linear-gradient(180deg,rgba(0,0,0,.14),rgba(0,0,0,.04)),color-mix(in srgb,var(--soft) 55%,transparent);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.28),inset 0 -1px 0 rgba(255,255,255,.06);
+  border-radius:var(--sp-r2);
+}
+[data-theme="light"] .tile,[data-theme="mist"] .tile,[data-theme="sand"] .tile,[data-theme="mono"] .tile,[data-theme="arctic"] .tile,[data-theme="mint"] .tile{
+  background:color-mix(in srgb,var(--soft) 80%,transparent);box-shadow:inset 0 1px 2px rgba(30,40,70,.12),inset 0 -1px 0 rgba(255,255,255,.8)}
+.tile.top{background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 60%),var(--brand);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 18px -8px var(--brand)}
+.pill{background:color-mix(in srgb,var(--soft) 60%,transparent);box-shadow:inset 0 1px 0 var(--sp-spec-soft)}
+.pill.good,.pill.low{background:var(--good-dim)}.pill.warn,.pill.medium{background:var(--warn-dim)}.pill.bad,.pill.high{background:var(--bad-dim)}
+.hero-badge{background:var(--sp-tint);border:0;box-shadow:var(--sp-edge),0 8px 20px -12px rgba(0,0,0,.5);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%)}
+
+/* ───────── z2: chrome floats above the content ───────── */
+.app-header,.bottom-nav{
+  border:0;
+  background:var(--sp-pane),color-mix(in srgb,var(--card) 40%,transparent);
+  -webkit-backdrop-filter:blur(30px) saturate(190%);backdrop-filter:blur(30px) saturate(190%);
+  box-shadow:var(--sp-edge),var(--sp-z2);
+}
+.app-header.scrolled{box-shadow:var(--sp-edge),var(--sp-z2)}
+.brand-mark{border-radius:12px;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 6px 14px -6px rgba(0,0,0,.6)}
+.icon-btn{
+  background:color-mix(in srgb,var(--card) 50%,transparent);border:0;
+  box-shadow:var(--sp-edge),0 6px 14px -8px rgba(0,0,0,.5);
+  transition:transform .35s var(--sp-ease),box-shadow .35s var(--sp-ease),background .25s;
+}
+.icon-btn:hover{background:color-mix(in srgb,var(--card) 70%,transparent)}
+@media (hover:hover){.icon-btn:hover{transform:translateY(-1px) scale(1.06)}}
+.icon-btn:active{transform:scale(.94)}
+
+/* tab bar: the active tab is a lit pane of glass (not a solid black pill) */
+.nav-item{color:var(--ink-2);transition:background .35s var(--sp-ease),color .25s,box-shadow .35s var(--sp-ease),flex .35s var(--sp-ease)}
+.nav-item:hover{color:var(--ink)}
+.nav-item.active{
+  color:var(--ink);
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.08)),color-mix(in srgb,var(--brand) 22%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 0 1px rgba(255,255,255,.1),0 8px 20px -8px var(--brand);
+}
+[data-theme="light"] .nav-item.active,[data-theme="mist"] .nav-item.active,[data-theme="sand"] .nav-item.active,[data-theme="mono"] .nav-item.active,[data-theme="arctic"] .nav-item.active,[data-theme="mint"] .nav-item.active{
+  background:linear-gradient(180deg,#fff,rgba(255,255,255,.55)),color-mix(in srgb,var(--brand) 14%,#fff);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(20,30,50,.06),0 8px 18px -8px var(--brand)}
+
+/* side menu: a floating pane inset from the screen edge, not a wall */
+.side-menu{
+  top:12px;bottom:12px;left:12px;border:0;border-radius:32px;
+  background:var(--sp-pane),color-mix(in srgb,var(--card) 52%,transparent);
+  -webkit-backdrop-filter:blur(34px) saturate(190%);backdrop-filter:blur(34px) saturate(190%);
+  box-shadow:var(--sp-edge),var(--sp-z3);
+  transition:transform .55s var(--sp-ease);
+}
+.side-menu:not(.open){transform:translateX(calc(-100% - 24px))}
+.side-item{border-radius:20px;transition:background .25s,color .25s,transform .35s var(--sp-ease)}
+.side-item:active,.side-item.active{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.04)),var(--brand-dim);box-shadow:var(--sp-edge)}
+
+/* ───────── z3: things you must answer sit highest ───────── */
+.modal-overlay{background:radial-gradient(80% 60% at 50% 40%,rgba(10,12,30,.42),rgba(0,0,0,.72))}
+.modal-box{
+  border:0;border-radius:36px;
+  background:var(--sp-pane),color-mix(in srgb,var(--card) 70%,transparent);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);
+  box-shadow:var(--sp-edge),var(--sp-z3);
+  animation:spIn .55s var(--sp-ease) both;
+}
+@keyframes spIn{from{opacity:0;transform:perspective(900px) translate3d(0,26px,-70px) rotateX(7deg) scale(.97)}to{opacity:1;transform:none}}
+#cookieBar{
+  border:0;border-radius:26px;
+  background:var(--sp-pane),color-mix(in srgb,var(--card) 62%,transparent);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+  box-shadow:var(--sp-edge),var(--sp-z3);
+}
+
+/* ───────── controls ───────── */
+.btn-main,.auth-btn{
+  background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,0) 52%),var(--brand);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 4px rgba(0,0,0,.14),0 10px 24px -10px var(--brand),0 2px 4px rgba(0,0,0,.2);
+  transition:transform .4s var(--sp-ease),box-shadow .4s var(--sp-ease),filter .2s;
+}
+@media (hover:hover){.btn-main:hover,.auth-btn:hover{transform:translateY(-2px);filter:brightness(1.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 4px rgba(0,0,0,.14),0 18px 34px -12px var(--brand),0 3px 6px rgba(0,0,0,.22)}}
+.btn-main:active,.auth-btn:active{transform:translateY(0) scale(.975)}
+.auth-btn.auth-secondary,.btn-main.secondary,.dc-btn{
+  background:var(--sp-pane),color-mix(in srgb,var(--card) 55%,transparent);color:var(--ink);
+  box-shadow:var(--sp-edge),0 8px 18px -10px rgba(0,0,0,.5);
+}
+.auth-input{
+  background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.05)),color-mix(in srgb,var(--soft) 55%,transparent);
+  border:0;border-radius:18px;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.35),inset 0 -1px 0 rgba(255,255,255,.07);
+  transition:box-shadow .3s var(--sp-ease);
+}
+.auth-input:focus{border:0;box-shadow:inset 0 1px 3px rgba(0,0,0,.35),0 0 0 2px var(--brand),0 0 24px -4px var(--brand)}
+:focus-visible{outline:2px solid color-mix(in srgb,var(--brand) 85%,#fff);outline-offset:3px;border-radius:inherit}
+.tg-fab{box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 14px 30px -10px rgba(34,158,217,.75),0 2px 4px rgba(0,0,0,.25)}
+
+/* ───────── type: lighter and larger reads as air, heavy reads as a poster ───────── */
+.hero-title{font-weight:640;letter-spacing:-.048em;text-shadow:0 2px 40px color-mix(in srgb,var(--brand) 28%,transparent),0 1px 0 rgba(255,255,255,.06)}
+.hero-subtitle{font-weight:420}
+.section-label{font-weight:600;letter-spacing:.01em}
+.modal-box h2{font-weight:650}
+
+/* ───────── depth on the landing page: the three panes are not on one plane ───────── */
+@media (min-width:960px){
+  .feature-grid{align-items:start;perspective:1400px}
+  .feature-grid>.feature-card:nth-child(2){margin-top:-18px;box-shadow:var(--sp-edge),var(--sp-z2)}
+  .feature-grid>.feature-card:nth-child(3){margin-top:10px}
+}
+
+/* ───────── interaction: a pane under the cursor rises and catches the light ───────── */
+.sp-live{
+  transition:transform .6s var(--sp-ease),box-shadow .6s var(--sp-ease);
+  transform:perspective(1100px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translate3d(0,var(--lift,0px),0);
+  will-change:transform;
+}
+.sp-live.sp-hot{--sp-glow:.2;--lift:-4px;box-shadow:var(--sp-edge),var(--sp-z2)}
+
+/* Real glass (live blur) only where it is cheap: wide screens with a mouse. Phones get the same look from the gradients. */
+@media (hover:hover) and (min-width:960px){
+  .feature-card,.chart-card,.perf-card,.plan-card,.bv,.pf-card{-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%)}
+}
+
+/* ───────── accessibility floor ───────── */
+@media (prefers-reduced-motion:reduce){
+  .aurora i,.sp-live,.btn-main,.auth-btn,.icon-btn,.nav-item,.side-menu,.side-item{transition:none!important}
+  .modal-box{animation:none}
+  .sp-live{transform:none!important}
+}
+@media (prefers-reduced-transparency:reduce){
+  .feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item,.bv,.pf-card,.pf-day,
+  .app-header,.bottom-nav,.side-menu,.modal-box,#cookieBar,.hero-badge{background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+@media (forced-colors:active){
+  .feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item,.bv,.app-header,.bottom-nav,.modal-box,.auth-input{border:1px solid CanvasText}
+}
+
+/* secondary buttons share the glass language */
+.btn-tg,#cookieBar .cb-btn{
+  border:0;background:var(--sp-pane),color-mix(in srgb,var(--card) 55%,transparent);color:var(--ink);
+  box-shadow:var(--sp-edge),0 8px 18px -10px rgba(0,0,0,.5);
+  transition:transform .4s var(--sp-ease),box-shadow .4s var(--sp-ease);
+}
+@media (hover:hover){.btn-tg:hover,#cookieBar .cb-btn:hover{transform:translateY(-2px);box-shadow:var(--sp-edge),0 16px 28px -12px rgba(0,0,0,.55)}}
+/* text-only buttons (Cancel / Back) stay flat: no glow */
+.auth-btn[style*="transparent"],.auth-btn[style*="transparent"]:hover{box-shadow:none;transform:none;filter:none}
+.auth-btn[style*="transparent"]:hover{color:var(--ink)!important}
+
+/* ── tap targets ≥44px (visual size unchanged where it is a small round chip) ── */
+.icon-btn,.filter-btn{min-width:44px;min-height:44px}
+.bell-btn,.pin-btn{position:relative}
+.bell-btn::after,.pin-btn::after{content:"";position:absolute;inset:-7px}
+.site-footer nav a,.site-footer .link-btn,#cookieBar a{display:inline-block;padding:12px 4px;min-height:44px;box-sizing:border-box}
+.site-footer nav{gap:0 14px}
+/* ── empty states: headline + one value sentence + one action ── */
+.empty-state strong{display:block;color:var(--ink);font-size:15px;margin-bottom:6px}
+.empty-state p{margin:0 auto 14px;max-width:34ch;font-size:13px;line-height:1.5}
+.empty-state p:last-child{margin-bottom:0}
+.empty-cta{min-height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:600;font-size:13px;cursor:pointer}
+.empty-cta:disabled{opacity:.6;cursor:default}
+#cookieBar .cb-btn{min-height:44px}
+.site-footer a,.consent a{display:inline-block;padding:12px 2px}
+
+/* ── smoothness: cheaper tab switch / menu / slider repaint ── */
+.tab-view.active{animation:none}                       /* group-fading a view full of glass cards forces an offscreen pass every frame */
+.tab-view.active{contain:layout style}
+.match{content-visibility:auto;contain-intrinsic-size:auto 230px}   /* off-screen cards skip layout+paint while sliders re-render the list */
+.side-menu{-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);will-change:transform}
+.modal-box{-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
+.app-header,.bottom-nav{-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%)}
+.side-overlay{transition:opacity .2s}
+
+/* ── side menu: items glide in one after another, leave together ── */
+.side-menu .side-head,.side-menu .side-item{
+  opacity:0;transform:translate3d(-18px,0,0);
+  transition:opacity .18s ease,transform .22s ease,background .25s,color .25s;
+}
+.side-menu.open .side-head,.side-menu.open .side-item{
+  opacity:1;transform:none;
+  transition:opacity .4s ease calc(var(--i,0)*55ms + 120ms),transform .55s var(--sp-ease) calc(var(--i,0)*55ms + 120ms),background .25s,color .25s;
+}
+@media (prefers-reduced-motion:reduce){
+  .side-menu .side-head,.side-menu .side-item{transform:none!important;transition:opacity .12s ease!important}
+  .side-menu.open .side-head,.side-menu.open .side-item{transition:opacity .12s ease!important}
+}
+
+/* ── side menu: grows out of the menu button (top-left) and shrinks back into it ── */
+.side-menu{transform-origin:34px 34px}
+.side-menu:not(.open){
+  transform:scale(.12);opacity:0;pointer-events:none;
+  transition:transform .46s cubic-bezier(.65,0,.35,1),opacity .34s ease .1s;
+}
+.side-menu.open{
+  transform:none;opacity:1;
+  transition:transform .55s var(--sp-ease),opacity .22s ease;
+}
+.side-overlay{transition:opacity .25s ease}
+@media (prefers-reduced-motion:reduce){
+  .side-menu,.side-menu:not(.open),.side-menu.open{transform:none!important;transition:opacity .12s ease!important}
+}
+
+/* ── profile menu + settings: same motion as the side menu (grow from the origin, items follow one by one, shrink back) ── */
+@keyframes spGrow{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:none}}
+@keyframes spShrink{from{opacity:1;transform:none}to{opacity:0;transform:scale(.12)}}
+@keyframes spItemIn{from{opacity:0;transform:translate3d(-14px,0,0)}to{opacity:1;transform:none}}
+@keyframes spFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spFadeOut{from{opacity:1}to{opacity:0}}
+.profile-menu{transform-origin:calc(100% - 22px) -10px}
+.profile-menu:not(.hidden){animation:spGrow .5s var(--sp-ease) both}
+.profile-menu.closing{animation:spShrink .24s cubic-bezier(.4,0,.6,1) both;pointer-events:none}
+.modal-box{transform-origin:-18% -22%}
+#settingsModal:not(.hidden){animation:spFadeIn .25s ease both}
+#settingsModal:not(.hidden) .modal-box{animation:spGrow .55s var(--sp-ease) both}
+#settingsModal.closing{animation:spFadeOut .24s ease both;pointer-events:none}
+#settingsModal.closing .modal-box{animation:spShrink .24s cubic-bezier(.4,0,.6,1) both}
+.profile-menu:not(.hidden):not(.closing)>*,#settingsModal:not(.hidden):not(.closing) .modal-box>*{animation:spItemIn .45s var(--sp-ease) both;animation-delay:calc(var(--k,0)*50ms + 110ms)}
+.profile-menu>:nth-child(1),#settingsModal .modal-box>:nth-child(1){--k:0}
+.profile-menu>:nth-child(2),#settingsModal .modal-box>:nth-child(2){--k:1}
+.profile-menu>:nth-child(3),#settingsModal .modal-box>:nth-child(3){--k:2}
+.profile-menu>:nth-child(4),#settingsModal .modal-box>:nth-child(4){--k:3}
+.profile-menu>:nth-child(5),#settingsModal .modal-box>:nth-child(5){--k:4}
+.profile-menu>:nth-child(n+6),#settingsModal .modal-box>:nth-child(n+6){--k:5}
+@media (prefers-reduced-motion:reduce){
+  .profile-menu:not(.hidden),#settingsModal:not(.hidden),#settingsModal:not(.hidden) .modal-box,.profile-menu>*,#settingsModal .modal-box>*{animation:none!important}
+}
+
+/* ── admin tab: rises and scales up from the bottom of the screen ── */
+@keyframes spRise{from{opacity:0;transform:translate3d(0,28px,0) scale(.92)}to{opacity:1;transform:none}}
+#view-admin.active{transform-origin:50% 100vh;animation:spRise .6s var(--sp-ease) both}
+#view-admin.active .perf-card,#view-admin.active .chart-card,#view-admin.active .empty-state{-webkit-backdrop-filter:none;backdrop-filter:none}
+#adminRows tr{content-visibility:auto;contain-intrinsic-size:auto 44px}
+@media (prefers-reduced-motion:reduce){#view-admin.active{animation:none}}
+.adm-table:has(#adminRows){table-layout:fixed;width:100%;min-width:600px}   /* fixed layout: appending rows no longer re-measures the whole table */
+.adm-table:has(#adminRows) th:nth-child(1){width:48px}
+.adm-table:has(#adminRows) th:nth-child(2){width:230px}
+.adm-table:has(#adminRows) th:nth-child(3){width:120px}
+.adm-table:has(#adminRows) th:nth-child(4){width:100px}
+.adm-table:has(#adminRows) th:nth-child(5){width:102px}
+.adm-table:has(#adminRows) td{overflow-wrap:anywhere}
+
+/* ── panes that animate must not carry a live backdrop-filter: re-blurring every frame is what made phones stutter (screen recording: ~10-15 fps).
+      Same look from a denser tint; real blur stays on the static header/nav. ── */
+.side-menu,.modal-box,.profile-menu{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  background:var(--sp-pane),color-mix(in srgb,var(--card) 97%,transparent)!important;
+}
+.side-menu.open,.profile-menu:not(.hidden),.modal-box{will-change:transform,opacity}
+#settingsModal.hidden .modal-box,.profile-menu.hidden{will-change:auto}
+
+/* ── settings + profile use EXACTLY the side-menu measures: open .55s sp-ease / fade .22s, close .46s ease-in-out / fade .34s after .1s,
+      scale from .12, items +120ms then 55ms apart, -18px glide, .18s item exit ── */
+@keyframes spGrowSb{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:none}}
+@keyframes spShrinkSb{from{opacity:1;transform:none}to{opacity:0;transform:scale(.12)}}
+@keyframes spFadeInSb{from{opacity:0}to{opacity:1}}
+@keyframes spFadeOutSb{from{opacity:1}to{opacity:0}}
+@keyframes spOpIn{from{opacity:0}to{opacity:1}}
+@keyframes spOpOut{from{opacity:1}to{opacity:0}}
+@keyframes spItemInSb{from{opacity:0;transform:translate3d(-18px,0,0)}to{opacity:1;transform:none}}
+@keyframes spItemOutSb{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(-18px,0,0)}}
+.profile-menu:not(.hidden){animation:spGrowSb .55s var(--sp-ease) both}
+.profile-menu.closing{animation:spShrinkSb .46s cubic-bezier(.65,0,.35,1) both}
+#settingsModal:not(.hidden){animation:spFadeInSb .25s ease both}
+#settingsModal:not(.hidden) .modal-box{animation:spGrowSb .55s var(--sp-ease) both}
+#settingsModal.closing{animation:spFadeOutSb .46s ease both}
+#settingsModal.closing .modal-box{animation:spShrinkSb .46s cubic-bezier(.65,0,.35,1) both}
+.profile-menu:not(.hidden):not(.closing)>*,#settingsModal:not(.hidden):not(.closing) .modal-box>*{
+  animation:spItemInSb .55s var(--sp-ease) both;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.profile-menu.closing>*,#settingsModal.closing .modal-box>*{animation:spItemOutSb .18s ease both;animation-delay:0s}
+@media (prefers-reduced-motion:reduce){
+  .profile-menu:not(.hidden),#settingsModal:not(.hidden),#settingsModal:not(.hidden) .modal-box,.profile-menu>*,#settingsModal .modal-box>*,
+  .profile-menu.closing,#settingsModal.closing,#settingsModal.closing .modal-box,.profile-menu.closing>*,#settingsModal.closing .modal-box>*{animation:none!important}
+}
+
+/* settings grows from the menu button point (34,34) without any JS layout read:
+   % inside transform-origin is the box itself, and the box is centred in the viewport */
+#settingsModal .modal-box{transform-origin:calc(34px - (100vw - 100%) / 2) calc(34px - (100vh - 100%) / 2)}
+
+/* while a modal or the side menu is open the page behind it is frozen under a scrim (live-globe.js sets html.ui-overlay and
+   stops the globe): drop the static header/nav blur too so nothing re-blurs under the open animation */
+html.ui-overlay .app-header,html.ui-overlay .bottom-nav{-webkit-backdrop-filter:none;backdrop-filter:none}
+
+/* ── banking-style details, kept in the site's own theme tokens ── */
+.dec{opacity:.45;font-weight:500}                                 /* faded decimals */
+.wl-bar{height:6px;border-radius:99px;background:color-mix(in srgb,var(--bad,#f87171) 55%,transparent);overflow:hidden;margin-top:14px}
+.wl-bar i{display:block;height:100%;border-radius:99px;background:var(--good);transition:width .7s var(--sp-ease)}
+.perf-card.hero{position:relative;margin-bottom:16px;isolation:isolate}
+.perf-card.hero::before,.perf-card.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:100%;border-radius:inherit;z-index:-1;
+  background:var(--glass);border:1px solid var(--glass-line);pointer-events:none}
+.perf-card.hero::before{transform:translateY(8px) scale(.94);opacity:.7}
+.perf-card.hero::after{transform:translateY(15px) scale(.88);opacity:.4}
+@media (prefers-reduced-motion:reduce){.wl-bar i{transition:none}}
+.wl-bar.empty{background:var(--glass-line)}
+
+/* ── richer, still-static background: three coloured lights + a very fine grain + soft vignette (no extra blur layers) ── */
+body{
+  background:
+    radial-gradient(70% 55% at 8% -6%,color-mix(in srgb,var(--brand) 26%,transparent),transparent 70%),
+    radial-gradient(60% 50% at 100% 2%,color-mix(in srgb,var(--info,var(--brand)) 20%,transparent),transparent 72%),
+    radial-gradient(55% 40% at -4% 52%,color-mix(in srgb,var(--good,var(--brand)) 13%,transparent),transparent 70%),
+    radial-gradient(55% 40% at 104% 70%,color-mix(in srgb,var(--brand) 16%,transparent),transparent 72%),
+    radial-gradient(90% 55% at 50% 112%,color-mix(in srgb,var(--good,var(--brand)) 15%,transparent),transparent 66%),
+    radial-gradient(120% 70% at 50% 108%,color-mix(in srgb,var(--brand) 14%,transparent),transparent 62%),
+    linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--bg) 88%,var(--brand) 12%));
+  background-attachment:fixed;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.06;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  background-size:160px 160px;
+}
+[data-theme="light"] body::before,[data-theme="mist"] body::before,[data-theme="sand"] body::before,[data-theme="mono"] body::before,[data-theme="arctic"] body::before,[data-theme="mint"] body::before{opacity:.035;filter:invert(1)}
+body::after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(130% 100% at 50% 40%,transparent 62%,rgba(0,0,0,.18));
+}
+[data-theme="light"] body::after,[data-theme="mist"] body::after,[data-theme="sand"] body::after,[data-theme="mono"] body::after,[data-theme="arctic"] body::after,[data-theme="mint"] body::after{background:radial-gradient(130% 100% at 50% 40%,transparent 60%,rgba(30,40,70,.08))}
+
+/* ── footer: small, quiet, compact (the tap area is widened with a pseudo-element, so it stays easy to hit without taking space) ── */
+.site-footer{font-size:10.5px;line-height:1.5;margin:18px auto 104px;opacity:.85}
+.disclaimer{font-size:10px;line-height:1.5;margin:40px auto 0;max-width:56ch;opacity:.8}
+.site-footer nav{gap:0 12px;margin-bottom:6px}
+.site-footer nav a,.site-footer .link-btn,.site-footer p a{display:inline;position:relative;padding:0;min-height:0;font-size:10.5px;color:var(--text-sub);text-decoration-color:color-mix(in srgb,var(--text-sub) 45%,transparent);text-underline-offset:2px}
+.site-footer .link-btn{background:none;border:0;cursor:pointer;text-decoration:underline;font-family:inherit}
+.site-footer nav a::after,.site-footer .link-btn::after{content:"";position:absolute;inset:-13px -7px}
+.site-footer a:hover,.site-footer .link-btn:hover{color:var(--ink)}
