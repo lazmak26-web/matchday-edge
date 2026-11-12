@@ -554,8 +554,9 @@ html.lenis, html.lenis body { height:auto; }
 </style>
 <link rel="stylesheet" href="/demo-arena.css">
 <link rel="stylesheet" href="/fx.css">
+<link rel="stylesheet" href="/spatial.css">
 <link rel="stylesheet" href="/base.css">
-<link rel="stylesheet" href="/edge.css">
+<script src="/spatial.js" defer></script>
 </head>
 <body>
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -572,7 +573,7 @@ html.lenis, html.lenis body { height:auto; }
       </div>
       <div class="brand-text">
         <div class="brand-name">LuciBet</div>
-        <div class="brand-sub"><span data-i18n="pro_analytics">Pro Analytics</span> · <span id="today"></span></div>
+        <div class="brand-sub"><span data-i18n="pro_analytics">⚽ Pro Analytics</span> · <span id="today"></span></div>
       </div>
     </div>
 
@@ -581,7 +582,7 @@ html.lenis, html.lenis body { height:auto; }
       <div class="live-status hidden" id="live-status">
         <span class="dot"></span><span id="live-text">LIVE</span>
       </div>
-      <button class="icon-btn" id="loginBtn" title="Login" aria-label="Login">Log in</button>
+      <button class="icon-btn" id="loginBtn" title="Login" aria-label="Login">🔐</button>
       <div class="profile-wrap">
         <button class="icon-btn hidden" id="profileBtn" title="Profile" aria-label="Profile"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></button>
         <div class="profile-menu hidden" id="profileMenu">
@@ -600,8 +601,8 @@ html.lenis, html.lenis body { height:auto; }
             <button type="button" data-lang="ar">🇸🇦 العربية</button>
             <button type="button" data-lang="fr">🇫🇷 Français</button>
           </div>
-          <button class="pm-settings" id="settingsBtn" type="button"><span data-i18n="nav_settings">Settings</span></button>
-          <button class="pm-logout" id="logoutBtn" type="button"><span data-i18n="logout_lbl">Log out</span></button>
+          <button class="pm-settings" id="settingsBtn" type="button">⚙️ <span data-i18n="nav_settings">Settings</span></button>
+          <button class="pm-logout" id="logoutBtn" type="button">🚪 <span data-i18n="logout_lbl">Log out</span></button>
         </div>
       </div>
     </div>
@@ -613,33 +614,33 @@ html.lenis, html.lenis body { height:auto; }
   </div>
 
   <div class="ticker" aria-hidden="true"><div class="ticker-track">
-    <span data-i18n="tick_1">Live Odds</span><span data-i18n="tick_2">+EV Value Bets</span><span data-i18n="tick_3">Poisson Model</span><span data-i18n="tick_4">Daily Picks</span>
-    <span data-i18n="tick_1">Live Odds</span><span data-i18n="tick_2">+EV Value Bets</span><span data-i18n="tick_3">Poisson Model</span><span data-i18n="tick_4">Daily Picks</span>
+    <span data-i18n="tick_1">⚽ Live Odds</span><span data-i18n="tick_2">🎯 +EV Value Bets</span><span data-i18n="tick_3">📊 Poisson Model</span><span data-i18n="tick_4">🏆 Daily Picks</span>
+    <span data-i18n="tick_1">⚽ Live Odds</span><span data-i18n="tick_2">🎯 +EV Value Bets</span><span data-i18n="tick_3">📊 Poisson Model</span><span data-i18n="tick_4">🏆 Daily Picks</span>
   </div></div>
 
   <div id="landingPage">
     <div class="landing-left">
-      <div class="hero-badge" data-i18n="hero_badge">Live Odds · +EV Scanner</div>
+      <div class="hero-badge" data-i18n="hero_badge">🔥 Live Odds · +EV Scanner</div>
       <h1 class="hero-title" data-i18n="hero_title">Match analytics.<br>The decision is yours.</h1>
       <p class="hero-subtitle adapt-ink" data-i18n="hero_sub">Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.</p>
 
       <div class="feature-grid">
         <div class="feature-card">
-          <div class="feature-icon"></div>
+          <div class="feature-icon">📊</div>
           <div>
             <div class="feature-title" data-i18n="feat_1_title">Poisson Model</div>
             <div class="feature-desc" data-i18n="feat_1_desc">Statistical match prediction using xG and recent team forms.</div>
           </div>
         </div>
         <div class="feature-card">
-          <div class="feature-icon"></div>
+          <div class="feature-icon">🎯</div>
           <div>
             <div class="feature-title" data-i18n="feat_2_title">+EV Finder</div>
             <div class="feature-desc" data-i18n="feat_2_desc">Flags prices where our model's estimate differs from the bookmaker's odds. Estimates only, never certainties.</div>
           </div>
         </div>
         <div class="feature-card">
-          <div class="feature-icon"></div>
+          <div class="feature-icon">⚡</div>
           <div>
             <div class="feature-title" data-i18n="feat_3_title">Live Updates</div>
             <div class="feature-desc" data-i18n="feat_3_desc">Odds and scores refreshed regularly. Data can be delayed or contain errors.</div>
@@ -657,7 +658,7 @@ html.lenis, html.lenis body { height:auto; }
     </div>
 
     <section class="lp-matches">
-      <div class="section-head"><div><div class="section-label"><span data-i18n="fixtures">Fixtures</span></div><h2 data-i18n="lp_today">Today's Matches</h2></div></div>
+      <div class="section-head"><div><div class="section-label">⚽ <span data-i18n="fixtures">Fixtures</span></div><h2 data-i18n="lp_today">Today's Matches</h2></div></div>
       <div class="match-grid" id="lpCards"></div>
     </section>
 
@@ -670,7 +671,7 @@ html.lenis, html.lenis body { height:auto; }
       <section>
         <div class="section-head">
           <div>
-            <div class="section-label"><span data-i18n="fixtures">Fixtures</span></div>
+            <div class="section-label">⚽ <span data-i18n="fixtures">Fixtures</span></div>
             <h2 data-i18n="matches">Matches</h2>
           </div>
           <button class="filter-btn" id="openFilterBtn" title="Filters" aria-label="Filters">
@@ -687,7 +688,7 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-discover" class="tab-view">
       <section style="margin-top:24px; max-width:600px; margin-inline:auto;">
-        <div class="section-head"><div><div class="section-label" data-i18n="disc_label">Community</div><h2 data-i18n="nav_discover">Discover</h2></div></div>
+        <div class="section-head"><div><div class="section-label">📰 Community</div><h2>Discover</h2></div></div>
         
         <div id="adminPostForm" class="chart-card hidden" style="margin-bottom:20px;">
           <h3 style="margin-bottom:12px; font-size:16px;">Create a Post</h3>
@@ -704,7 +705,7 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-history" class="tab-view">
       <section style="margin-top:24px;">
-        <div class="section-head"><div class="section-label"><span data-i18n="past_matches">Past Matches</span></div><h2 data-i18n="bot_history">Bot History</h2></div>
+        <div class="section-head"><div class="section-label">⏱️ <span data-i18n="past_matches">Past Matches</span></div><h2 data-i18n="bot_history">Bot History</h2></div>
         <div class="hist-search" role="search">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
           <input id="historySearch" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search a team…" data-i18n-ph="hist_search_ph" aria-label="Search past matches by team">
@@ -716,7 +717,7 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-performance" class="tab-view">
       <section style="margin-top:24px;">
-        <div class="section-head"><div class="section-label"><span data-i18n="bot_stats">Bot Stats</span></div><h2 data-i18n="perf_overview">Performance Overview</h2></div>
+        <div class="section-head"><div class="section-label">📈 <span data-i18n="bot_stats">Bot Stats</span></div><h2 data-i18n="perf_overview">Performance Overview</h2></div>
         <div class="perf-grid">
           <div class="perf-card hero">
             <div class="perf-val" id="perf-winrate" style="color:#10B981;">0%</div>
@@ -768,7 +769,7 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-weekly" class="tab-view">
       <section style="margin-top:24px;">
-        <div class="section-head"><div><div class="section-label"><span data-i18n="nav_weekly">Weekly Stats</span></div><h2 data-i18n="weekly_h">Last 7 days</h2></div></div>
+        <div class="section-head"><div><div class="section-label">📅 <span data-i18n="nav_weekly">Weekly Stats</span></div><h2 data-i18n="weekly_h">Last 7 days</h2></div></div>
         <div class="perf-grid" id="weeklyTop"></div>
         <p class="perf-note" data-i18n="perf_note">Results of our own model's past picks. Past performance does not guarantee future results.</p>
         <div class="history-grid" id="weeklyDays" style="margin-top:16px;"></div>
@@ -777,7 +778,7 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-admin" class="tab-view">
       <section style="margin-top:24px;">
-        <div class="section-head"><div><div class="section-label">Admin</div><h2>Users</h2></div>
+        <div class="section-head"><div><div class="section-label">🛡️ Admin</div><h2>Users</h2></div>
           <button class="hide-btn" type="button" onclick="loadAdmin()">Refresh</button></div>
         
         <div class="perf-grid" id="siteStats" style="margin-bottom:16px;"></div>
@@ -788,7 +789,7 @@ html.lenis, html.lenis body { height:auto; }
         <p class="perf-note" id="adminMsg"></p>
       </section>
       <section style="margin-top:32px;" id="adminTracking">
-        <div class="section-head"><div><div class="section-label">Admin only</div><h2>Pick tracking</h2></div>
+        <div class="section-head"><div><div class="section-label">🛡️ Admin only</div><h2>Pick tracking</h2></div>
           <button class="hide-btn" type="button" onclick="loadTracking()">Refresh</button></div>
         <div class="perf-grid" id="trkTotals"></div>
         <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Day</th><th>Bets W/L</th><th>Bets units</th><th>1X2 W/L</th><th>1X2 units</th><th>O/U W/L</th><th>O/U units</th></tr></thead><tbody id="trkDays"></tbody></table></div>
@@ -801,7 +802,7 @@ html.lenis, html.lenis body { height:auto; }
 
     <div id="view-unlock" class="tab-view">
       <section style="margin-top:24px;">
-        <div class="section-head"><div><div class="section-label"><span data-i18n="nav_unlock">Unlock Access</span></div><h2 data-i18n="unlock_h">Get full access to the signals</h2></div></div>
+        <div class="section-head"><div><div class="section-label">💎 <span data-i18n="nav_unlock">Unlock Access</span></div><h2 data-i18n="unlock_h">Get full access to the signals</h2></div></div>
         <div id="planBox"></div>
       </section>
     </div>
@@ -823,7 +824,7 @@ html.lenis, html.lenis body { height:auto; }
 
 <div id="authModal" class="modal-overlay hidden">
   <div class="modal-box">
-    <h2 id="authTitle" data-i18n="login_title">Login</h2>
+    <h2 id="authTitle" data-i18n="login_title">🔐 Login</h2>
     <p id="authSub" data-i18n="login_sub">Log in with your email, or create a free account.</p>
     <div id="authStep">
     <input type="text" class="auth-input" id="loginUser" placeholder="Email" data-i18n-ph="ph_user" inputmode="email" autocapitalize="none" autocomplete="email">
@@ -847,7 +848,7 @@ html.lenis, html.lenis body { height:auto; }
 <div id="filterModal" class="modal-overlay hidden">
   <div class="modal-box" style="max-width: 420px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <h2 data-i18n="filters_title">Model Filters</h2>
+      <h2 data-i18n="filters_title">🎛️ Model Filters</h2>
       <button class="icon-btn" style="width:32px; height:32px; border-radius:50%;" onclick="closeFilterModal()">✕</button>
     </div>
     <p data-i18n="filters_sub" style="margin-bottom:20px;">Adjust how the bot calculates Value Bets.</p>
@@ -888,7 +889,7 @@ html.lenis, html.lenis body { height:auto; }
 <div id="settingsModal" class="modal-overlay hidden">
   <div class="modal-box" style="max-width: 420px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <h2 data-i18n="settings_title">Settings</h2>
+      <h2 data-i18n="settings_title">⚙️ Settings</h2>
       <button class="icon-btn" style="width:32px; height:32px; border-radius:50%;" onclick="closeSettingsModal()">✕</button>
     </div>
 
@@ -967,7 +968,7 @@ html.lenis, html.lenis body { height:auto; }
 
 <div id="licenseModal" class="modal-overlay hidden">
   <div class="modal-box" style="max-width: 420px;">
-    <h2 data-i18n="lic_title">Activate Premium</h2>
+    <h2 data-i18n="lic_title">🔑 Activate Premium</h2>
     <p data-i18n="lic_sub">Enter your license key to activate Pro on your account.</p>
     <input type="text" class="auth-input" id="licKey" aria-label="License key" placeholder="LB-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <button class="auth-btn" id="licBtn" type="button" onclick="activateLicense()" data-i18n="lic_btn">Activate</button>
@@ -986,7 +987,7 @@ html.lenis, html.lenis body { height:auto; }
 
 <nav class="bottom-nav hidden" id="bottomNav">
   <button class="nav-item active" onclick="switchTab('signals')" id="nav-signals"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/></svg><span data-i18n="nav_signals">Signals</span></button>
-  <button class="nav-item" onclick="switchTab('discover')" id="nav-discover"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span data-i18n="nav_discover">Discover</span></button>
+  <button class="nav-item" onclick="switchTab('discover')" id="nav-discover"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Discover</span></button>
   <button class="nav-item" onclick="switchTab('history')" id="nav-history"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span data-i18n="nav_history">History</span></button>
 </nav>
 
@@ -1063,16 +1064,16 @@ const translations = {
     win_rate_today: "Today's Win Rate", win_rate: "Overall Win Rate", total_picks: "Total Picks",
     perf_history: "Performance History",
     period_wins: "Period Wins", period_losses: "Period Losses",
-    login_title: "Login", login_sub: "Log in with your email, or create a free account.",
+    login_title: "🔐 Login", login_sub: "Log in with your email, or create a free account.",
     login_btn: "Login", cancel: "Cancel",
-    settings_title: "Settings", filters_title: "Model Filters", filters_sub: "Adjust how the bot calculates Value Bets.",
+    settings_title: "⚙️ Settings", filters_title: "🎛️ Model Filters", filters_sub: "Adjust how the bot calculates Value Bets.",
     lang_label: "Language", theme_label: "Theme",
     theme_blue: "1uciBet Blue", theme_dark: "Dark Mode", theme_light: "Light Mode",
     mw_title: "Market weight in final probability", mw_hint: "0% trusts the Poisson model only, 100% trusts the market only.",
     mev_title: "Minimum EV to flag a bet", mev_hint: "Only prices with expected value above this threshold are flagged.",
     q_high: "High — direct xG + odds", q_med: "Medium — forms-derived xG", q_low: "Low — H2H estimate", q_est: "Est. — league average",
     hide: "Hide", show: "Show",
-    lp_today: "Today's Matches", lp_show: "Show predictions",
+    lp_today: "Today's Matches", lp_show: "🔒 Show predictions",
     nav_unlock: "Unlock Access", nav_weekly: "Weekly Stats", nav_support: "Support", nav_settings: "Settings",
     plan_lbl: "Plan", signals_lbl: "Signals", since_lbl: "Since", logout_lbl: "Log out", copy: "Copy",
     weekly_h: "Last 7 days", unlock_h: "Get full access to the signals", free_board: "Value bets are available on the Pro plan.",
@@ -1080,8 +1081,7 @@ const translations = {
     plan_get: "Get access on Telegram", plan_renew: "Renew on Telegram", plan_active: "Pro active",
     plan_note: "After payment, send us your account email ({email}) on Telegram and we will activate your plan.", reg_btn: "Create free account",
     done: "Done",
-    nav_discover:"Discover", disc_label:"Community",
-    hero_badge:"Live Odds · +EV Scanner", tick_1:"Live Odds", tick_2:"+EV Value Bets", tick_3:"Poisson Model", tick_4:"Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. This is information, not financial or betting advice. Bet responsibly; if gambling is a problem for you, seek help from a support service.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Email", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
+    hero_badge:"🔥 Live Odds · +EV Scanner", tick_1:"⚽ Live Odds", tick_2:"🎯 +EV Value Bets", tick_3:"📊 Poisson Model", tick_4:"🏆 Daily Picks", disclaimer:"18+ only. Gambling involves risk and predictions are never guaranteed. This is information, not financial or betting advice. Bet responsibly; if gambling is a problem for you, seek help from a support service.", home:"Home", draw:"Draw", away:"Away", scoreline:"Scoreline", pick_1x2:"1X2 pick", over_under:"Over / Under", value_bet:"Value Bet", kelly:"Kelly", no_value:"No positive-EV prices currently clear the threshold.", no_upcoming:"No upcoming matches.", no_finished:"No finished matches yet.", finished:"Finished", pick:"Pick", win:"WIN", loss:"LOSS", best_ev_short:"Best EV", ph_user:"Email", ph_pass:"Password", nav_signals: "Signals", nav_history: "History", nav_perf: "Performance"
   },
   fr: {
     consent_a: "J'ai 18 ans ou plus et j'accepte les",
@@ -1120,16 +1120,16 @@ const translations = {
     win_rate_today: "Taux de réussite du jour", win_rate: "Taux de Réussite Global", total_picks: "Total des Paris",
     perf_history: "Historique des Performances",
     period_wins: "Victoires Période", period_losses: "Défaites Période",
-    login_title: "Connexion", login_sub: "Connectez-vous avec votre email ou créez un compte gratuit.",
+    login_title: "🔐 Connexion", login_sub: "Connectez-vous avec votre email ou créez un compte gratuit.",
     login_btn: "Connexion", cancel: "Annuler",
-    settings_title: "Paramètres", filters_title: "Filtres du Modèle", filters_sub: "Ajustez le calcul des Value Bets.",
+    settings_title: "⚙️ Paramètres", filters_title: "🎛️ Filtres du Modèle", filters_sub: "Ajustez le calcul des Value Bets.",
     lang_label: "Langue", theme_label: "Thème",
     theme_blue: "Bleu 1uciBet", theme_dark: "Mode Sombre", theme_light: "Mode Clair",
     mw_title: "Poids du marché dans la probabilité finale", mw_hint: "0% fait confiance au modèle, 100% fait confiance au marché.",
     mev_title: "EV minimum pour signaler un pari", mev_hint: "Seuls les prix avec une EV supérieure à ce seuil sont signalés.",
     q_high: "Haute — xG direct + cotes", q_med: "Moyenne — xG dérivé des formes", q_low: "Basse — estimation H2H", q_est: "Est. — moyenne de la ligue",
     hide: "Cacher", show: "Afficher",
-    lp_today: "Matchs du jour", lp_show: "Afficher les pronostics",
+    lp_today: "Matchs du jour", lp_show: "🔒 Afficher les pronostics",
     nav_unlock: "Débloquer l'accès", nav_weekly: "Stats hebdo", nav_support: "Support", nav_settings: "Paramètres",
     plan_lbl: "Offre", signals_lbl: "Signaux", since_lbl: "Depuis", logout_lbl: "Déconnexion", copy: "Copier",
     weekly_h: "7 derniers jours", unlock_h: "Accédez à tous les signaux", free_board: "Les value bets sont réservés à l'offre Pro.",
@@ -1137,8 +1137,7 @@ const translations = {
     plan_get: "Obtenir l'accès sur Telegram", plan_renew: "Renouveler sur Telegram", plan_active: "Pro actif",
     plan_note: "Après le paiement, envoyez-nous l'email de votre compte ({email}) sur Telegram et nous activerons votre offre.", reg_btn: "Créer un compte gratuit",
     done: "Terminé",
-    nav_discover:"Découvrir", disc_label:"Communauté",
-    hero_badge:"Cotes en direct · Scanner +EV", tick_1:"Cotes en direct", tick_2:"Value Bets +EV", tick_3:"Modèle de Poisson", tick_4:"Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques et aucun pronostic n'est garanti. Ces informations ne constituent pas un conseil financier ou de paris. Jouez responsablement ; si le jeu devient un problème, demandez de l'aide à un service spécialisé.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Email", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
+    hero_badge:"🔥 Cotes en direct · Scanner +EV", tick_1:"⚽ Cotes en direct", tick_2:"🎯 Value Bets +EV", tick_3:"📊 Modèle de Poisson", tick_4:"🏆 Pronos du jour", disclaimer:"Réservé aux +18 ans. Les jeux d'argent comportent des risques et aucun pronostic n'est garanti. Ces informations ne constituent pas un conseil financier ou de paris. Jouez responsablement ; si le jeu devient un problème, demandez de l'aide à un service spécialisé.", home:"Domicile", draw:"Nul", away:"Extérieur", scoreline:"Score prévu", pick_1x2:"Pari 1X2", over_under:"Plus / Moins", value_bet:"Value Bet", kelly:"Kelly", no_value:"Aucun prix +EV ne dépasse le seuil actuellement.", no_upcoming:"Aucun match à venir.", no_finished:"Aucun match terminé.", finished:"Terminé", pick:"Choix", win:"GAGNÉ", loss:"PERDU", best_ev_short:"Meilleure EV", ph_user:"Email", ph_pass:"Mot de passe", nav_signals: "Signaux", nav_history: "Historique", nav_perf: "Performance"
   },
   ar: {
     consent_a: "عمري 18 سنة أو أكثر وأوافق على",
@@ -1177,16 +1176,16 @@ const translations = {
     win_rate_today: "معدل فوز اليوم", win_rate: "معدل الفوز العام", total_picks: "إجمالي التوقعات",
     perf_history: "سجل الأداء",
     period_wins: "أرباح الفترة", period_losses: "خسائر الفترة",
-    login_title: "تسجيل الدخول", login_sub: "سجل الدخول ببريدك الإلكتروني أو أنشئ حسابًا مجانيًا.",
+    login_title: "🔐 تسجيل الدخول", login_sub: "سجل الدخول ببريدك الإلكتروني أو أنشئ حسابًا مجانيًا.",
     login_btn: "دخول", cancel: "إلغاء",
-    settings_title: "الإعدادات", filters_title: "فلاتر النموذج", filters_sub: "اضبط كيفية حساب أفضل الرهانات.",
+    settings_title: "⚙️ الإعدادات", filters_title: "🎛️ فلاتر النموذج", filters_sub: "اضبط كيفية حساب أفضل الرهانات.",
     lang_label: "اللغة", theme_label: "المظهر",
     theme_blue: "أزرق 1uciBet", theme_dark: "الوضع الداكن", theme_light: "الوضع الفاتح",
     mw_title: "وزن السوق في الاحتمال النهائي", mw_hint: "0% يثق بنموذج بواسون فقط، 100% يثق بالسوق فقط.",
     mev_title: "الحد الأدنى للقيمة المتوقعة لتمييز الرهان", mev_hint: "يتم تمييز الأسعار التي تزيد قيمتها المتوقعة عن هذا الحد فقط.",
     q_high: "عالي — xG مباشر + أسعار", q_med: "متوسط — xG مشتق من الأشكال", q_low: "منخفض — تقدير المواجهات", q_est: "تقديري — متوسط الدوري",
     hide: "إخفاء", show: "إظهار",
-    lp_today: "مباريات اليوم", lp_show: "إظهار التوقعات",
+    lp_today: "مباريات اليوم", lp_show: "🔒 إظهار التوقعات",
     nav_unlock: "فتح الوصول", nav_weekly: "إحصائيات الأسبوع", nav_support: "الدعم", nav_settings: "الإعدادات",
     plan_lbl: "الباقة", signals_lbl: "الإشارات", since_lbl: "منذ", logout_lbl: "تسجيل الخروج", copy: "نسخ",
     weekly_h: "آخر 7 أيام", unlock_h: "احصل على وصول كامل للإشارات", free_board: "رهانات القيمة متاحة في الباقة المدفوعة.",
@@ -1194,16 +1193,15 @@ const translations = {
     plan_get: "احصل على الوصول عبر تيليجرام", plan_renew: "جدد عبر تيليجرام", plan_active: "الباقة مفعلة",
     plan_note: "بعد الدفع أرسل لنا بريد حسابك ({email}) على تيليجرام وسنفعّل باقتك.", reg_btn: "إنشاء حساب مجاني",
     done: "تم",
-    nav_discover:"اكتشف", disc_label:"المجتمع",
-    hero_badge:"أسعار مباشرة · ماسح +EV", tick_1:"أسعار مباشرة", tick_2:"رهانات +EV", tick_3:"نموذج بواسون", tick_4:"توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. هذه معلومات وليست نصيحة مالية أو نصيحة مراهنة. راهن بمسؤولية، وإذا أصبحت المراهنة مشكلة فاطلب مساعدة من جهة مختصة.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"البريد الإلكتروني", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
+    hero_badge:"🔥 أسعار مباشرة · ماسح +EV", tick_1:"⚽ أسعار مباشرة", tick_2:"🎯 رهانات +EV", tick_3:"📊 نموذج بواسون", tick_4:"🏆 توقعات اليوم", disclaimer:"+18 فقط. المراهنة تنطوي على مخاطر ولا توجد توقعات مضمونة. هذه معلومات وليست نصيحة مالية أو نصيحة مراهنة. راهن بمسؤولية، وإذا أصبحت المراهنة مشكلة فاطلب مساعدة من جهة مختصة.", home:"المضيف", draw:"تعادل", away:"الضيف", scoreline:"النتيجة المتوقعة", pick_1x2:"توقع 1X2", over_under:"أكثر / أقل", value_bet:"رهان قيمة", kelly:"كيلي", no_value:"لا توجد أسعار +EV تتجاوز الحد حاليًا.", no_upcoming:"لا توجد مباريات قادمة.", no_finished:"لا توجد مباريات منتهية بعد.", finished:"انتهت", pick:"التوقع", win:"ربح", loss:"خسارة", best_ev_short:"أفضل EV", ph_user:"البريد الإلكتروني", ph_pass:"كلمة المرور", nav_signals: "إشارات", nav_history: "السجل", nav_perf: "الأداء"
   }
 };
 
-Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again." });
+Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "📧 Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "🔑 Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "✨ Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again." });
 Object.assign(translations.en, { globe_kicker: "Live now", globe_title: "Around the world", globe_online: "online", globe_note: "Approximate city-level locations of people on the site right now." });
-Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
+Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "📧 Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "🔑 Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "✨ Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
 Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partout dans le monde", globe_online: "en ligne", globe_note: "Localisation approximative (niveau ville) des personnes présentes sur le site en ce moment." });
-Object.assign(translations.ar, { left_lbl: "المدة المتبقية", lifetime: "مدى الحياة", lic_checking: "جارٍ التحقق من الترخيص…", otp_title: "تحقق من بريدك", otp_sub: "أرسلنا رمزًا من 6 أرقام إلى {email}.", otp_btn: "تحقق", otp_back: "رجوع", otp_bad: "أدخل الرمز المكون من 6 أرقام.", otp_resend: "إعادة إرسال الرمز", otp_resend_in: "إعادة الإرسال بعد {s}ث", menu_title: "القائمة", lic_menu: "تفعيل بريميوم", lic_title: "تفعيل بريميوم", lic_sub: "أدخل مفتاح الترخيص لتفعيل Pro على حسابك.", lic_btn: "تفعيل", lic_have: "لدي مفتاح ترخيص", lic_ok: "تم تفعيل بريميوم ✓", lic_fail: "فشل التفعيل.", lic_login: "انتهت الجلسة. سجل الدخول مجددًا.", reg_title: "إنشاء حساب", reg_sub: "اختر اسمًا ثم أدخل بريدك الإلكتروني وكلمة مرور.", reg_submit: "إنشاء الحساب", have_acc: "لدي حساب بالفعل", ph_name: "اسمك", name_bad: "أدخل اسمك (من 2 إلى 30 حرفًا).", lic_doing: "جارٍ التفعيل…", lic_timeout: "استغرق الخادم وقتًا طويلًا. حاول مجددًا." });
+Object.assign(translations.ar, { left_lbl: "المدة المتبقية", lifetime: "مدى الحياة", lic_checking: "جارٍ التحقق من الترخيص…", otp_title: "📧 تحقق من بريدك", otp_sub: "أرسلنا رمزًا من 6 أرقام إلى {email}.", otp_btn: "تحقق", otp_back: "رجوع", otp_bad: "أدخل الرمز المكون من 6 أرقام.", otp_resend: "إعادة إرسال الرمز", otp_resend_in: "إعادة الإرسال بعد {s}ث", menu_title: "القائمة", lic_menu: "تفعيل بريميوم", lic_title: "🔑 تفعيل بريميوم", lic_sub: "أدخل مفتاح الترخيص لتفعيل Pro على حسابك.", lic_btn: "تفعيل", lic_have: "لدي مفتاح ترخيص", lic_ok: "تم تفعيل بريميوم ✓", lic_fail: "فشل التفعيل.", lic_login: "انتهت الجلسة. سجل الدخول مجددًا.", reg_title: "✨ إنشاء حساب", reg_sub: "اختر اسمًا ثم أدخل بريدك الإلكتروني وكلمة مرور.", reg_submit: "إنشاء الحساب", have_acc: "لدي حساب بالفعل", ph_name: "اسمك", name_bad: "أدخل اسمك (من 2 إلى 30 حرفًا).", lic_doing: "جارٍ التفعيل…", lic_timeout: "استغرق الخادم وقتًا طويلًا. حاول مجددًا." });
 Object.assign(translations.ar, { globe_kicker: "مباشر الآن", globe_title: "حول العالم", globe_online: "متصل", globe_note: "مواقع تقريبية على مستوى المدينة للأشخاص المتواجدين على الموقع الآن." });
 
 function applyLanguage(lang) {
@@ -2169,8 +2167,7 @@ function buildCard(r, t) {
       const scoreHTML = mostLikely != null ? `<b class="kv-score">${esc(mostLikely)}</b>` : NA;
       const mx = v.p ? Math.max(v.p.h, v.p.d, v.p.a) : null;
       const tile = (cls, label, val) => `<div class="tile ${cls} ${v.p && val === mx ? 'top' : ''}"><i>${label}</i><b>${v.p ? pct1(val) : '-'}</b></div>`;
-      const seg = val => `<i class="${v.p && val === mx ? 'top' : ''}" style="flex:${v.p ? Math.max(0.02, val).toFixed(4) : 1} 1 0"></i>`;
-      let probHTML = `<div class="pbar" aria-hidden="true">${seg(v.p ? v.p.h : 0)}${seg(v.p ? v.p.d : 0)}${seg(v.p ? v.p.a : 0)}</div><div class="tiles">${tile('t-h', t.home, v.p ? v.p.h : 0)}${tile('t-d', t.draw, v.p ? v.p.d : 0)}${tile('t-a', t.away, v.p ? v.p.a : 0)}</div>`;
+      let probHTML = `<div class="tiles">${tile('t-h', t.home, v.p ? v.p.h : 0)}${tile('t-d', t.draw, v.p ? v.p.d : 0)}${tile('t-a', t.away, v.p ? v.p.a : 0)}</div>`;
 
       const bv = json?.best_bet_value;
       const bvOdds = Number(bv?.bookmaker_odds);
@@ -2682,7 +2679,7 @@ function renderUnlock() {
   $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p>
     <ul class="plan-feats">${[t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5].map(f => `<li>${esc(f)}</li>`).join('')}</ul>
     <a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${isPro() ? t.plan_renew : t.plan_get}</span></a>
-    ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:10px" onclick="openLicenseModal()">${t.lic_have}</button>`}
+    ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:10px" onclick="openLicenseModal()">🔑 ${t.lic_have}</button>`}
     <p class="plan-note">${t.plan_note.replace('{email}', esc(p.username || ''))}</p></div>`;
 }
 
@@ -3068,7 +3065,7 @@ document.addEventListener('DOMContentLoaded',function(){
   function syncAria() {
     const l = L[document.documentElement.lang] || L.en;
     document.querySelectorAll('button.icon-btn').forEach(b => { if (b.textContent.trim() === '✕') b.setAttribute('aria-label', l.close); });
-    const lb = document.getElementById('loginBtn'); if (lb) { lb.setAttribute('aria-label', l.login); lb.textContent = l.login; }
+    const lb = document.getElementById('loginBtn'); if (lb) lb.setAttribute('aria-label', l.login);
     const fb = document.getElementById('openFilterBtn'); if (fb) fb.setAttribute('aria-label', l.filters);
     document.querySelectorAll('input[placeholder]').forEach(i => { if (!i.getAttribute('aria-label') || i.dataset.auto) { i.setAttribute('aria-label', i.placeholder); i.dataset.auto = '1'; } });
     const y = document.getElementById('yr'); if (y) y.textContent = new Date().getFullYear();
