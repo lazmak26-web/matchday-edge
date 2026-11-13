@@ -1092,9 +1092,16 @@ loadSnapshots();
    KEYAUTH HELPERS
    ═══════════════════════════════════════════════════════════ */
 async function keyauthRequest(params) {
-  const url = new URL(KEYAUTH_BASE);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
-  const r = await fetch(url.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) });
+  // Send as POST form-encoded so the app secret and user password never appear
+  // in the URL, query string, or proxy/CDN access logs (O-07).
+  const body = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => body.append(k, v));
+  const r = await fetch(KEYAUTH_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+    signal: AbortSignal.timeout(15000)
+  });
   if (!r.ok) throw new Error(`KeyAuth HTTP ${r.status}`);
   return r.json();
 }
@@ -1168,7 +1175,12 @@ app.use((req, res, next) => {
   res.status(405).json({ error: 'Method not allowed' });
 });
 
-app.set('trust proxy', 1);
+// PROXY_COUNT: number of trusted reverse-proxy hops in front of this server.
+// Railway alone = 1. Cloudflare → Railway = 2. Direct (no proxy) = 0.
+// Wrong value lets clients forge X-Forwarded-For and bypass every per-IP rate limit.
+const PROXY_COUNT = parseInt(process.env.PROXY_COUNT, 10);
+app.set('trust proxy', Number.isInteger(PROXY_COUNT) && PROXY_COUNT >= 0 ? PROXY_COUNT : 1);
+if (!Number.isInteger(PROXY_COUNT) || PROXY_COUNT < 0) console.warn('⚠️  PROXY_COUNT not set — defaulting to 1. Set PROXY_COUNT=2 if behind Cloudflare + Railway, or PROXY_COUNT=0 if exposed directly.');
 
 function makeLimiter({ windowMs, max, message, maxKeys = 50000 }) {
   const hits = new Map();
@@ -1379,7 +1391,8 @@ function planOf(sess) {
   return u && u.plan === 'pro' && (!u.planUntil || u.planUntil > Date.now()) ? 'pro' : 'free';
 }
 
-const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || 'marocheat2@gmail.com').trim().toLowerCase();
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+if (!ADMIN_EMAIL) console.error('❌ ADMIN_EMAIL is not set: the admin dashboard is DISABLED until it is configured in the environment.');
 function isAdminSession(sess) {
   if (!sess || sess.kind !== 'local' || sess.username !== ADMIN_EMAIL) return false;
   const u = users.get(sess.username);
