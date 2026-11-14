@@ -1131,53 +1131,58 @@ async function keyauthLogin(username, password, sessionid, hwid) {
    ═══════════════════════════════════════════════════════════ */
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || '').trim();
 if (!GOOGLE_CLIENT_ID) console.error('❌ GOOGLE_CLIENT_ID is not set: Sign in with Google is disabled until it is.');
-const GOOGLE_CERTS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
-const GOOGLE_ISS = new Set(['https://accounts.google.com', 'accounts.google.com']);
-
-let googleCerts = { keys: new Map(), exp: 0 };
-async function googleKeys(force) {
-  const now = Date.now();
-  if (!force && googleCerts.exp > now && googleCerts.keys.size) return googleCerts.keys;
-  const r = await fetch(GOOGLE_CERTS_URL, { signal: AbortSignal.timeout(10000) });
-  if (!r.ok) throw new Error('google certs HTTP ' + r.status);
-  const jwks = await r.json();
-  const keys = new Map();
-  for (const jwk of (jwks.keys || [])) {
-    if (jwk.kid && jwk.kty === 'RSA') { try { keys.set(jwk.kid, crypto.createPublicKey({ key: jwk, format: 'jwk' })); } catch (e) {} }
-  }
-  if (!keys.size) throw new Error('no google keys');
-  const cc = /max-age=(\d+)/i.exec(r.headers.get('cache-control') || '');       // honour Google's rotation window, cap at 6h, floor 5min
-  googleCerts = { keys, exp: now + Math.max(300, Math.min(cc ? +cc[1] : 3600, 21600)) * 1000 };
-  return keys;
-}
+const APPLE_CLIENT_ID = String(process.env.APPLE_CLIENT_ID || '').trim();   // the Services ID, e.g. com.lucibet.web
+if (!APPLE_CLIENT_ID) console.error('❌ APPLE_CLIENT_ID is not set: Sign in with Apple is disabled until it is.');
 
 const b64urlBuf = s => Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64');
 const b64urlJson = s => JSON.parse(b64urlBuf(s).toString('utf8'));
 
-// Returns the verified claims, or throws. Never trust any field before this returns.
-async function verifyGoogleIdToken(idToken) {
-  if (typeof idToken !== 'string' || idToken.length < 20 || idToken.length > 8192) throw new Error('bad token');
-  const parts = idToken.split('.');
-  if (parts.length !== 3) throw new Error('malformed token');
-  const [h, p, s] = parts;
-  const header = b64urlJson(h);
-  if (header.alg !== 'RS256' || !header.kid) throw new Error('bad alg');
-  let key = (await googleKeys()).get(header.kid);
-  if (!key) key = (await googleKeys(true)).get(header.kid);     // key rotated: refresh once and retry
-  if (!key) throw new Error('unknown key');
-  const v = crypto.createVerify('RSA-SHA256');
-  v.update(h + '.' + p); v.end();
-  if (!v.verify(key, b64urlBuf(s))) throw new Error('bad signature');
-  const c = b64urlJson(p);
-  const now = Math.floor(Date.now() / 1000);
-  if (!GOOGLE_ISS.has(c.iss)) throw new Error('bad iss');
-  if (c.aud !== GOOGLE_CLIENT_ID) throw new Error('aud mismatch');
-  if (!(Number(c.exp) > now - 60)) throw new Error('expired');
-  if (c.nbf && Number(c.nbf) > now + 60) throw new Error('not yet valid');
-  if (c.email_verified !== true && c.email_verified !== 'true') throw new Error('email not verified');
-  if (!c.email) throw new Error('no email');
-  return c;
+// Generic OIDC ID-token verifier. Caches the provider's JWKS and verifies the RS256 signature locally,
+// then checks iss / aud / exp / email_verified. Returns the claims or throws. Never trust a field before this returns.
+function makeOidcVerifier({ name, jwksUrl, issuers }) {
+  let cache = { keys: new Map(), exp: 0 };
+  async function keys(force) {
+    const now = Date.now();
+    if (!force && cache.exp > now && cache.keys.size) return cache.keys;
+    const r = await fetch(jwksUrl, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error(name + ' certs HTTP ' + r.status);
+    const jwks = await r.json();
+    const m = new Map();
+    for (const jwk of (jwks.keys || [])) {
+      if (jwk.kid && jwk.kty === 'RSA') { try { m.set(jwk.kid, crypto.createPublicKey({ key: jwk, format: 'jwk' })); } catch (e) {} }
+    }
+    if (!m.size) throw new Error('no ' + name + ' keys');
+    const cc = /max-age=(\d+)/i.exec(r.headers.get('cache-control') || '');   // honour the provider's rotation window, cap 6h, floor 5min
+    cache = { keys: m, exp: now + Math.max(300, Math.min(cc ? +cc[1] : 3600, 21600)) * 1000 };
+    return m;
+  }
+  return async function verify(idToken, aud) {
+    if (typeof idToken !== 'string' || idToken.length < 20 || idToken.length > 8192) throw new Error('bad token');
+    const parts = idToken.split('.');
+    if (parts.length !== 3) throw new Error('malformed token');
+    const [h, p, s] = parts;
+    const header = b64urlJson(h);
+    if (header.alg !== 'RS256' || !header.kid) throw new Error('bad alg');
+    let key = (await keys()).get(header.kid);
+    if (!key) key = (await keys(true)).get(header.kid);     // key rotated: refresh once and retry
+    if (!key) throw new Error('unknown key');
+    const v = crypto.createVerify('RSA-SHA256');
+    v.update(h + '.' + p); v.end();
+    if (!v.verify(key, b64urlBuf(s))) throw new Error('bad signature');
+    const c = b64urlJson(p);
+    const now = Math.floor(Date.now() / 1000);
+    if (!issuers.has(c.iss)) throw new Error('bad iss');
+    if (c.aud !== aud) throw new Error('aud mismatch');
+    if (!(Number(c.exp) > now - 60)) throw new Error('expired');
+    if (c.nbf && Number(c.nbf) > now + 60) throw new Error('not yet valid');
+    if (c.email_verified !== true && c.email_verified !== 'true') throw new Error('email not verified');
+    if (!c.email) throw new Error('no email');
+    return c;
+  };
 }
+
+const verifyGoogleIdToken = makeOidcVerifier({ name: 'google', jwksUrl: 'https://www.googleapis.com/oauth2/v3/certs', issuers: new Set(['https://accounts.google.com', 'accounts.google.com']) });
+const verifyAppleIdToken  = makeOidcVerifier({ name: 'apple',  jwksUrl: 'https://appleid.apple.com/auth/keys',        issuers: new Set(['https://appleid.apple.com']) });
 
 /* ═══════════════════════════════════════════════════════════
    AUTH MIDDLEWARE & ENDPOINTS
@@ -1197,21 +1202,24 @@ function authMiddleware(req, res, next) {
 }
 
 app.disable('x-powered-by');
-// Google Identity Services (Sign in with Google) loads gsi/client, opens an iframe, and calls back to accounts.google.com.
+// Social sign-in origins: Google Identity Services (gsi/client + accounts.google.com iframe) and
+// Sign in with Apple (appleid.cdn-apple.com SDK + appleid.apple.com popup/iframe).
 const GSI_ORIGIN = 'https://accounts.google.com';
+const APPLE_SDK = 'https://appleid.cdn-apple.com';
+const APPLE_ORIGIN = 'https://appleid.apple.com';
 const CSP = [
   "default-src 'self'",
-  // Scripts are self-hosted (public/vendor) except Google Identity Services. 'unsafe-inline' remains because index.html
-  // uses inline <script> blocks and onclick handlers; removing it needs nonces/hashes (see SECURITY_AUDIT_REPORT.md).
-  `script-src 'self' 'unsafe-inline' ${GSI_ORIGIN}`,
+  // Scripts are self-hosted (public/vendor) except Google Identity Services and the Apple sign-in SDK. 'unsafe-inline' remains
+  // because index.html uses inline <script> blocks and onclick handlers; removing it needs nonces/hashes (see SECURITY_AUDIT_REPORT.md).
+  `script-src 'self' 'unsafe-inline' ${GSI_ORIGIN} ${APPLE_SDK}`,
   `style-src 'self' 'unsafe-inline' ${GSI_ORIGIN}`,
   "font-src 'self'",
   "img-src 'self' data: https:",
-  `connect-src 'self' ${GSI_ORIGIN}`,
-  `frame-src 'self' ${GSI_ORIGIN}`,
+  `connect-src 'self' ${GSI_ORIGIN} ${APPLE_ORIGIN}`,
+  `frame-src 'self' ${GSI_ORIGIN} ${APPLE_ORIGIN}`,
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  `form-action 'self' ${APPLE_ORIGIN}`,
   "frame-ancestors 'none'"
 ].join('; ');
 app.use((req, res, next) => {
@@ -1221,7 +1229,7 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');   // Sign in with Apple opens a popup that posts the result back
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
   res.setHeader('Origin-Agent-Cluster', '?1');
@@ -1347,7 +1355,7 @@ function loadUsers() {
   try {
     if (!fs.existsSync(USERS_FILE)) return;
     const arr = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-    if (Array.isArray(arr)) for (const u of arr) if (u && u.email && ((u.salt && u.hash) || u.kind === 'google')) users.set(u.email, u);
+    if (Array.isArray(arr)) for (const u of arr) if (u && u.email && ((u.salt && u.hash) || u.kind === 'google' || u.kind === 'apple')) users.set(u.email, u);
     console.log(`👤 Loaded ${users.size} accounts`);
   } catch (e) { console.error('Users load error:', e.message); }
 }
@@ -1456,8 +1464,8 @@ function isAdminSession(sess) {
   if (!sess || sess.username !== ADMIN_EMAIL) return false;
   const u = users.get(sess.username);
   if (!u || u.verified === false) return false;
-  // A Google session already proves ownership of the admin address (Google verified the email), so no OTP gate is needed.
-  if (sess.kind === 'google') return true;
+  // A Google/Apple session already proves ownership of the admin address (the provider verified the email), so no OTP gate is needed.
+  if (sess.kind === 'google' || sess.kind === 'apple') return true;
   if (sess.kind !== 'local') return false;
   // Email/password admin needs real email OTP. Without RESEND_API_KEY anyone could sign up with the admin e-mail first, so admin is refused.
   // The only bypass is for the automated tests (NODE_ENV=test), never in production.
@@ -1779,7 +1787,7 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
   const credential = body.credential;
   if (!credential || typeof credential !== 'string') return res.status(400).json({ error: 'Missing Google credential.' });
   let c;
-  try { c = await verifyGoogleIdToken(credential); }
+  try { c = await verifyGoogleIdToken(credential, GOOGLE_CLIENT_ID); }
   catch (e) {
     auditLog('google_login_reject', req, { reason: String(e && e.message).slice(0, 80) });
     return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
@@ -1806,14 +1814,49 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
   startSession(res, { kind: 'google', username: email });
 });
 
+app.post('/api/auth/apple', loginLimiter, async (req, res) => {
+  if (!APPLE_CLIENT_ID) return res.status(503).json({ error: 'Apple sign-in is not configured.' });
+  const body = req.body || {};
+  const idToken = body.id_token || body.credential;
+  if (!idToken || typeof idToken !== 'string') return res.status(400).json({ error: 'Missing Apple credential.' });
+  let c;
+  try { c = await verifyAppleIdToken(idToken, APPLE_CLIENT_ID); }
+  catch (e) {
+    auditLog('apple_login_reject', req, { reason: String(e && e.message).slice(0, 80) });
+    return res.status(401).json({ error: 'Apple sign-in failed. Please try again.' });
+  }
+  const email = String(c.email).trim().toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 120) return res.status(400).json({ error: 'Invalid Apple account email.' });
+  let u = users.get(email);
+  if (!u) {
+    if (body.consent !== true || body.ageConfirmed !== true) return res.status(403).json({ consentRequired: true, error: 'You must confirm you are 18 or older and accept the Terms and Privacy Policy.' });
+    if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
+    const seq = [...users.values()].reduce((m, x) => Math.max(m, x.seq || 0), 0) + 1;
+    u = { email, kind: 'apple', appleSub: c.sub || null, plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: true, consentAt: Date.now(), termsVersion: TERMS_VERSION };
+    users.set(email, u);
+    saveUsersSoon();
+    auditLog('apple_signup', req, { seq });
+  } else {
+    let changed = false;
+    if (!u.appleSub && c.sub) { u.appleSub = c.sub; changed = true; }
+    if (u.verified === false) { u.verified = true; changed = true; }
+    if (changed) saveUsersSoon();
+  }
+  startSession(res, { kind: 'apple', username: email });
+});
+
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
   res.json({ ok: true, ...profileOf(sessions.get(req.authToken)) });
 });
 
-// Public, cacheable: lets the static frontend learn the Google client id (and whether Google login is on) without templating index.html.
+// Public, cacheable: lets the static frontend learn which social logins are on (and their client ids) without templating index.html.
 app.get('/api/public/config', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=300');
-  res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
+  res.json({
+    googleClientId: GOOGLE_CLIENT_ID || null,
+    appleClientId: APPLE_CLIENT_ID || null,
+    appleRedirectUri: String(process.env.APPLE_REDIRECT_URI || '').trim() || null
+  });
 });
 
 app.post('/api/auth/logout', authMiddleware, (req, res) => {
