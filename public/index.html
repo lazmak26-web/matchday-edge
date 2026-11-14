@@ -620,7 +620,6 @@ html.lenis, html.lenis body { height:auto; }
 
   <div id="landingPage">
     <div class="landing-left">
-      <div class="hero-badge" data-i18n="hero_badge">Live Odds · +EV Scanner</div>
       <h1 class="hero-title" data-i18n="hero_title">Match analytics.<br>The decision is yours.</h1>
       <p class="hero-subtitle adapt-ink" data-i18n="hero_sub">Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.</p>
 
@@ -3144,8 +3143,7 @@ document.addEventListener('DOMContentLoaded',function(){
       if(/^\s+$/.test(p)){f.appendChild(document.createTextNode(' '));return}
       var s=document.createElement('span');s.className='w';s.textContent=p;f.appendChild(s)});
     x.parentNode.replaceChild(f,x)})})(title);
-  gsap.timeline({defaults:{ease:'power3.out'},onComplete:function(){gsap.set('.hero-title .w,.hero-badge,.hero-subtitle,.cta-box,.feature-card',{clearProps:'all'})}})
-    .from('.hero-badge',{opacity:0,y:12,duration:.5})
+  gsap.timeline({defaults:{ease:'power3.out'},onComplete:function(){gsap.set('.hero-title .w,.hero-subtitle,.cta-box,.feature-card',{clearProps:'all'})}})
     .from('.hero-title .w',{opacity:0,y:30,duration:.7,stagger:.06},'-=.2')
     .from('.hero-subtitle,.cta-box',{opacity:0,y:16,duration:.5,stagger:.1},'-=.4')
     .from('.feature-card',{opacity:0,y:24,duration:.5,stagger:.08},'-=.3');
