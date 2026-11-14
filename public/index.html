@@ -895,11 +895,6 @@ html.lenis, html.lenis body{ height:auto; }
 .fb-sq div.nm{color:var(--ink);font-weight:600}
 .fb-sq div.ag{text-align:right;color:var(--ink-3)}
 .fb-link{color:var(--brand);text-decoration:none;font-weight:600}
-@media (max-width:959px){
-  .bottom-nav .nav-item{flex-direction:column;gap:3px;padding:8px 2px;font-size:10.5px;line-height:1.1;min-width:0}
-  .bottom-nav .nav-item svg{width:20px;height:20px}
-  .bottom-nav .nav-item span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-}
 #consentWrap{ margin:2px 0 10px; }
 .auth-legal{ font-size:12px; color:var(--ink-3); text-align:center; margin:10px 0 0; line-height:1.5; }
 .auth-legal a{ color:inherit; text-decoration:underline; }
@@ -1067,8 +1062,6 @@ html.lenis, html.lenis body{ height:auto; }
   <button class="nav-item active" onclick="switchTab('signals')" id="nav-signals"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/></svg><span data-i18n="nav_signals">Signals</span></button>
   <button class="nav-item" onclick="switchTab('discover')" id="nav-discover"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Discover</span></button>
   <button class="nav-item" onclick="switchTab('history')" id="nav-history"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span data-i18n="nav_history">History</span></button>
-  <button class="nav-item" onclick="switchTab('standings')" id="nav-standings"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v18"/></svg><span data-i18n="nav_standings">Standings</span></button>
-  <button class="nav-item" onclick="switchTab('leagues')" id="nav-leagues"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="nav_leagues">Leagues</span></button>
 </nav>
 
 <div id="cookieBar" role="region" aria-label="Cookies" hidden>
