@@ -823,13 +823,14 @@ html.lenis, html.lenis body { height:auto; }
 </div>
 
 <style>
-#ssoWrap { display:flex; flex-direction:column; align-items:stretch; gap:10px; margin-bottom:14px; }
+#ssoWrap { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:14px; }
 #ssoWrap.hidden { display:none; }
-#ssoWrap .consent { font-size:13px; margin-bottom:2px; }
-#googleBtn { display:flex; justify-content:center; min-height:40px; color-scheme:light; }
+#ssoWrap .consent { font-size:13px; margin-bottom:2px; max-width:300px; }
+/* Both buttons share one fixed footprint so Google (rendered) and Apple (custom) line up exactly. */
+#googleBtn { display:flex; justify-content:center; width:300px; height:40px; color-scheme:light; }
 #googleBtn.hidden, .sso-btn.hidden { display:none; }
-.sso-apple { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:40px; border:none; border-radius:999px;
-  background:#000; color:#fff; font-size:15px; font-weight:500; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent; }
+.sso-apple { display:flex; align-items:center; justify-content:center; gap:8px; width:300px; height:40px; border:none; border-radius:999px;
+  background:#000; color:#fff; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent; }
 .sso-apple:hover { background:#1a1a1a; }
 .sso-apple:active { transform:scale(.99); }
 .sso-apple:disabled { opacity:.6; cursor:default; }
