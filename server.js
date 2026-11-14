@@ -26,6 +26,7 @@ const WOMEN_LEAGUE_IDS = new Set(String(process.env.WOMEN_LEAGUE_IDS || '36').sp
 const isWomenFixture = f => !!f && (f.women === true || (/^League #(\d+)$/.exec(String(f.league || '')) ? WOMEN_LEAGUE_IDS.has(RegExp.$1) : false));
 const oddsApi = require('./oddsapi');
 const fdStats = require('./fdstats');
+const football = require('./football');
 const apiFootball = require('./apifootball');
 
 /* ═══════════════════════════════════════════════════════════
@@ -166,8 +167,11 @@ const { normalizeStatus, pickBetterStatus, expireStaleLive, mergeEvents } = requ
 /* ═══════════════════════════════════════════════════════════
    APIs & DATA FETCHING
    ═══════════════════════════════════════════════════════════ */
+const fdCalls = [];                           // timestamps of football-data calls in the last minute (free plan: 10/min)
+function fdRecentCalls() { const t = Date.now() - 60 * 1000; while (fdCalls.length && fdCalls[0] < t) fdCalls.shift(); return fdCalls.length; }
 async function apiGet(endpoint) {
   if (Date.now() < fdBlockedUntil) throw new Error('football-data cooling down after 429');
+  fdCalls.push(Date.now());
   const r = await fetch(`${API_BASE}${endpoint}`, { headers: { 'X-Auth-Token': API_KEY || '' }, signal: AbortSignal.timeout(15000) });
   if (r.status === 429) fdBlockedUntil = Date.now() + 65 * 1000;
   if (!r.ok) throw new Error(`API ${endpoint} → ${r.status}`);
@@ -268,6 +272,7 @@ function ensureFdSeasonStats() {
         try {
           const d = await apiGet(`/competitions/${code}/standings`);
           fdSeasonCache.set(code, { ts: Date.now(), ok: true, teams: fdStats.parseStandings(d) });
+          if (football.LEAGUE_CODES.has(code)) infoCache.set('table:' + code, { ts: Date.now(), ok: true, data: football.parseStandings(d) });
         } catch (e) { fdSeasonCache.set(code, { ts: Date.now(), ok: false, teams: new Map() }); }
         await new Promise(r => setTimeout(r, FD_SEASON_GAP));
       }
@@ -275,6 +280,60 @@ function ensureFdSeasonStats() {
   })();
   return fdSeasonInProgress;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   LEAGUE TABLES, TOP SCORERS, TEAM SHEETS (football-data.org)
+   On-demand calls run one at a time and only while the last minute used fewer than FD_INFO_BUDGET calls, so the
+   fixtures / forms / crests jobs keep their share of the free plan. Answers are cached; stale data is served while a
+   refresh runs, and a failed refresh is not retried for 5 minutes.
+   ═══════════════════════════════════════════════════════════ */
+const FD_INFO_BUDGET = 5;
+const INFO_TTL = { table: 60 * 60 * 1000, scorers: 6 * 60 * 60 * 1000, team: 24 * 60 * 60 * 1000 };
+const INFO_FAIL_TTL = 5 * 60 * 1000, INFO_MAX_TEAMS = 400;
+const infoCache = new Map();                 // key -> { ts, ok, data }
+const infoInflight = new Map();
+let infoChain = Promise.resolve();
+const sleepMs = ms => new Promise(r => setTimeout(r, ms));
+function infoGet(key, endpoint, parse, ttl, maxWaitMs = 20000) {
+  const c = infoCache.get(key), age = c ? Date.now() - c.ts : Infinity;
+  if (c && c.ok && age < ttl) return Promise.resolve(c.data);
+  if (c && !c.ok && age < INFO_FAIL_TTL) return Promise.resolve(c.data || null);
+  if (!infoInflight.has(key)) {
+    const job = infoChain.then(async () => {
+      const giveUp = Date.now() + 90 * 1000;
+      while ((fdRecentCalls() >= FD_INFO_BUDGET || Date.now() < fdBlockedUntil) && Date.now() < giveUp) await sleepMs(1500);
+      const data = parse(await apiGet(endpoint));
+      if (!data) throw new Error('empty');
+      infoCache.set(key, { ts: Date.now(), ok: true, data });
+      if (key.startsWith('team:')) {           // bounded: drop the oldest team sheets
+        const teams = [...infoCache.keys()].filter(k => k.startsWith('team:'));
+        for (const k of teams.slice(0, Math.max(0, teams.length - INFO_MAX_TEAMS))) infoCache.delete(k);
+      }
+      return data;
+    }).catch(() => {
+      const prev = infoCache.get(key);
+      infoCache.set(key, { ts: Date.now(), ok: false, data: (prev && prev.data) || null });
+      return (prev && prev.data) || null;
+    }).finally(() => infoInflight.delete(key));
+    infoChain = job.then(() => {}, () => {});
+    infoInflight.set(key, job);
+  }
+  if (c && c.data) return Promise.resolve(c.data);               // stale while revalidating
+  return Promise.race([infoInflight.get(key), sleepMs(maxWaitMs).then(() => undefined)]);   // undefined = still queued
+}
+const fbTable = code => infoGet('table:' + code, `/competitions/${code}/standings`, football.parseStandings, INFO_TTL.table);
+const fbScorers = code => infoGet('scorers:' + code, `/competitions/${code}/scorers?limit=15`, football.parseScorers, INFO_TTL.scorers);
+const fbTeam = id => infoGet('team:' + id, `/teams/${id}`, d => football.parseTeam(d), INFO_TTL.team);
+// Warm every league table in the background (one queued call at a time), then keep them fresh.
+function warmLeagueTables() {
+  if (!API_KEY) return;
+  Promise.all(football.LEAGUES.map(l => fbTable(l.code).then(d => !!d, () => false))).then(r => {
+    // fbTable resolves undefined after 20 s while still queued; count what is cached once the queue has drained
+    setTimeout(() => console.log(`League tables cached: ${football.LEAGUES.filter(l => { const c = infoCache.get('table:' + l.code); return c && c.ok; }).length}/${football.LEAGUES.length}`), 5 * 60 * 1000).unref();
+  });
+}
+setTimeout(warmLeagueTables, 90 * 1000).unref();
+setInterval(warmLeagueTables, 2 * 60 * 60 * 1000).unref();
 
 /* ═══════════════════════════════════════════════════════════
    TEAM FORMS FROM BZZOIRO RESULTS
@@ -1929,6 +1988,33 @@ app.post('/api/auth/apple', loginLimiter, async (req, res) => {
 
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
   res.json({ ok: true, ...profileOf(sessions.get(req.authToken)) });
+});
+
+// League tables / top scorers / team sheets. Public read-only data, no account needed.
+const fbCode = c => { const x = String(c || '').toUpperCase(); return football.LEAGUE_CODES.has(x) ? x : null; };
+function fbSend(res, data, what) {
+  if (data === undefined) return res.status(202).json({ pending: true });     // queued behind the free-plan budget: retry shortly
+  if (!data) return res.status(503).json({ error: `${what} is unavailable right now. Please try again in a minute.` });
+  res.json(data);
+}
+app.get('/api/football/leagues', apiLimiter, (req, res) => {
+  res.json({ leagues: football.LEAGUES.map(l => { const c = infoCache.get('table:' + l.code); return football.summary(l, c && c.data); }) });
+});
+app.get('/api/football/standings/:code', apiLimiter, async (req, res) => {
+  const code = fbCode(req.params.code); if (!code) return res.status(404).json({ error: 'Unknown league.' });
+  if (!API_KEY) return res.status(503).json({ error: 'League data is not configured.' });
+  fbSend(res, await fbTable(code), 'The league table');
+});
+app.get('/api/football/scorers/:code', apiLimiter, async (req, res) => {
+  const code = fbCode(req.params.code); if (!code) return res.status(404).json({ error: 'Unknown league.' });
+  if (!API_KEY) return res.status(503).json({ error: 'League data is not configured.' });
+  fbSend(res, await fbScorers(code), 'Top scorers');
+});
+app.get('/api/football/team/:id', apiLimiter, async (req, res) => {
+  const id = String(req.params.id || '');
+  if (!/^\d{1,7}$/.test(id)) return res.status(400).json({ error: 'Invalid team.' });
+  if (!API_KEY) return res.status(503).json({ error: 'Team data is not configured.' });
+  fbSend(res, await fbTeam(id), 'Team information');
 });
 
 // Public, cacheable: lets the static frontend learn which social logins are on (and their client ids) without templating index.html.

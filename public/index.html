@@ -736,6 +736,23 @@ html.lenis, html.lenis body{ height:auto; }
       </section>
     </div>
 
+    <div id="view-standings" class="tab-view">
+      <section style="margin-top:24px;">
+        <div class="section-head"><div><div class="section-label"><span data-i18n="fb_label">Football</span></div><h2 data-i18n="fb_st_h">League tables</h2></div></div>
+        <div class="lg-chips fb-chips" id="fbStChips" role="tablist" aria-label="Leagues"></div>
+        <div id="fbStBody" aria-live="polite"></div>
+        <p class="fb-src"><span data-i18n="fb_tap_team">Tap a team for its details.</span> <span data-i18n="fb_source">Data: football-data.org</span></p>
+      </section>
+    </div>
+
+    <div id="view-leagues" class="tab-view">
+      <section style="margin-top:24px;">
+        <div class="section-head"><div><div class="section-label"><span data-i18n="fb_label">Football</span></div><h2 data-i18n="fb_lg_h">Current leagues</h2></div></div>
+        <div id="fbLgBody" aria-live="polite"></div>
+        <p class="fb-src" data-i18n="fb_source">Data: football-data.org</p>
+      </section>
+    </div>
+
     <div id="view-admin" class="tab-view">
       <section style="margin-top:24px;">
         <div class="section-head"><div><div class="section-label">Admin</div><h2>Users</h2></div>
@@ -793,6 +810,96 @@ html.lenis, html.lenis body{ height:auto; }
 .lg-chip span{ color:var(--ink-3); font-weight:500; margin-left:2px; }
 .lg-chip.on{ background:var(--brand); border-color:var(--brand); color:var(--on-brand); }
 .lg-chip.on span{ color:inherit; opacity:.8; }
+/* ── Football: standings / leagues / team sheet ── */
+.fb-chips{margin:0 0 14px}
+.fb-chip{display:inline-flex;align-items:center;gap:7px}
+.fb-chip img{width:18px;height:18px;object-fit:contain;flex:none}
+.fb-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 12px;font-size:13px;color:var(--ink-3)}
+.fb-meta b{color:var(--ink);font-weight:700}
+.fb-meta img{width:22px;height:22px;object-fit:contain}
+.fb-group{margin:18px 0 8px;font-size:13px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em}
+.fb-wrap{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--card)}
+.fb-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.fb-table th{font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;padding:10px 6px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+.fb-table td{padding:10px 6px;text-align:center;border-bottom:1px solid var(--line);color:var(--ink-2)}
+.fb-table tr:last-child td{border-bottom:0}
+.fb-table th.fb-tm,.fb-table td.fb-tm{text-align:left;width:100%;max-width:0}
+.fb-table td.fb-pos{color:var(--ink-3);font-weight:600;width:28px;padding-left:12px}
+.fb-table td.fb-pts{color:var(--ink);font-weight:800;padding-right:12px}
+.fb-table tbody tr{cursor:pointer;transition:background .15s}
+@media (hover:hover){.fb-table tbody tr:hover{background:var(--soft)}}
+.fb-team{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;font:inherit;color:var(--ink);font-weight:600;cursor:pointer;text-align:left;min-width:0;max-width:100%}
+.fb-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-crest{width:22px;height:22px;object-fit:contain;flex:none}
+.fb-crest-ph{width:22px;height:22px;border-radius:50%;background:var(--soft);flex:none;display:inline-block}
+.fb-form{display:inline-flex;gap:3px}
+.fb-form i{width:8px;height:8px;border-radius:50%;background:var(--line-2)}
+.fb-form i.W{background:var(--good)}.fb-form i.D{background:var(--ink-3)}.fb-form i.L{background:var(--bad)}
+.fb-wide{display:none}
+@media (min-width:640px){.fb-wide{display:table-cell}}
+@media (max-width:379px){.fb-form-c{display:none}}
+.fb-src{margin:14px 2px 0;font-size:12px;color:var(--ink-3)}
+.fb-skel{height:46px;border-radius:12px;background:var(--soft);margin-bottom:8px;animation:fbPulse 1.2s ease-in-out infinite}
+@keyframes fbPulse{50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.fb-skel{animation:none}}
+.fb-err{padding:28px 18px;text-align:center;color:var(--ink-2);border:1px dashed var(--line-2);border-radius:18px}
+.fb-err button{margin-top:12px}
+.fb-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 16px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.fb-btn.primary{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.fb-lg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.fb-lg-card{display:flex;flex-direction:column;gap:12px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:18px;font:inherit;color:var(--ink);cursor:pointer}
+@media (hover:hover){.fb-lg-card:hover{border-color:var(--brand)}}
+.fb-lg-top{display:flex;align-items:center;gap:12px}
+.fb-lg-top img{width:40px;height:40px;object-fit:contain;flex:none}
+.fb-lg-top b{display:block;font-size:16px}
+.fb-lg-top small{color:var(--ink-3);font-size:13px}
+.fb-lg-stats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--ink-3)}
+.fb-lg-stats b{color:var(--ink-2)}
+.fb-lg-lead{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);padding-top:10px;border-top:1px solid var(--line)}
+.fb-lg-lead b{color:var(--ink)}
+.fb-back{margin-bottom:14px}
+.fb-hero{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.fb-hero img{width:64px;height:64px;object-fit:contain}
+.fb-hero h3{margin:0;font-size:22px;letter-spacing:-.02em}
+.fb-hero p{margin:4px 0 0;color:var(--ink-3);font-size:14px}
+.fb-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.fb-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.fb-tile{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:12px 14px;min-width:0}
+.fb-tile small{display:block;color:var(--ink-3);font-size:12px;margin-bottom:4px}
+.fb-tile b{font-size:16px;display:flex;align-items:center;gap:6px;min-width:0;color:var(--ink)}
+.fb-tile b span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-h4{margin:22px 0 10px;font-size:15px;font-weight:700;color:var(--ink)}
+.fb-list{border:1px solid var(--line);border-radius:18px;background:var(--card);overflow:hidden}
+.fb-li{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.fb-li:last-child{border-bottom:0}
+.fb-li.tap{cursor:pointer}
+.fb-li .n{width:22px;color:var(--ink-3);font-weight:600;text-align:center;flex:none}
+.fb-li .who{flex:1;min-width:0}
+.fb-li .who b{display:block;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-li .who small{color:var(--ink-3);font-size:12px}
+.fb-li .val{font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fb-li .val small{font-weight:500;color:var(--ink-3)}
+.fb-team-box{max-width:560px;width:calc(100% - 24px);max-height:88vh;overflow:auto;position:relative}
+.fb-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%}
+.fb-tm-head{display:flex;align-items:center;gap:14px;margin:4px 40px 16px 0}
+.fb-tm-head img{width:58px;height:58px;object-fit:contain}
+.fb-tm-head h3{margin:0;font-size:21px;color:var(--ink)}
+.fb-tm-head p{margin:4px 0 0;color:var(--ink-3);font-size:13px}
+.fb-comp{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.fb-comp span{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:12px;color:var(--ink-2)}
+.fb-comp img{width:16px;height:16px;object-fit:contain}
+.fb-sq{display:grid;grid-template-columns:1fr auto auto;gap:0;font-size:13px}
+.fb-sq div:not(.nm){padding-left:14px}
+.fb-team-box .fb-tile b span{white-space:normal;overflow:visible}
+.fb-sq div{padding:8px 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
+.fb-sq div.nm{color:var(--ink);font-weight:600}
+.fb-sq div.ag{text-align:right;color:var(--ink-3)}
+.fb-link{color:var(--brand);text-decoration:none;font-weight:600}
+@media (max-width:959px){
+  .bottom-nav .nav-item{flex-direction:column;gap:3px;padding:8px 2px;font-size:10.5px;line-height:1.1;min-width:0}
+  .bottom-nav .nav-item svg{width:20px;height:20px}
+  .bottom-nav .nav-item span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
 #consentWrap{ margin:2px 0 10px; }
 .auth-legal{ font-size:12px; color:var(--ink-3); text-align:center; margin:10px 0 0; line-height:1.5; }
 .auth-legal a{ color:inherit; text-decoration:underline; }
@@ -880,6 +987,13 @@ html.lenis, html.lenis body{ height:auto; }
   </div>
 </div>
 
+<div id="fbTeamModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="fbTeamName">
+  <div class="modal-box fb-team-box">
+    <button class="icon-btn fb-x" type="button" onclick="fbCloseTeam()" aria-label="Close">✕</button>
+    <div id="fbTeamBody"></div>
+  </div>
+</div>
+
 <div id="settingsModal" class="modal-overlay hidden">
   <div class="modal-box" style="max-width: 420px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -919,6 +1033,8 @@ html.lenis, html.lenis body{ height:auto; }
 <aside id="sideMenu" data-lenis-prevent class="side-menu" aria-hidden="true" inert>
   <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" onclick="closeMenu()">✕</button></div>
   <button class="side-item da-side" type="button" data-tab="demo" onclick="menuGo('demo')"><span class="si-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg></span><span class="si-t"><b>Demo Arena</b><small>Virtual Sports Predictions</small></span></button>
+  <button class="side-item" type="button" data-tab="standings" onclick="menuGo('standings')"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v18"/></svg><span data-i18n="nav_standings">Standings</span></button>
+  <button class="side-item" type="button" data-tab="leagues" onclick="menuGo('leagues')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="nav_leagues">Leagues</span></button>
   <button class="side-item" type="button" data-tab="performance" onclick="menuGo('performance')"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
   <button class="side-item" type="button" data-tab="weekly" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
   <button class="side-item" type="button" data-tab="unlock" onclick="menuGo('unlock')"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
@@ -951,6 +1067,8 @@ html.lenis, html.lenis body{ height:auto; }
   <button class="nav-item active" onclick="switchTab('signals')" id="nav-signals"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/></svg><span data-i18n="nav_signals">Signals</span></button>
   <button class="nav-item" onclick="switchTab('discover')" id="nav-discover"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Discover</span></button>
   <button class="nav-item" onclick="switchTab('history')" id="nav-history"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span data-i18n="nav_history">History</span></button>
+  <button class="nav-item" onclick="switchTab('standings')" id="nav-standings"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v18"/></svg><span data-i18n="nav_standings">Standings</span></button>
+  <button class="nav-item" onclick="switchTab('leagues')" id="nav-leagues"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="nav_leagues">Leagues</span></button>
 </nav>
 
 <div id="cookieBar" role="region" aria-label="Cookies" hidden>
@@ -1159,9 +1277,9 @@ const translations = {
   }
 };
 
-Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email", apple_btn: "Continue with Apple", consent_age: "I am 18 or older", legal_a: "By continuing, you accept the", login_sub: "Enter your email and we'll send you a login code.", consent_req: "Please confirm you are 18 or older.", other_comp: "Football", all_leagues: "All", updated: "Updated", matches_n: "matches", filter_league: "Filter by league" });
-Object.assign(translations.fr, { or_email: "ou avec l'email", apple_btn: "Continuer avec Apple", consent_age: "J'ai 18 ans ou plus", legal_a: "En continuant, vous acceptez les", login_sub: "Entrez votre email, nous vous enverrons un code de connexion.", consent_req: "Confirmez que vous avez 18 ans ou plus.", other_comp: "Football", all_leagues: "Tout", updated: "Mis à jour", matches_n: "matchs", filter_league: "Filtrer par compétition" });
-Object.assign(translations.ar, { or_email: "أو بالبريد الإلكتروني", apple_btn: "المتابعة مع Apple", consent_age: "عمري 18 سنة أو أكثر", legal_a: "بالمتابعة، أنت توافق على", login_sub: "أدخل بريدك الإلكتروني وسنرسل لك رمز الدخول.", consent_req: "يرجى تأكيد أن عمرك 18 سنة أو أكثر.", other_comp: "كرة القدم", all_leagues: "الكل", updated: "آخر تحديث", matches_n: "مباراة", filter_league: "تصفية حسب البطولة" });
+Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email", apple_btn: "Continue with Apple", consent_age: "I am 18 or older", legal_a: "By continuing, you accept the", login_sub: "Enter your email and we'll send you a login code.", consent_req: "Please confirm you are 18 or older.", other_comp: "Football", all_leagues: "All", updated: "Updated", matches_n: "matches", filter_league: "Filter by league", nav_standings: "Standings", nav_leagues: "Leagues", fb_label: "Football", fb_st_h: "League tables", fb_lg_h: "Current leagues", fb_matchday: "Matchday", fb_season: "Season", fb_teams: "teams", fb_teams_t: "Teams", fb_leader: "Leader", fb_view_table: "View full table", fb_top5: "Top of the table", fb_scorers: "Top scorers", fb_goals: "goals", fb_assists: "ast", fb_all_leagues: "All leagues", fb_open_info: "Open for table and top scorers", fb_squad: "Squad", fb_founded: "Founded", fb_venue: "Stadium", fb_coach: "Coach", fb_colors: "Colours", fb_website: "Official website", fb_comps: "Competitions", fb_pos: "Position", fb_points: "Points", fb_form: "Form", fb_retry: "Try again", fb_slow: "Still loading. Please try again in a minute.", fb_no_table: "No table for this competition yet.", fb_tap_team: "Tap a team for its details.", fb_source: "Data: football-data.org", fb_gk: "Goalkeepers", fb_df: "Defenders", fb_mf: "Midfielders", fb_fw: "Forwards", fb_other: "Other", th_team: "Team", th_p: "P", th_p_long: "played", th_w: "W", th_d: "D", th_l: "L", th_gfga: "Goals", th_gd: "GD", th_pts: "Pts" });
+Object.assign(translations.fr, { or_email: "ou avec l'email", apple_btn: "Continuer avec Apple", consent_age: "J'ai 18 ans ou plus", legal_a: "En continuant, vous acceptez les", login_sub: "Entrez votre email, nous vous enverrons un code de connexion.", consent_req: "Confirmez que vous avez 18 ans ou plus.", other_comp: "Football", all_leagues: "Tout", updated: "Mis à jour", matches_n: "matchs", filter_league: "Filtrer par compétition", nav_standings: "Classements", nav_leagues: "Compétitions", fb_label: "Football", fb_st_h: "Classements", fb_lg_h: "Compétitions en cours", fb_matchday: "Journée", fb_season: "Saison", fb_teams: "équipes", fb_teams_t: "Équipes", fb_leader: "Leader", fb_view_table: "Voir le classement", fb_top5: "Haut du classement", fb_scorers: "Meilleurs buteurs", fb_goals: "buts", fb_assists: "pd", fb_all_leagues: "Toutes les compétitions", fb_open_info: "Ouvrir pour le classement et les buteurs", fb_squad: "Effectif", fb_founded: "Fondé en", fb_venue: "Stade", fb_coach: "Entraîneur", fb_colors: "Couleurs", fb_website: "Site officiel", fb_comps: "Compétitions", fb_pos: "Position", fb_points: "Points", fb_form: "Forme", fb_retry: "Réessayer", fb_slow: "Chargement en cours. Réessayez dans une minute.", fb_no_table: "Pas encore de classement pour cette compétition.", fb_tap_team: "Touchez une équipe pour voir sa fiche.", fb_source: "Données : football-data.org", fb_gk: "Gardiens", fb_df: "Défenseurs", fb_mf: "Milieux", fb_fw: "Attaquants", fb_other: "Autres", th_team: "Équipe", th_p: "J", th_p_long: "joués", th_w: "G", th_d: "N", th_l: "P", th_gfga: "Buts", th_gd: "Diff", th_pts: "Pts" });
+Object.assign(translations.ar, { or_email: "أو بالبريد الإلكتروني", apple_btn: "المتابعة مع Apple", consent_age: "عمري 18 سنة أو أكثر", legal_a: "بالمتابعة، أنت توافق على", login_sub: "أدخل بريدك الإلكتروني وسنرسل لك رمز الدخول.", consent_req: "يرجى تأكيد أن عمرك 18 سنة أو أكثر.", other_comp: "كرة القدم", all_leagues: "الكل", updated: "آخر تحديث", matches_n: "مباراة", filter_league: "تصفية حسب البطولة", nav_standings: "الترتيب", nav_leagues: "البطولات", fb_label: "كرة القدم", fb_st_h: "جداول الترتيب", fb_lg_h: "البطولات الحالية", fb_matchday: "الجولة", fb_season: "الموسم", fb_teams: "فريق", fb_teams_t: "الفرق", fb_leader: "المتصدر", fb_view_table: "عرض الترتيب كاملاً", fb_top5: "صدارة الترتيب", fb_scorers: "الهدافون", fb_goals: "أهداف", fb_assists: "تمريرات", fb_all_leagues: "كل البطولات", fb_open_info: "افتح لعرض الترتيب والهدافين", fb_squad: "التشكيلة", fb_founded: "سنة التأسيس", fb_venue: "الملعب", fb_coach: "المدرب", fb_colors: "الألوان", fb_website: "الموقع الرسمي", fb_comps: "المسابقات", fb_pos: "المركز", fb_points: "النقاط", fb_form: "آخر النتائج", fb_retry: "إعادة المحاولة", fb_slow: "ما زال التحميل جارياً. حاول بعد دقيقة.", fb_no_table: "لا يوجد ترتيب لهذه المسابقة بعد.", fb_tap_team: "اضغط على فريق لعرض تفاصيله.", fb_source: "المصدر: football-data.org", fb_gk: "حراس المرمى", fb_df: "المدافعون", fb_mf: "لاعبو الوسط", fb_fw: "المهاجمون", fb_other: "آخرون", th_team: "الفريق", th_p: "لعب", th_p_long: "مباراة", th_w: "ف", th_d: "ت", th_l: "خ", th_gfga: "الأهداف", th_gd: "الفارق", th_pts: "نقاط" });
 Object.assign(translations.en, { globe_kicker: "Live now", globe_title: "Around the world", globe_online: "online", globe_note: "Approximate city-level locations of people on the site right now." });
 Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
 Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partout dans le monde", globe_online: "en ligne", globe_note: "Localisation approximative (niveau ville) des personnes présentes sur le site en ce moment." });
@@ -1174,6 +1292,7 @@ function applyLanguage(lang) {
   document.documentElement.dir = 'ltr';
   document.body.classList.toggle('is-ar', lang === 'ar');
   localStorage.setItem('mde:lang', lang);
+  setTimeout(() => { const v = document.querySelector('.tab-view.active'); if (!v) return; if (v.id === 'view-standings' && typeof renderStandings === 'function') renderStandings(); if (v.id === 'view-leagues' && typeof renderLeagues === 'function') renderLeagues(); }, 0);
   const sel = document.getElementById('langSelect');
   if (sel) sel.value = lang;
 
@@ -1880,6 +1999,153 @@ try {
 } catch (e) {}
 const persist = () => localStorage.setItem('mde:settings', JSON.stringify({ mw: st.mw, mev: st.mev }));
 
+/* ── Football: league tables, current leagues, team sheets (public data from /api/football/*) ── */
+const FB = { leagues: null, leaguesTs: 0, sel: null, lgOpen: null, cache: {} };
+const FB_TTL = 10 * 60 * 1000;
+const fbWait = ms => new Promise(r => setTimeout(r, ms));
+// The server answers 202 while a request waits for the provider's rate limit: poll a few times before giving up.
+async function fbFetch(url) {
+  const c = FB.cache[url];
+  if (c && Date.now() - c.ts < FB_TTL) return c.data;
+  for (let i = 0; i < 8; i++) {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (r.status === 202) { await fbWait(4000); continue; }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Could not load the data.');
+    FB.cache[url] = { ts: Date.now(), data: d };
+    return d;
+  }
+  throw new Error(tNow().fb_slow || 'Still loading. Please try again in a minute.');
+}
+async function fbLeagues(force) {
+  if (!force && FB.leagues && Date.now() - FB.leaguesTs < 60 * 1000) return FB.leagues;
+  const r = await fetch('/api/football/leagues', { cache: 'no-store' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !Array.isArray(d.leagues)) throw new Error(d.error || 'Could not load the leagues.');
+  FB.leagues = d.leagues; FB.leaguesTs = Date.now();
+  return FB.leagues;
+}
+const fbImg = (src, cls) => src ? `<img class="${cls}" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fb-crest-ph'}))">` : `<span class="fb-crest-ph"></span>`;
+const fbSkel = n => Array.from({ length: n }, () => '<div class="fb-skel"></div>').join('');
+const fbErr = (msg, retry) => `<div class="fb-err">${esc(msg)}<br><button type="button" class="fb-btn" onclick="${retry}">${esc(tNow().fb_retry || 'Try again')}</button></div>`;
+function fbSeason(se) {
+  if (!se || !se.start) return '';
+  const a = se.start.slice(0, 4), b = se.end ? se.end.slice(0, 4) : '';
+  return b && b !== a ? `${a}/${b.slice(2)}` : a;
+}
+const fbForm = f => f && f.length ? `<span class="fb-form" aria-label="${esc(f.join(' '))}">${f.map(x => `<i class="${x}"></i>`).join('')}</span>` : '<span class="fb-form"></span>';
+
+/* Standings tab */
+async function renderStandings() {
+  const t = tNow(), chips = $('fbStChips'), body = $('fbStBody');
+  if (!chips || !body) return;
+  if (!FB.leagues) body.innerHTML = fbSkel(8);
+  try { await fbLeagues(); } catch (e) { body.innerHTML = fbErr(e.message, 'renderStandings()'); return; }
+  if (!FB.sel || !FB.leagues.some(l => l.code === FB.sel)) FB.sel = FB.leagues[0] && FB.leagues[0].code;
+  chips.innerHTML = FB.leagues.map(l => `<button type="button" role="tab" aria-selected="${l.code === FB.sel}" class="lg-chip fb-chip${l.code === FB.sel ? ' on' : ''}" data-code="${esc(l.code)}">${l.emblem ? `<img src="${esc(l.emblem)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}${esc(l.name)}</button>`).join('');
+  chips.onclick = e => { const b = e.target.closest('.fb-chip'); if (!b || b.dataset.code === FB.sel) return; FB.sel = b.dataset.code; renderStandings(); };
+  const on = chips.querySelector('.fb-chip.on'); if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+  const code = FB.sel, url = '/api/football/standings/' + code;
+  if (!FB.cache[url]) body.innerHTML = fbSkel(10);
+  try { const d = await fbFetch(url); if (FB.sel === code) fbDrawTable(d); }
+  catch (e) { if (FB.sel === code) body.innerHTML = fbErr(e.message, 'renderStandings()'); }
+}
+function fbDrawTable(d) {
+  const t = tNow(), body = $('fbStBody'); if (!body) return;
+  if (!d.groups || !d.groups.length) { body.innerHTML = `<div class="fb-err">${esc(t.fb_no_table || 'No table for this competition yet.')}</div>`; return; }
+  const se = fbSeason(d.season), md = d.season && d.season.matchday;
+  const head = `<div class="fb-meta">${d.emblem ? fbImg(d.emblem, 'fb-crest') : ''}<b>${esc(d.name || '')}</b>${d.area && d.area.name ? `<span>${esc(d.area.name)}</span>` : ''}${se ? `<span>${esc(t.fb_season || 'Season')} ${esc(se)}</span>` : ''}${md ? `<span>${esc(t.fb_matchday || 'Matchday')} ${md}</span>` : ''}</div>`;
+  const th = `<thead><tr><th>#</th><th class="fb-tm">${esc(t.th_team || 'Team')}</th><th>${esc(t.th_p || 'P')}</th><th class="fb-wide">${esc(t.th_w || 'W')}</th><th class="fb-wide">${esc(t.th_d || 'D')}</th><th class="fb-wide">${esc(t.th_l || 'L')}</th><th class="fb-wide">${esc(t.th_gfga || 'Goals')}</th><th>${esc(t.th_gd || 'GD')}</th><th class="fb-form-c">${esc(t.fb_form || 'Form')}</th><th>${esc(t.th_pts || 'Pts')}</th></tr></thead>`;
+  const rowHtml = r => `<tr data-team="${r.team.id || ''}"><td class="fb-pos">${r.pos}</td>
+    <td class="fb-tm"><button type="button" class="fb-team" data-team="${r.team.id || ''}">${fbImg(r.team.crest, 'fb-crest')}<span>${esc(r.team.short || r.team.name)}</span></button></td>
+    <td>${r.p ?? ''}</td><td class="fb-wide">${r.w ?? ''}</td><td class="fb-wide">${r.d ?? ''}</td><td class="fb-wide">${r.l ?? ''}</td>
+    <td class="fb-wide">${r.gf ?? ''}:${r.ga ?? ''}</td><td>${r.gd > 0 ? '+' : ''}${r.gd ?? ''}</td><td class="fb-form-c">${fbForm(r.form)}</td><td class="fb-pts">${r.pts ?? ''}</td></tr>`;
+  body.innerHTML = head + d.groups.map(g => `${g.name ? `<div class="fb-group">${esc(g.name)}</div>` : ''}<div class="fb-wrap"><table class="fb-table">${th}<tbody>${g.rows.map(rowHtml).join('')}</tbody></table></div>`).join('');
+  body.onclick = e => { const tr = e.target.closest('tr[data-team]'); if (tr && tr.dataset.team) fbOpenTeam(tr.dataset.team); };
+}
+
+/* Leagues tab */
+async function renderLeagues(force) {
+  const t = tNow(), body = $('fbLgBody'); if (!body) return;
+  if (FB.lgOpen) return fbDrawLeague(FB.lgOpen);
+  if (!FB.leagues) body.innerHTML = `<div class="fb-lg-grid">${fbSkel(6)}</div>`;
+  try { await fbLeagues(force); } catch (e) { body.innerHTML = fbErr(e.message, 'renderLeagues(true)'); return; }
+  body.innerHTML = `<div class="fb-lg-grid">${FB.leagues.map(l => {
+    const se = fbSeason(l.season), md = l.season && l.season.matchday;
+    return `<button type="button" class="fb-lg-card" data-code="${esc(l.code)}">
+      <div class="fb-lg-top">${fbImg(l.emblem, '')}<div><b>${esc(l.name)}</b><small>${esc(l.country || '')}</small></div></div>
+      <div class="fb-lg-stats">${se ? `<span>${esc(t.fb_season || 'Season')} <b>${esc(se)}</b></span>` : ''}${md ? `<span>${esc(t.fb_matchday || 'Matchday')} <b>${md}</b></span>` : ''}${l.teams ? `<span><b>${l.teams}</b> ${esc(t.fb_teams || 'teams')}</span>` : ''}</div>
+      <div class="fb-lg-lead">${l.leader ? `${esc(t.fb_leader || 'Leader')}: ${fbImg(l.leader.crest, 'fb-crest')}<b>${esc(l.leader.name)}</b><span>${l.leader.pts} ${esc(t.th_pts || 'Pts')}</span>` : `<span>${esc(t.fb_open_info || 'Open for table and top scorers')}</span>`}</div>
+    </button>`; }).join('')}</div>`;
+  body.onclick = e => { const c = e.target.closest('.fb-lg-card'); if (!c) return; FB.lgOpen = c.dataset.code; fbDrawLeague(FB.lgOpen); window.scrollTo({ top: 0 }); };
+}
+async function fbDrawLeague(code) {
+  const t = tNow(), body = $('fbLgBody'); if (!body) return;
+  const l = (FB.leagues || []).find(x => x.code === code) || { code, name: code };
+  const back = `<button type="button" class="fb-btn fb-back" onclick="FB.lgOpen=null;renderLeagues()">← ${esc(t.fb_all_leagues || 'All leagues')}</button>`;
+  const shell = (inner) => `${back}<div class="fb-hero">${fbImg(l.emblem, '')}<div><h3>${esc(l.name)}</h3><p>${esc(l.country || '')}</p></div></div>${inner}`;
+  body.innerHTML = shell(fbSkel(5)); body.onclick = null;
+  let table = null, scorers = null, errMsg = null;
+  await Promise.all([
+    fbFetch('/api/football/standings/' + code).then(d => { table = d; }).catch(e => { errMsg = e.message; }),
+    fbFetch('/api/football/scorers/' + code).then(d => { scorers = d; }).catch(() => {})
+  ]);
+  if (FB.lgOpen !== code) return;
+  if (!table && !scorers) { body.innerHTML = shell(fbErr(errMsg || 'Could not load this league.', `fbDrawLeague('${code}')`)); return; }
+  const rows = table && table.groups && table.groups.length === 1 ? table.groups[0].rows : null;
+  const lead = rows && rows[0], se = fbSeason(table && table.season), md = table && table.season && table.season.matchday;
+  const tile = (k, v) => `<div class="fb-tile"><small>${esc(k)}</small><b>${v}</b></div>`;
+  const tiles = `<div class="fb-tiles">${se ? tile(t.fb_season || 'Season', esc(se)) : ''}${md ? tile(t.fb_matchday || 'Matchday', md) : ''}${rows ? tile(t.fb_teams_t || 'Teams', rows.length) : ''}${lead ? tile(t.fb_leader || 'Leader', `${fbImg(lead.team.crest, 'fb-crest')}<span>${esc(lead.team.short || lead.team.name)}</span>`) : ''}</div>`;
+  const actions = `<div class="fb-actions"><button type="button" class="fb-btn primary" onclick="FB.sel='${esc(code)}';switchTab('standings')">${esc(t.fb_view_table || 'View full table')}</button></div>`;
+  const top = rows ? `<div class="fb-h4">${esc(t.fb_top5 || 'Top of the table')}</div><div class="fb-list">${rows.slice(0, 5).map(r => `<div class="fb-li tap" data-team="${r.team.id || ''}"><span class="n">${r.pos}</span>${fbImg(r.team.crest, 'fb-crest')}<span class="who"><b>${esc(r.team.short || r.team.name)}</b><small>${r.p} ${esc(t.th_p_long || 'played')} · ${r.gd > 0 ? '+' : ''}${r.gd}</small></span>${fbForm(r.form)}<span class="val">${r.pts} <small>${esc(t.th_pts || 'Pts')}</small></span></div>`).join('')}</div>` : '';
+  const sc = scorers && scorers.scorers && scorers.scorers.length ? `<div class="fb-h4">${esc(t.fb_scorers || 'Top scorers')}</div><div class="fb-list">${scorers.scorers.slice(0, 10).map((s, i) => `<div class="fb-li${s.team && s.team.id ? ' tap' : ''}" data-team="${(s.team && s.team.id) || ''}"><span class="n">${i + 1}</span>${fbImg(s.team && s.team.crest, 'fb-crest')}<span class="who"><b>${esc(s.player.name)}</b><small>${esc((s.team && (s.team.short || s.team.name)) || '')}${s.player.nationality ? ' · ' + esc(s.player.nationality) : ''}</small></span><span class="val">${s.goals} <small>${esc(t.fb_goals || 'goals')}${s.assists ? ` · ${s.assists} ${esc(t.fb_assists || 'ast')}` : ''}</small></span></div>`).join('')}</div>` : '';
+  body.innerHTML = shell(tiles + actions + top + sc);
+  body.onclick = e => { const r = e.target.closest('[data-team]'); if (r && r.dataset.team) fbOpenTeam(r.dataset.team); };
+}
+
+/* Team sheet */
+let fbTeamFrom = null;
+function fbTableRow(id) {
+  for (const k in FB.cache) {
+    if (!k.startsWith('/api/football/standings/')) continue;
+    for (const g of FB.cache[k].data.groups || []) for (const r of g.rows) if (String(r.team.id) === String(id)) return { r, league: FB.cache[k].data };
+  }
+  return null;
+}
+async function fbOpenTeam(id) {
+  const t = tNow(), m = $('fbTeamModal'), body = $('fbTeamBody'); if (!m || !body) return;
+  fbTeamFrom = document.activeElement;
+  body.innerHTML = fbSkel(6);
+  m.classList.remove('hidden');
+  m.onclick = e => { if (e.target === m) fbCloseTeam(); };
+  const box = m.querySelector('.modal-box'); if (window.Motion) Motion.from(box, { opacity: 0, y: 24, duration: .3 });
+  m.querySelector('.fb-x').focus();
+  try {
+    const d = await fbFetch('/api/football/team/' + encodeURIComponent(id));
+    if (m.classList.contains('hidden')) return;
+    const row = fbTableRow(id), info = [];
+    const add = (k, v) => { if (v) info.push(`<div class="fb-tile"><small>${esc(k)}</small><b><span>${v}</span></b></div>`); };
+    if (row) { add(t.fb_pos || 'Position', `${row.r.pos}${row.league.name ? ' · ' + esc(row.league.name) : ''}`); add(t.fb_points || 'Points', `${row.r.pts} (${row.r.w}-${row.r.d}-${row.r.l})`); }
+    add(t.fb_coach || 'Coach', d.coach ? esc(d.coach.name) + (d.coach.nationality ? ` <small>(${esc(d.coach.nationality)})</small>` : '') : '');
+    add(t.fb_venue || 'Stadium', esc(d.venue || ''));
+    add(t.fb_founded || 'Founded', d.founded || '');
+    add(t.fb_colors || 'Colours', esc(d.colors || ''));
+    const comps = d.competitions && d.competitions.length ? `<div class="fb-h4">${esc(t.fb_comps || 'Competitions')}</div><div class="fb-comp">${d.competitions.map(c => `<span>${c.emblem ? `<img src="${esc(c.emblem)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}${esc(c.name)}</span>`).join('')}</div>` : '';
+    const form = row && row.r.form && row.r.form.length ? `<div class="fb-h4">${esc(t.fb_form || 'Form')}</div>${fbForm(row.r.form)}` : '';
+    const posName = { Goalkeeper: t.fb_gk || 'Goalkeepers', Defence: t.fb_df || 'Defenders', Midfield: t.fb_mf || 'Midfielders', Offence: t.fb_fw || 'Forwards', Other: t.fb_other || 'Other' };
+    const squad = d.squad && d.squad.length ? `<div class="fb-h4">${esc(t.fb_squad || 'Squad')} <small style="color:var(--ink-3);font-weight:500">(${d.squadSize})</small></div>${d.squad.map(g => `<div class="fb-group">${esc(posName[g.name] || g.name)}</div><div class="fb-sq">${g.players.map(p => `<div class="nm">${esc(p.name)}</div><div>${esc(p.nationality || '')}</div><div class="ag">${p.age != null ? p.age : ''}</div>`).join('')}</div>`).join('')}` : '';
+    const site = d.website ? `<p style="margin:10px 0 0"><a class="fb-link" href="${esc(d.website)}" target="_blank" rel="noopener noreferrer">${esc(t.fb_website || 'Official website')} ↗</a></p>` : '';
+    body.innerHTML = `<div class="fb-tm-head">${fbImg(d.crest, '')}<div><h3 id="fbTeamName">${esc(d.name)}</h3><p>${esc([d.area && d.area.name, d.tla].filter(Boolean).join(' · '))}</p></div></div>
+      <div class="fb-tiles">${info.join('')}</div>${form}${comps}${squad}${site}`;
+  } catch (e) { if (!m.classList.contains('hidden')) body.innerHTML = fbErr(e.message, `fbOpenTeam('${String(id).replace(/\D/g, '')}')`); }
+}
+function fbCloseTeam() {
+  const m = $('fbTeamModal'); if (!m || m.classList.contains('hidden')) return;
+  m.classList.add('hidden');
+  if (fbTeamFrom && fbTeamFrom.focus) { try { fbTeamFrom.focus(); } catch (e) {} }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fbCloseTeam(); });
+
 window.switchTab = function(tab) {
   window.__tabNext = tab;
   if (window.__tabRaf) return;
@@ -1904,6 +2170,8 @@ function __doSwitch(tab) {
   if (tab === 'unlock') setTimeout(() => { if (view.classList.contains('active')) renderUnlock(); }, 90);
   if (tab === 'admin') setTimeout(() => { if (document.getElementById('view-admin').classList.contains('active')) { loadAdmin(); loadTracking(); } }, 380);
   if (tab === 'discover') setTimeout(() => { if (view.classList.contains('active')) loadDiscover(); }, 90);
+  if (tab === 'standings') setTimeout(() => { if (view.classList.contains('active')) renderStandings(); }, 60);
+  if (tab === 'leagues') setTimeout(() => { if (view.classList.contains('active')) renderLeagues(); }, 60);
   if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
 }
 
