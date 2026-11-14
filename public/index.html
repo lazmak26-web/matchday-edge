@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="fintech" dir="ltr">
+<html lang="en" data-theme="midnight" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -901,8 +901,8 @@ html.lenis, html.lenis body{ height:auto; }
           <label class="control-label" data-i18n="theme_label">Theme</label>
           <div id="themeGrid" class="theme-grid" role="radiogroup" aria-label="Theme"></div>
           <select id="themeSelect" class="settings-select" hidden style="display:none">
-            <option value="fintech">LuciBet (default)</option>
-            <option value="midnight">Midnight (OLED black)</option>
+            <option value="midnight">Midnight (default)</option>
+            <option value="fintech">LuciBet Green</option>
             <option value="dark" data-i18n="theme_dark">Dark Mode</option>
             <option value="light" data-i18n="theme_light">Light Mode</option>
           </select>
@@ -1197,7 +1197,7 @@ function applyLanguage(lang) {
 function applyTheme(theme) {
   const sel = document.getElementById('themeSelect');
   const valid = sel ? Array.from(sel.options).map(o => o.value) : [];
-  if (!valid.includes(theme)) theme = 'fintech';
+  if (!valid.includes(theme)) theme = 'midnight';
   document.documentElement.setAttribute('data-theme', theme);
   try { localStorage.setItem('mde:theme', theme); } catch (e) {}
   try { const mc = document.querySelector('meta[name="theme-color"]'); const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(); if (mc && bg) mc.setAttribute('content', bg); } catch (e) {}
@@ -1239,8 +1239,8 @@ function buildThemeGrid() {
 }
 
 const savedLang = localStorage.getItem('mde:lang') || 'en';
-let savedTheme = 'fintech';
-try { if (localStorage.getItem('mde:themeV2')) savedTheme = localStorage.getItem('mde:theme') || 'fintech'; else localStorage.setItem('mde:themeV2', '1'); } catch (e) {}
+let savedTheme = 'midnight';
+try { if (localStorage.getItem('mde:themeV3')) savedTheme = localStorage.getItem('mde:theme') || 'midnight'; else localStorage.setItem('mde:themeV3', '1'); } catch (e) {}
 applyLanguage(savedLang);
 buildThemeGrid();
 applyTheme(savedTheme);
@@ -3082,7 +3082,7 @@ setInterval(async () => {
 }, 30000);
 </script>
 
-<script defer src="vendor/gsap.min.js"></script>
+<script defer src="motion.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   var hdr=document.querySelector('.app-header'),tick=false;
@@ -3095,7 +3095,7 @@ document.addEventListener('DOMContentLoaded',function(){
         var r=c.getBoundingClientRect();c.style.setProperty('--mx',(ev.clientX-r.left)+'px');c.style.setProperty('--my',(ev.clientY-r.top)+'px')})
     },{passive:true});
   }
-  if(!window.gsap||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  if(!window.Motion||!Motion.can())return;
   var title=document.querySelector('.hero-title');
   if(!title||title.offsetParent===null)return;
   (function split(n){Array.prototype.slice.call(n.childNodes).forEach(function(x){
@@ -3104,9 +3104,10 @@ document.addEventListener('DOMContentLoaded',function(){
       if(/^\s+$/.test(p)){f.appendChild(document.createTextNode(' '));return}
       var s=document.createElement('span');s.className='w';s.textContent=p;f.appendChild(s)});
     x.parentNode.replaceChild(f,x)})})(title);
-  gsap.timeline({defaults:{ease:'power3.out'},onComplete:function(){gsap.set('.hero-title .w,.hero-subtitle,.cta-box',{clearProps:'all'})}})
-    .from('.hero-title .w',{opacity:0,y:30,duration:.7,stagger:.06},'-=.2')
-    .from('.hero-subtitle,.cta-box',{opacity:0,y:16,duration:.5,stagger:.1},'-=.4');
+  var words=title.querySelectorAll('.w');
+  Motion.from(words,{opacity:0,y:30,duration:.7,stagger:.06,ease:'power3.out'});
+  // the subtitle and CTA start .4s before the last word lands (same rhythm as the old GSAP timeline)
+  Motion.from('.hero-subtitle,.cta-box',{opacity:0,y:16,duration:.5,stagger:.1,ease:'power3.out',delay:Math.max(0,(words.length-1)*.06+.7-.4)});
 });
 </script>
 <script>

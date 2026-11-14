@@ -1,17 +1,15 @@
-/* Matchday Edge: motion layer (GSAP). Value bets live inside each match card.
+/* LuciBet: motion layer (window.Motion from motion.js, Web Animations API). Value bets live inside each match card.
    Count-up / stagger / shiny ideas adapted from React Bits (reactbits.dev, David Haz), rebuilt in vanilla JS. */
 (function () {
   'use strict';
   var reduce = function () { return matchMedia('(prefers-reduced-motion:reduce)').matches; };
-  var G = function () { return (!reduce() && window.gsap) || null; };
+  var G = function () { return (!reduce() && window.Motion && window.Motion.can() && window.Motion) || null; };
   var sel = null, seen = {}, lastStat = {};
 
   function countTo(el, to, fmt, from) {
     var g = G(); if (!el) return;
     if (!g || !isFinite(to)) { el.textContent = fmt(to); return; }
-    var o = { v: from == null ? 0 : from };
-    if (el.__tw) el.__tw.kill();                     // a new render replaces a count-up still in flight (no two tweens writing one number)
-    el.__tw = g.to(o, { v: to, duration: .9, ease: 'power2.out', onUpdate: function () { el.textContent = fmt(o.v); }, onComplete: function () { el.textContent = fmt(to); } });
+    g.count(el, from == null ? 0 : from, to, fmt, { duration: .9 });   // a new count replaces one still in flight
   }
 
   function mark() {
@@ -44,7 +42,7 @@
     var vh = window.innerHeight || 800;
     fresh = fresh.filter(function (n) { var r = n.getBoundingClientRect(); return r.bottom > 0 && r.top < vh; }).slice(0, 10);
     if (!fresh.length) return;
-    g.from(fresh, { y: 22, opacity: 0, duration: .5, stagger: { each: .05, amount: .4 }, ease: 'power3.out', clearProps: 'transform,opacity' });
+    g.from(fresh, { y: 22, opacity: 0, duration: .5, stagger: { each: .05, amount: .4 }, ease: 'power3.out' });
   }
 
   function after() {
@@ -61,7 +59,7 @@
   window.MDEFX = { after: after, pop: function (id) {
     var g = G(); if (!g) return;
     var q = '[data-fx="' + id + '"] .vb';
-    var n = document.querySelectorAll(q); if (n.length) g.from(n, { y: 10, opacity: 0, duration: .45, stagger: .06, ease: 'power3.out', clearProps: 'all' });
+    var n = document.querySelectorAll(q); if (n.length) g.from(n, { y: 10, opacity: 0, duration: .45, stagger: .06, ease: 'power3.out' });
   } };
   document.addEventListener('DOMContentLoaded', function () { setTimeout(after, 0); });
   if (typeof renderSignals === 'function') {

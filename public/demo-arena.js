@@ -66,8 +66,8 @@
     const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
     return d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${String(m).padStart(2, '0')}m ${String(x).padStart(2, '0')}s`;
   }
-  /* ---------------- motion: GSAP + Lenis. Every effect is optional; the page works without them. ---------------- */
-  const G = () => (!reduce() && window.gsap) || null;
+  /* ---------------- motion: window.Motion (motion.js, Web Animations API) + Lenis. Every effect is optional; the page works without them. ---------------- */
+  const G = () => (!reduce() && window.Motion && window.Motion.can() && window.Motion) || null;
   const FX = {
     /* rolling-digit odometer (idea from React Bits' Counter, written for plain DOM) */
     odometer(host, from, to) {
@@ -83,40 +83,47 @@
       if (!g) { strips.forEach((el, k) => { el.style.transform = `translateY(${-want[k] * 10}%)`; }); return; }
       const start = old == null ? want.map((w, k) => { const v = (w + 3 + k * 3) % 10; return v === w ? (w + 5) % 10 : v; }) : (() => { const o = old.replace(/\D/g, '').padStart(want.length, '0').slice(-want.length).split('').map(Number); return o; })();
       strips.forEach((el, k) => {
-        g.set(el, { yPercent: -start[k] * 10 });
+        el.style.transform = `translateY(${-want[k] * 10}%)`;                // final position; the tween plays from start into it
         if (start[k] === want[k] && old != null) return;
-        g.to(el, { yPercent: -want[k] * 10, duration: old == null ? 1.1 : .8, ease: 'power3.inOut', delay: old == null ? .25 + (strips.length - 1 - k) * .09 : (strips.length - 1 - k) * .05 });
+        g.tween(el, [{ transform: `translateY(${-start[k] * 10}%)` }, { transform: `translateY(${-want[k] * 10}%)` }],
+          { duration: old == null ? 1.1 : .8, ease: 'power3.inOut', delay: old == null ? .25 + (strips.length - 1 - k) * .09 : (strips.length - 1 - k) * .05 });
       });
     },
     intro(root) {
       const g = G(); if (!g) return;
       const hero = root.querySelector('.da-hero'), parts = root.querySelectorAll('.da-brand,.da-hero h1,.da-bal-l,.da-mini div,.da-recov');
-      if (hero) g.from(hero, { opacity: 0, y: 18, duration: .55, ease: 'power3.out', clearProps: 'all' });   // the wallet may not be rendered yet
-      if (parts.length) g.from(parts, { opacity: 0, y: 10, duration: .45, stagger: .06, delay: .15, ease: 'power2.out', clearProps: 'all' });
+      if (hero) g.from(hero, { opacity: 0, y: 18, duration: .55, ease: 'power3.out' });   // the wallet may not be rendered yet
+      if (parts.length) g.from(parts, { opacity: 0, y: 10, duration: .45, stagger: .06, delay: .15, ease: 'power2.out' });
     },
     reveal(el) {
       const g = G(); if (!g) return;
       const t = el.querySelectorAll('.da-card,.da-pred,.da-tile,.da-panel,.da-empty,.da-sec-h');
-      if (t.length) g.from(t, { opacity: 0, y: 14, duration: .42, stagger: { each: .035, amount: .5 }, ease: 'power2.out', clearProps: 'opacity,transform' });
+      if (t.length) g.from(t, { opacity: 0, y: 14, duration: .42, stagger: { each: .035, amount: .5 }, ease: 'power2.out' });
     },
     indicator(animate) {
       const bar = document.querySelector('#daTabs .da-ind'), on = document.querySelector('#daTabs .da-tab.on'); if (!bar || !on) return;
       const g = G(), x = on.offsetLeft, w = on.offsetWidth;
-      if (g && animate) g.to(bar, { x, width: w, duration: .4, ease: 'power3.out' }); else { bar.style.transform = `translateX(${x}px)`; bar.style.width = w + 'px'; }
+      const fromT = bar.style.transform || 'translateX(0px)', fromW = bar.style.width || (bar.offsetWidth + 'px');
+      bar.style.transform = `translateX(${x}px)`; bar.style.width = w + 'px';
+      if (g && animate) g.tween(bar, [{ transform: fromT, width: fromW }, { transform: `translateX(${x}px)`, width: w + 'px' }], { duration: .4, ease: 'power3.out' });
     },
     modal(el) {
       const g = G(); if (!g) return;
       const box = el.querySelector('.da-modal');
       g.from(el, { opacity: 0, duration: .2 });
-      g.from(box, { y: window.innerWidth < 560 ? 80 : 24, scale: window.innerWidth < 560 ? 1 : .96, opacity: 0, duration: .4, ease: 'power3.out', clearProps: 'transform,opacity' });
+      if (box) g.from(box, { y: window.innerWidth < 560 ? 80 : 24, scale: window.innerWidth < 560 ? 1 : .96, opacity: 0, duration: .4, ease: 'power3.out' });
     },
     spark(x, y) {
       const g = G(); if (!g) return;
       for (let k = 0; k < 14; k++) {
         const d = document.createElement('span'); d.className = 'da da-spark'; document.body.appendChild(d);
-        const a = (Math.PI * 2 * k) / 14, r = 46 + Math.random() * 40;
-        g.set(d, { x, y, rotation: a * 180 / Math.PI + 90, margin: 0 });
-        g.to(d, { x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, opacity: 0, scaleY: .3, duration: .6, ease: 'power2.out', onComplete: () => d.remove() });
+        const a = (Math.PI * 2 * k) / 14, r = 46 + Math.random() * 40, deg = a * 180 / Math.PI + 90;
+        d.style.margin = '0'; d.style.opacity = '0';
+        const an = g.tween(d, [
+          { transform: `translate(${x}px,${y}px) rotate(${deg}deg)`, opacity: 1 },
+          { transform: `translate(${x + Math.cos(a) * r}px,${y + Math.sin(a) * r}px) rotate(${deg}deg) scaleY(.3)`, opacity: 0 }
+        ], { duration: .6, ease: 'power2.out' });
+        if (an) an.onfinish = an.oncancel = () => d.remove(); else d.remove();
       }
     },
     /* pointer spotlight + magnetic keys, delegated so re-renders cost nothing */
@@ -129,8 +136,8 @@
           raf = 0; const ev = last, t = ev.target.closest && ev.target.closest('.da-card,.da-pred');
           if (t) { const r = t.getBoundingClientRect(); t.style.setProperty('--mx', (ev.clientX - r.left) + 'px'); t.style.setProperty('--my', (ev.clientY - r.top) + 'px'); }
           const g = G(), b = ev.target.closest && ev.target.closest('.da-btn:not(.ghost):not(:disabled)');
-          if (g && b) { const r = b.getBoundingClientRect(); g.to(b, { x: (ev.clientX - r.left - r.width / 2) * .18, y: (ev.clientY - r.top - r.height / 2) * .22, duration: .25, ease: 'power2.out', overwrite: 'auto' }); FX.mag = b; }
-          else if (g && FX.mag) { g.to(FX.mag, { x: 0, y: 0, duration: .5, ease: 'elastic.out(1,.5)', overwrite: 'auto' }); FX.mag = null; }
+          if (g && FX.mag && FX.mag !== b) { g.release(FX.mag); FX.mag = null; }        // moved straight from one key to another
+          if (g && b) { const r = b.getBoundingClientRect(); g.magnet(b, (ev.clientX - r.left - r.width / 2) * .18, (ev.clientY - r.top - r.height / 2) * .22); FX.mag = b; }
         });
       }, { passive: true });
     }
@@ -138,17 +145,17 @@
 
   /* smooth scroll (Lenis by darkroom.engineering), only while the Demo Arena is open */
   const SMOOTH = {
-    inst: null,
-    tick(t) { if (SMOOTH.inst) SMOOTH.inst.raf(t * 1000); },
+    inst: null, raf: 0,
+    tick(t) { if (!SMOOTH.inst) return; SMOOTH.inst.raf(t); SMOOTH.raf = requestAnimationFrame(SMOOTH.tick); },
     start() {
-      if (SMOOTH.inst || reduce() || !window.Lenis || !window.gsap || (navigator.maxTouchPoints > 0 && !matchMedia('(pointer:fine)').matches)) return;
+      if (SMOOTH.inst || reduce() || !window.Lenis || (navigator.maxTouchPoints > 0 && !matchMedia('(pointer:fine)').matches)) return;
       try {
         const L = window.Lenis.default || window.Lenis.Lenis || window.Lenis;
         SMOOTH.inst = new L({ lerp: .11, smoothWheel: true, anchors: false });
-        window.gsap.ticker.add(SMOOTH.tick);
+        SMOOTH.raf = requestAnimationFrame(SMOOTH.tick);
       } catch (e) { SMOOTH.inst = null; }
     },
-    stop() { if (!SMOOTH.inst) return; try { window.gsap.ticker.remove(SMOOTH.tick); SMOOTH.inst.destroy(); } catch (e) {} SMOOTH.inst = null; },
+    stop() { if (!SMOOTH.inst) return; try { cancelAnimationFrame(SMOOTH.raf); SMOOTH.inst.destroy(); } catch (e) {} SMOOTH.inst = null; SMOOTH.raf = 0; },
     hold() { if (SMOOTH.inst) SMOOTH.inst.stop(); },
     release() { if (SMOOTH.inst) SMOOTH.inst.start(); }
   };
