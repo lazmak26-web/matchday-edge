@@ -1124,6 +1124,62 @@ async function keyauthLogin(username, password, sessionid, hwid) {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   GOOGLE SIGN-IN  (ID-token verification, zero external deps)
+   The browser gets a JWT from Google Identity Services and POSTs it
+   to /api/auth/google. We verify the RS256 signature locally against
+   Google's published JWKS (cached), so there is no per-login round-trip.
+   ═══════════════════════════════════════════════════════════ */
+const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || '').trim();
+if (!GOOGLE_CLIENT_ID) console.error('❌ GOOGLE_CLIENT_ID is not set: Sign in with Google is disabled until it is.');
+const GOOGLE_CERTS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+const GOOGLE_ISS = new Set(['https://accounts.google.com', 'accounts.google.com']);
+
+let googleCerts = { keys: new Map(), exp: 0 };
+async function googleKeys(force) {
+  const now = Date.now();
+  if (!force && googleCerts.exp > now && googleCerts.keys.size) return googleCerts.keys;
+  const r = await fetch(GOOGLE_CERTS_URL, { signal: AbortSignal.timeout(10000) });
+  if (!r.ok) throw new Error('google certs HTTP ' + r.status);
+  const jwks = await r.json();
+  const keys = new Map();
+  for (const jwk of (jwks.keys || [])) {
+    if (jwk.kid && jwk.kty === 'RSA') { try { keys.set(jwk.kid, crypto.createPublicKey({ key: jwk, format: 'jwk' })); } catch (e) {} }
+  }
+  if (!keys.size) throw new Error('no google keys');
+  const cc = /max-age=(\d+)/i.exec(r.headers.get('cache-control') || '');       // honour Google's rotation window, cap at 6h, floor 5min
+  googleCerts = { keys, exp: now + Math.max(300, Math.min(cc ? +cc[1] : 3600, 21600)) * 1000 };
+  return keys;
+}
+
+const b64urlBuf = s => Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+const b64urlJson = s => JSON.parse(b64urlBuf(s).toString('utf8'));
+
+// Returns the verified claims, or throws. Never trust any field before this returns.
+async function verifyGoogleIdToken(idToken) {
+  if (typeof idToken !== 'string' || idToken.length < 20 || idToken.length > 8192) throw new Error('bad token');
+  const parts = idToken.split('.');
+  if (parts.length !== 3) throw new Error('malformed token');
+  const [h, p, s] = parts;
+  const header = b64urlJson(h);
+  if (header.alg !== 'RS256' || !header.kid) throw new Error('bad alg');
+  let key = (await googleKeys()).get(header.kid);
+  if (!key) key = (await googleKeys(true)).get(header.kid);     // key rotated: refresh once and retry
+  if (!key) throw new Error('unknown key');
+  const v = crypto.createVerify('RSA-SHA256');
+  v.update(h + '.' + p); v.end();
+  if (!v.verify(key, b64urlBuf(s))) throw new Error('bad signature');
+  const c = b64urlJson(p);
+  const now = Math.floor(Date.now() / 1000);
+  if (!GOOGLE_ISS.has(c.iss)) throw new Error('bad iss');
+  if (c.aud !== GOOGLE_CLIENT_ID) throw new Error('aud mismatch');
+  if (!(Number(c.exp) > now - 60)) throw new Error('expired');
+  if (c.nbf && Number(c.nbf) > now + 60) throw new Error('not yet valid');
+  if (c.email_verified !== true && c.email_verified !== 'true') throw new Error('email not verified');
+  if (!c.email) throw new Error('no email');
+  return c;
+}
+
+/* ═══════════════════════════════════════════════════════════
    AUTH MIDDLEWARE & ENDPOINTS
    ═══════════════════════════════════════════════════════════ */
 function authMiddleware(req, res, next) {
@@ -1141,15 +1197,18 @@ function authMiddleware(req, res, next) {
 }
 
 app.disable('x-powered-by');
+// Google Identity Services (Sign in with Google) loads gsi/client, opens an iframe, and calls back to accounts.google.com.
+const GSI_ORIGIN = 'https://accounts.google.com';
 const CSP = [
   "default-src 'self'",
-  // Every script is self-hosted (public/vendor): no third-party script origin is trusted. 'unsafe-inline' remains because index.html
+  // Scripts are self-hosted (public/vendor) except Google Identity Services. 'unsafe-inline' remains because index.html
   // uses inline <script> blocks and onclick handlers; removing it needs nonces/hashes (see SECURITY_AUDIT_REPORT.md).
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline' ${GSI_ORIGIN}`,
+  `style-src 'self' 'unsafe-inline' ${GSI_ORIGIN}`,
   "font-src 'self'",
   "img-src 'self' data: https:",
-  "connect-src 'self'",
+  `connect-src 'self' ${GSI_ORIGIN}`,
+  `frame-src 'self' ${GSI_ORIGIN}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -1288,7 +1347,7 @@ function loadUsers() {
   try {
     if (!fs.existsSync(USERS_FILE)) return;
     const arr = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-    if (Array.isArray(arr)) for (const u of arr) if (u && u.email && u.salt && u.hash) users.set(u.email, u);
+    if (Array.isArray(arr)) for (const u of arr) if (u && u.email && ((u.salt && u.hash) || u.kind === 'google')) users.set(u.email, u);
     console.log(`👤 Loaded ${users.size} accounts`);
   } catch (e) { console.error('Users load error:', e.message); }
 }
@@ -1394,10 +1453,13 @@ function planOf(sess) {
 const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
 if (!ADMIN_EMAIL) console.error('❌ ADMIN_EMAIL is not set: the admin dashboard is DISABLED until it is configured in the environment.');
 function isAdminSession(sess) {
-  if (!sess || sess.kind !== 'local' || sess.username !== ADMIN_EMAIL) return false;
+  if (!sess || sess.username !== ADMIN_EMAIL) return false;
   const u = users.get(sess.username);
   if (!u || u.verified === false) return false;
-  // Admin needs real email OTP. Without RESEND_API_KEY anyone could sign up with the admin e-mail first, so admin is refused.
+  // A Google session already proves ownership of the admin address (Google verified the email), so no OTP gate is needed.
+  if (sess.kind === 'google') return true;
+  if (sess.kind !== 'local') return false;
+  // Email/password admin needs real email OTP. Without RESEND_API_KEY anyone could sign up with the admin e-mail first, so admin is refused.
   // The only bypass is for the automated tests (NODE_ENV=test), never in production.
   return OTP_ENABLED || (process.env.NODE_ENV === 'test' && process.env.ADMIN_ALLOW_NO_OTP === '1');
 }
@@ -1711,8 +1773,47 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   startSession(res, sx);
 });
 
+app.post('/api/auth/google', loginLimiter, async (req, res) => {
+  if (!GOOGLE_CLIENT_ID) return res.status(503).json({ error: 'Google sign-in is not configured.' });
+  const body = req.body || {};
+  const credential = body.credential;
+  if (!credential || typeof credential !== 'string') return res.status(400).json({ error: 'Missing Google credential.' });
+  let c;
+  try { c = await verifyGoogleIdToken(credential); }
+  catch (e) {
+    auditLog('google_login_reject', req, { reason: String(e && e.message).slice(0, 80) });
+    return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
+  }
+  const email = String(c.email).trim().toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 120) return res.status(400).json({ error: 'Invalid Google account email.' });
+  let u = users.get(email);
+  if (!u) {
+    // New account: a gambling service is 18+, so creation needs the same consent the email sign-up requires.
+    if (body.consent !== true || body.ageConfirmed !== true) return res.status(403).json({ consentRequired: true, error: 'You must confirm you are 18 or older and accept the Terms and Privacy Policy.' });
+    if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
+    const seq = [...users.values()].reduce((m, x) => Math.max(m, x.seq || 0), 0) + 1;
+    u = { email, kind: 'google', googleSub: c.sub || null, plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: true, consentAt: Date.now(), termsVersion: TERMS_VERSION };
+    users.set(email, u);
+    saveUsersSoon();
+    auditLog('google_signup', req, { seq });
+  } else {
+    // Existing account (email/password or an earlier Google login): link the Google identity, keep the plan untouched.
+    let changed = false;
+    if (!u.googleSub && c.sub) { u.googleSub = c.sub; changed = true; }
+    if (u.verified === false) { u.verified = true; changed = true; }
+    if (changed) saveUsersSoon();
+  }
+  startSession(res, { kind: 'google', username: email });
+});
+
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
   res.json({ ok: true, ...profileOf(sessions.get(req.authToken)) });
+});
+
+// Public, cacheable: lets the static frontend learn the Google client id (and whether Google login is on) without templating index.html.
+app.get('/api/public/config', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
 });
 
 app.post('/api/auth/logout', authMiddleware, (req, res) => {
