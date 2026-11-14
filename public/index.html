@@ -160,7 +160,7 @@ button,select,input{font:inherit;color:inherit}
 .adapt-ink .aw{transition:color .35s ease,text-shadow .35s ease}
 .adapt-ink .aw.ink-light{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.35)}
 .adapt-ink .aw.ink-dark{color:#0B1F17;text-shadow:0 1px 8px rgba(255,255,255,.45)}
-.cta-box{order:4;grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:8px 0 28px}
+.cta-box{order:4;grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:8px 0 0}
 .cta-title{display:none}
 .cta-desc{order:3;width:100%;font-size:13px;color:var(--text-sub)}
 .btn-main,.auth-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:var(--brand);color:var(--on-brand);font-weight:600;font-size:16px;padding:14px 28px;cursor:pointer;text-decoration:none;transition:transform .2s,filter .2s}
@@ -175,7 +175,8 @@ button,select,input{font:inherit;color:inherit}
 .feature-icon{width:46px;height:46px;border-radius:14px;background:var(--brand-dim);display:grid;place-items:center;font-size:22px;color:var(--brand)}
 .feature-title{font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
 .feature-desc{font-size:14px;color:var(--ink-3);margin-top:4px}
-.lp-matches{order:7;grid-column:1/-1;margin-top:40px}
+.lp-matches{order:7;grid-column:1/-1;margin-top:0}
+.lp-matches > .section-head{margin-top:12px}
 .feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item,.empty-state{position:relative;overflow:hidden;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow)}
 .feature-card::before,.chart-card::before,.match::before,.perf-card::before,.plan-card::before,.pick::before,.hc-card::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;background:radial-gradient(360px circle at var(--mx,50%) var(--my,50%),var(--brand-dim),transparent 70%)}
 @media (hover:hover){.feature-card:hover::before,.chart-card:hover::before,.match:hover::before,.perf-card:hover::before,.plan-card:hover::before,.pick:hover::before,.hc-card:hover::before{opacity:1}}
