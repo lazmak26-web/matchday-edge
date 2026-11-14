@@ -623,37 +623,6 @@ html.lenis, html.lenis body { height:auto; }
       <h1 class="hero-title" data-i18n="hero_title">Match analytics.<br>The decision is yours.</h1>
       <p class="hero-subtitle adapt-ink" data-i18n="hero_sub">Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.</p>
 
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
-          <div>
-            <div class="feature-title" data-i18n="feat_1_title">Poisson Model</div>
-            <div class="feature-desc" data-i18n="feat_1_desc">Statistical match prediction using xG and recent team forms.</div>
-          </div>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
-          <div>
-            <div class="feature-title" data-i18n="feat_2_title">+EV Finder</div>
-            <div class="feature-desc" data-i18n="feat_2_desc">Flags prices where our model's estimate differs from the bookmaker's odds. Estimates only, never certainties.</div>
-          </div>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
-          <div>
-            <div class="feature-title" data-i18n="feat_3_title">Live Updates</div>
-            <div class="feature-desc" data-i18n="feat_3_desc">Odds and scores refreshed regularly. Data can be delayed or contain errors.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="landing-right">
-      <div class="cta-box">
-        <div class="cta-title" data-i18n="get_started">Get Started Now</div>
-        <div class="cta-desc adapt-ink" data-i18n="cta_desc">Create a free account or log in to open the dashboard and daily value bets.</div>
-        <button class="btn-main" onclick="openAuthModal()" data-i18n="login_dash">Login to Dashboard</button>
-      </div>
     </div>
 
     <section class="lp-matches">
@@ -3143,10 +3112,9 @@ document.addEventListener('DOMContentLoaded',function(){
       if(/^\s+$/.test(p)){f.appendChild(document.createTextNode(' '));return}
       var s=document.createElement('span');s.className='w';s.textContent=p;f.appendChild(s)});
     x.parentNode.replaceChild(f,x)})})(title);
-  gsap.timeline({defaults:{ease:'power3.out'},onComplete:function(){gsap.set('.hero-title .w,.hero-subtitle,.cta-box,.feature-card',{clearProps:'all'})}})
+  gsap.timeline({defaults:{ease:'power3.out'},onComplete:function(){gsap.set('.hero-title .w,.hero-subtitle',{clearProps:'all'})}})
     .from('.hero-title .w',{opacity:0,y:30,duration:.7,stagger:.06},'-=.2')
-    .from('.hero-subtitle,.cta-box',{opacity:0,y:16,duration:.5,stagger:.1},'-=.4')
-    .from('.feature-card',{opacity:0,y:24,duration:.5,stagger:.08},'-=.3');
+    .from('.hero-subtitle',{opacity:0,y:16,duration:.5},'-=.4');
 });
 </script>
 <script>
