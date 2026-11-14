@@ -764,6 +764,61 @@ function stabilizeToday(fresh) {
   return list;
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   LEAGUE NAMES (Bzzoiro events only carry league_id)
+   1) use any name the event itself carries; 2) else look the id up once on the provider
+   (cached; failures are cached for 6h so a missing endpoint costs one call per id, not one per refresh).
+   ═══════════════════════════════════════════════════════════ */
+const leagueNames = new Map();          // id -> { name, country } | { miss: ts }
+const LEAGUE_MISS_TTL = 6 * 3600 * 1000;
+let leagueShapeLogged = false;
+function leagueFromEvent(ev) {
+  const l = ev && (ev.league || ev.tournament || ev.competition);
+  const name = (l && typeof l === 'object' ? l.name : typeof l === 'string' ? l : null) || ev.league_name || ev.tournament_name || ev.competition_name;
+  const c = l && typeof l === 'object' ? (l.country && typeof l.country === 'object' ? l.country.name : l.country) : (ev.country_name || ev.country);
+  return name ? { name: String(name).slice(0, 80), country: c ? String(c).slice(0, 40) : null } : null;
+}
+async function lookupLeague(id) {
+  for (const path of [`/v2/leagues/${id}/`, `/leagues/${id}/`]) {
+    try {
+      const r = await fetch(`${BZZOIRO_API_BASE}${path}`, { headers: { 'Authorization': `Token ${BZZOIRO_API_KEY}`, 'Accept': 'application/json' }, signal: AbortSignal.timeout(6000) });
+      if (!r.ok) continue;
+      const d = await r.json();
+      const o = d && (d.data || d.result || d);
+      if (!leagueShapeLogged) { leagueShapeLogged = true; console.log('League lookup shape:', path, Object.keys(o || {}).slice(0, 15).join(',')); }
+      const hit = leagueFromEvent({ league: o });
+      if (hit) return hit;
+    } catch (e) { /* try the next path */ }
+  }
+  return null;
+}
+async function resolveLeagueNames(events) {
+  if (!BZZOIRO_API_KEY || !Array.isArray(events)) return;
+  const todo = new Set();
+  for (const ev of events) {
+    const id = ev && ev.league_id != null ? String(ev.league_id) : null;
+    if (!id) continue;
+    const inEv = leagueFromEvent(ev);
+    if (inEv) { leagueNames.set(id, inEv); continue; }
+    const c = leagueNames.get(id);
+    if (!c || (c.miss && Date.now() - c.miss > LEAGUE_MISS_TTL)) todo.add(id);
+  }
+  const ids = [...todo].slice(0, 40);        // bounded per refresh; the rest resolve on later refreshes
+  for (let i = 0; i < ids.length; i += 6) {
+    await Promise.all(ids.slice(i, i + 6).map(async id => {
+      const hit = await lookupLeague(id);
+      leagueNames.set(id, hit || { miss: Date.now() });
+    }));
+  }
+}
+function leagueLabel(ev, fdMatch) {
+  if (fdMatch && fdMatch.competition && fdMatch.competition.name) return fdMatch.competition.name;
+  const c = ev.league_id != null ? leagueNames.get(String(ev.league_id)) : null;
+  if (c && c.name) return c.country && !c.name.toLowerCase().includes(String(c.country).toLowerCase()) ? `${c.country} · ${c.name}` : c.name;
+  return ev.league_id ? `League #${ev.league_id}` : 'Football';
+}
+
 async function getFixtures() {
   if (fixturesCache.data && Date.now() - fixturesCache.ts < FIXTURES_TTL) return fixturesCache.data;
   if (fixturesFetchInProgress) return fixturesFetchInProgress;
@@ -781,6 +836,7 @@ async function getFixtures() {
       if (!oddsMap) oddsMap = new Map();
 
       const [bzzEvents, fdMatches] = await Promise.all([eventsP, fdP]);
+      await resolveLeagueNames(bzzEvents).catch(() => {});
       const fixtures = [], usedFdIds = new Set();
 
       for (const ev of bzzEvents) {
@@ -836,7 +892,7 @@ async function getFixtures() {
         if (status === 'finished' && !fdHasScore && (ev.home_score == null || ev.away_score == null || (clockOnly && !eventsFresh()))) { homeScore = null; awayScore = null; resultPending = true; }
         const fixture = {
           id: `bzz_${ev.id}`,
-          league: fdMatch?.competition?.name || (ev.league_id ? `League #${ev.league_id}` : 'Football'),
+          league: leagueLabel(ev, fdMatch),
           women: WOMEN_LEAGUE_IDS.has(String(ev.league_id)) || undefined,
           date: kickoff.toISOString().slice(0, 10),
           kickoff: kickoff.toISOString().slice(11, 16),

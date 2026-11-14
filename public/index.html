@@ -3,10 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>1uciBet — Pro Sports Analytics</title>
-<link rel="icon" type="image/png" href="logo.png">
+<title>LuciBet — Football Match Analytics &amp; Value Bets</title>
+<meta name="description" content="Football match analytics built on a Poisson model and live market odds. LuciBet highlights prices where the model estimates positive expected value. 18+, estimates not guarantees.">
+<link rel="canonical" href="https://1uciferxyz.com/">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LuciBet">
+<meta property="og:url" content="https://1uciferxyz.com/">
+<meta property="og:title" content="LuciBet — Football Match Analytics &amp; Value Bets">
+<meta property="og:description" content="Poisson model + live market odds. Daily picks where the model sees positive expected value. 18+.">
+<meta property="og:image" content="https://1uciferxyz.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="LuciBet — Football match analytics and +EV value bets">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LuciBet — Football Match Analytics &amp; Value Bets">
+<meta name="twitter:description" content="Poisson model + live market odds. Daily picks where the model sees positive expected value. 18+.">
+<meta name="twitter:image" content="https://1uciferxyz.com/og-image.png">
 <style>
-:root, [data-theme="dark"] {
+:root, [data-theme="dark"]{
   color-scheme: dark;
   --font: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   --bg: #0E0D1A;
@@ -36,36 +55,9 @@
   --shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.2);
 }
 
-[data-theme="blue"] {
-  color-scheme: dark;
-  --bg: #15489E;
-  --card: #FFFFFF;
-  --soft: #F1F5F9;
-  --ink: #0F172A;
-  --ink-2: #334155;
-  --ink-3: #64748B;
-  --line: #CBD5E1;
-  --line-2: #94A3B8;
-  --brand: #2563EB;
-  --brand-2: #3B82F6;
-  --brand-dim: rgba(37,99,235,.15);
-  --grad: linear-gradient(135deg,#2563EB,#1D4ED8);
-  --good: #10B981;
-  --good-dim: rgba(16,185,129,.1);
-  --good-line: rgba(16,185,129,.3);
-  --warn: #D97706;
-  --warn-dim: rgba(217,119,6,.1);
-  --bad: #E11D48;
-  --bad-dim: rgba(225,29,72,.1);
-  --info: #0284C7;
-  --info-dim: rgba(2,132,199,.1);
-  --tg: #229ED9;
-  --text-main: #FFFFFF;
-  --text-sub: #BFDBFE;
-  --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-}
 
-[data-theme="light"] {
+
+[data-theme="light"]{
   color-scheme: light;
   --bg: #F8FAFC;
   --card: #FFFFFF;
@@ -93,19 +85,16 @@
   --shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
 }
 
-[data-theme="slate"],[data-theme="forest"],[data-theme="mist"],[data-theme="sand"]{
-  --good-dim:rgba(52,190,150,.14); --good-line:rgba(52,190,150,.38); --warn-dim:rgba(230,170,60,.15); --bad-dim:rgba(235,100,120,.14); --info-dim:rgba(90,170,230,.14);
-  --text-main:var(--ink); --text-sub:var(--ink-2);
-}
-[data-theme="slate"]{ color-scheme:dark; --bg:#0F1522; --card:#171F30; --soft:#1E283D; --ink:#E7ECF5; --ink-2:#A6B1C6; --ink-3:#7783A0; --line:#263149; --line-2:#344260; --brand:#7FA2F5; --brand-2:#9DB8F8; --brand-dim:rgba(127,162,245,.15); --grad:linear-gradient(135deg,#4F78E0,#6C93F0); --good:#4CC9A0; --warn:#E6B450; --bad:#F07A8C; --info:#6CB6EC; --shadow:0 4px 14px -6px rgba(0,0,0,.45); }
-[data-theme="forest"]{ color-scheme:dark; --bg:#0D1512; --card:#15201B; --soft:#1C2B24; --ink:#E8F0EB; --ink-2:#A6B9AE; --ink-3:#74897C; --line:#24352C; --line-2:#324639; --brand:#55B88F; --brand-2:#80CFAC; --brand-dim:rgba(85,184,143,.15); --grad:linear-gradient(135deg,#2E9A72,#4FB38A); --good:#6FD3A6; --warn:#E3B55A; --bad:#EE8090; --info:#6BB9D8; --shadow:0 4px 14px -6px rgba(0,0,0,.45); }
-[data-theme="mist"]{ color-scheme:light; --bg:#EDF1F7; --card:#FFFFFF; --soft:#F2F5FA; --ink:#1F2A3A; --ink-2:#47556A; --ink-3:#74829A; --line:#DCE3EE; --line-2:#C7D1E0; --brand:#4A78D8; --brand-2:#6B93E6; --brand-dim:rgba(74,120,216,.12); --grad:linear-gradient(135deg,#5A86E4,#4A78D8); --good:#25906C; --warn:#B7791F; --bad:#D6455D; --info:#2C7FB8; --shadow:0 6px 20px -10px rgba(31,42,58,.18); }
+
+
+
+
 [data-theme="fintech"]{ color-scheme:light; --bg:#F7F9F8; --card:#FFFFFF; --soft:#F1F5F3; --ink:#0B1F17; --ink-2:#4A5D55; --ink-3:#82938B; --line:#E4EBE7; --line-2:#D3DDD8; --brand:#12A150; --brand-2:#2DBE6C; --brand-dim:rgba(18,161,80,.1); --grad:linear-gradient(135deg,#17B15A,#0E8A43); --good:#12A150; --warn:#B7791F; --bad:#D6455D; --info:#2C7FB8; --deep:#0B3B2C; --lime:#C6F432; --shadow:0 1px 2px rgba(11,59,44,.04),0 10px 28px -16px rgba(11,59,44,.18); --good-dim:rgba(18,161,80,.12); --good-line:rgba(18,161,80,.35); --warn-dim:rgba(183,121,31,.13); --bad-dim:rgba(214,69,93,.11); --info-dim:rgba(44,127,184,.12); --text-main:var(--ink); --text-sub:var(--ink-2); --on-brand:#fff; --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Arabic',sans-serif; }
-[data-theme="sand"]{ color-scheme:light; --bg:#F4F0E8; --card:#FFFDF9; --soft:#F0EADF; --ink:#2B2926; --ink-2:#55514A; --ink-3:#85806F; --line:#E5DDCD; --line-2:#D4C9B4; --brand:#B5683A; --brand-2:#C98055; --brand-dim:rgba(181,104,58,.12); --grad:linear-gradient(135deg,#C47A4C,#B5683A); --good:#2F8F6A; --warn:#B7791F; --bad:#CC4B5B; --info:#2C7FB8; --shadow:0 6px 20px -10px rgba(60,45,25,.2); }
+
 
 :root{--font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Arabic',sans-serif;--on-brand:#fff}
-[data-theme="slate"],[data-theme="forest"],[data-theme="dark"],[data-theme="midnight"]{--on-brand:#0A0F1C}
-[data-theme="mono"]{color-scheme:light;--bg:#F5F5F7;--card:#fff;--soft:#F0F0F3;--ink:#1D1D1F;--ink-2:#515154;--ink-3:#86868B;--line:#E6E6EA;--line-2:#D2D2D7;--brand:#0071E3;--brand-2:#2997FF;--brand-dim:rgba(0,113,227,.1);--grad:linear-gradient(135deg,#0071E3,#2997FF);--good:#1F9D55;--good-dim:rgba(31,157,85,.12);--good-line:rgba(31,157,85,.35);--warn:#B7791F;--warn-dim:rgba(183,121,31,.13);--bad:#D6455D;--bad-dim:rgba(214,69,93,.11);--info:#0A84FF;--info-dim:rgba(10,132,255,.12);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px -16px rgba(0,0,0,.18)}
+[data-theme="dark"],[data-theme="midnight"]{--on-brand:#0A0F1C}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text-main);font:15px/1.55 var(--font);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;transition:background .3s,color .3s;overflow-x:hidden}
@@ -150,7 +139,6 @@ button,select,input{font:inherit;color:inherit}
 .pm-langs button.on{background:var(--brand-dim);color:var(--brand);border-color:var(--brand)}
 .pm-settings,.pm-logout{width:100%;border:0;border-radius:999px;padding:11px;font-weight:600;cursor:pointer;background:var(--soft);color:var(--ink)}
 .pm-logout{background:var(--bad-dim);color:var(--bad)}
-.ticker{display:none}
 #landingPage{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;padding-top:clamp(20px,5vw,64px)}
 .landing-left,.landing-right{display:contents}
 .hero-badge{order:1;grid-column:1/-1;justify-self:start;padding:7px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink-2)}
@@ -359,24 +347,24 @@ input[type=range]{width:100%;accent-color:var(--brand)}
 @media (max-width:420px){.btn-main,.btn-tg{width:100%}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-.hidden { display: none !important; }
-.side-overlay { position:fixed; inset:0; background:rgba(8,7,20,.6); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); z-index:1000; }
-.side-menu { position:fixed; top:0; bottom:0; left:0; width:min(300px,84vw); background:var(--card); border-right:1px solid var(--line); z-index:1001; transform:translateX(-102%); transition:transform .25s ease; display:flex; flex-direction:column; gap:6px; padding:16px 12px; overflow-y:auto; }
-.side-menu.open { transform:none; }
-.side-head { display:flex; align-items:center; justify-content:space-between; padding:4px 8px 14px; font-size:18px; color:var(--ink); }
-.side-item { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; background:transparent; border:0; color:var(--ink-2); font:inherit; font-size:15px; font-weight:800; text-align:left; text-decoration:none; cursor:pointer; width:100%; }
-.side-item svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
-.side-item:active, .side-item.active { background:var(--brand-dim); color:var(--brand); }
-@media (hover:hover) and (pointer:fine) { .side-item:hover { background:var(--brand-dim); color:var(--brand); } }
-.auth-btn.loading { opacity:.75; pointer-events:none; }
-.auth-btn.loading::after { content:""; display:inline-block; width:14px; height:14px; margin-left:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:lbspin .7s linear infinite; vertical-align:-2px; }
-@keyframes lbspin { to { transform:rotate(360deg); } }
+.hidden{ display: none !important; }
+.side-overlay{ position:fixed; inset:0; background:rgba(8,7,20,.6); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); z-index:1000; }
+.side-menu{ position:fixed; top:0; bottom:0; left:0; width:min(300px,84vw); background:var(--card); border-right:1px solid var(--line); z-index:1001; transform:translateX(-102%); transition:transform .25s ease; display:flex; flex-direction:column; gap:6px; padding:16px 12px; overflow-y:auto; }
+.side-menu.open{ transform:none; }
+.side-head{ display:flex; align-items:center; justify-content:space-between; padding:4px 8px 14px; font-size:18px; color:var(--ink); }
+.side-item{ display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; background:transparent; border:0; color:var(--ink-2); font:inherit; font-size:15px; font-weight:800; text-align:left; text-decoration:none; cursor:pointer; width:100%; }
+.side-item svg{ width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+.side-item:active, .side-item.active{ background:var(--brand-dim); color:var(--brand); }
+@media (hover:hover) and (pointer:fine){ .side-item:hover{ background:var(--brand-dim); color:var(--brand); } }
+.auth-btn.loading{ opacity:.75; pointer-events:none; }
+.auth-btn.loading::after{ content:""; display:inline-block; width:14px; height:14px; margin-left:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:lbspin .7s linear infinite; vertical-align:-2px; }
+@keyframes lbspin{ to{ transform:rotate(360deg); } }
 body.is-ar .hero-title, body.is-ar .hero-subtitle, body.is-ar .feature-title, body.is-ar .feature-desc,
 body.is-ar .cta-title, body.is-ar .cta-desc, body.is-ar .modal-box h2, body.is-ar .modal-box p,
 body.is-ar .control-label, body.is-ar .control-hint, body.is-ar .section-head h2,
-body.is-ar .empty-state, body.is-ar .disclaimer, body.is-ar .quality-legend { direction: rtl; }
-body.is-ar .feature-card { direction: rtl; text-align: right; }
-body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
+body.is-ar .empty-state, body.is-ar .disclaimer, body.is-ar .quality-legend{ direction: rtl; }
+body.is-ar .feature-card{ direction: rtl; text-align: right; }
+body.is-ar .t-name, body.is-ar .pick-match{ unicode-bidi: plaintext; }
 .lic-state{ position:absolute; inset:0; z-index:5; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:24px; text-align:center;
   background:color-mix(in srgb,var(--card) 94%,transparent); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
 .lic-state b{ font-size:20px; font-weight:800; color:var(--ink); }
@@ -397,51 +385,51 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 .is-ok .lic-check path{ animation:licDraw .4s .45s ease forwards; }
 .is-ok .lic-state b{ color:var(--good); }
 @media (prefers-reduced-motion:reduce){ .lic-ring{ animation-duration:2s; } .is-ok .lic-check{ animation:none; } .is-ok .lic-check circle,.is-ok .lic-check path{ animation:none; stroke-dashoffset:0; } }
-.tg-fab {
+.tg-fab{
   position:fixed; right:14px; bottom:104px; z-index:110;
   width:54px; height:54px; border-radius:50%; background:var(--tg); color:#fff;
   display:grid; place-items:center; text-decoration:none;
   box-shadow:0 8px 22px rgba(34,158,217,.4);
   transition:transform .15s;
 }
-.tg-fab:hover { transform:translateY(-2px) scale(1.04); }
-.tg-fab:active { transform:scale(.94); }
-.tg-fab svg { width:25px; height:25px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; margin-left:-2px; }
-.tg-fab::before { content:""; position:absolute; inset:0; border-radius:50%; border:2px solid rgba(34,158,217,.55); animation:tgring 2.4s ease-out infinite; pointer-events:none; }
-@media (prefers-reduced-motion:reduce) { .tg-fab::before { animation:none; } }
-@keyframes tgring { 0%{transform:scale(1);opacity:.7} 100%{transform:scale(1.6);opacity:0} }
+.tg-fab:hover{ transform:translateY(-2px) scale(1.04); }
+.tg-fab:active{ transform:scale(.94); }
+.tg-fab svg{ width:25px; height:25px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; margin-left:-2px; }
+.tg-fab::before{ content:""; position:absolute; inset:0; border-radius:50%; border:2px solid rgba(34,158,217,.55); animation:tgring 2.4s ease-out infinite; pointer-events:none; }
+@media (prefers-reduced-motion:reduce){ .tg-fab::before{ animation:none; } }
+@keyframes tgring{ 0%{transform:scale(1);opacity:.7} 100%{transform:scale(1.6);opacity:0} }
 
 .tg-fab{right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:52px;height:52px}@media (min-width:960px){.tg-fab{bottom:28px;right:28px}}
 
-[data-theme="midnight"],[data-theme="ocean"],[data-theme="graphite"],[data-theme="sunset"],[data-theme="aurora"],[data-theme="crimson"],[data-theme="neon"],[data-theme="gold"],[data-theme="coffee"],[data-theme="nord"],[data-theme="dracula"],[data-theme="tokyo"],[data-theme="ember"],[data-theme="royal"],[data-theme="emerald"],[data-theme="cyber"],[data-theme="wine"]{color-scheme:dark;--good:#34D399;--warn:#FBBF24;--bad:#FB7185;--info:#38BDF8;--good-dim:rgba(52,211,153,.14);--good-line:rgba(52,211,153,.38);--warn-dim:rgba(251,191,36,.14);--bad-dim:rgba(251,113,133,.14);--info-dim:rgba(56,189,248,.14);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 6px 24px -10px rgba(0,0,0,.6)}
-[data-theme="rose"],[data-theme="lavender"],[data-theme="arctic"],[data-theme="mint"],[data-theme="peach"],[data-theme="sky"],[data-theme="lemon"],[data-theme="sage"],[data-theme="paper"],[data-theme="cotton"]{color-scheme:light;--good:#17935F;--warn:#B7791F;--bad:#D6455D;--info:#2C7FB8;--good-dim:rgba(23,147,95,.12);--good-line:rgba(23,147,95,.35);--warn-dim:rgba(183,121,31,.13);--bad-dim:rgba(214,69,93,.11);--info-dim:rgba(44,127,184,.12);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px -16px rgba(60,30,60,.22)}
-[data-theme="nord"]{--bg:#242933;--card:#2E3440;--soft:#3B4252;--ink:#ECEFF4;--ink-2:#C0C8D8;--ink-3:#8791A6;--line:#3B4252;--line-2:#4C566A;--brand:#88C0D0;--brand-2:#A3D4E2;--brand-dim:rgba(136,192,208,.15);--grad:linear-gradient(135deg,#6FB1C4,#88C0D0);--on-brand:#1B2330}
-[data-theme="dracula"]{--bg:#1E1F29;--card:#282A36;--soft:#343746;--ink:#F8F8F2;--ink-2:#C5C8DA;--ink-3:#8B90B0;--line:#343746;--line-2:#44475A;--brand:#BD93F9;--brand-2:#D2B3FF;--brand-dim:rgba(189,147,249,.15);--grad:linear-gradient(135deg,#9D6BF0,#BD93F9);--on-brand:#1B1030}
-[data-theme="tokyo"]{--bg:#14151F;--card:#1C1E2D;--soft:#252840;--ink:#D6DBF5;--ink-2:#9AA3CF;--ink-3:#6B739E;--line:#2A2D45;--line-2:#3B3F63;--brand:#7AA2F7;--brand-2:#9DBBFA;--brand-dim:rgba(122,162,247,.15);--grad:linear-gradient(135deg,#5B84E8,#7AA2F7);--on-brand:#0B1226}
-[data-theme="ember"]{--bg:#140A05;--card:#20110A;--soft:#2C190F;--ink:#FDEEE3;--ink-2:#D3A98E;--ink-3:#9A735C;--line:#3A2114;--line-2:#583220;--brand:#FF6B1A;--brand-2:#FF9150;--brand-dim:rgba(255,107,26,.15);--grad:linear-gradient(135deg,#F04E0C,#FF8A3D);--on-brand:#2B1000}
-[data-theme="royal"]{--bg:#080C1C;--card:#101736;--soft:#19214A;--ink:#E9EDFF;--ink-2:#A4B0E6;--ink-3:#707DB8;--line:#1D2650;--line-2:#2D3A78;--brand:#4F7CFF;--brand-2:#7C9DFF;--brand-dim:rgba(79,124,255,.15);--grad:linear-gradient(135deg,#3C5FE8,#6F8FFF);--on-brand:#060C26}
-[data-theme="emerald"]{--bg:#04120D;--card:#0A1F17;--soft:#102D22;--ink:#E4FBF0;--ink-2:#9BD1B8;--ink-3:#629B84;--line:#123526;--line-2:#1C5139;--brand:#10D58B;--brand-2:#4BE8AB;--brand-dim:rgba(16,213,139,.15);--grad:linear-gradient(135deg,#0BB676,#10D58B);--on-brand:#02170E}
-[data-theme="cyber"]{--bg:#0A0612;--card:#140B24;--soft:#1E1236;--ink:#F3E8FF;--ink-2:#BBA3E0;--ink-3:#8468B0;--line:#2A1A4A;--line-2:#43297A;--brand:#00E5FF;--brand-2:#6CF0FF;--brand-dim:rgba(0,229,255,.15);--grad:linear-gradient(135deg,#FF2BD6,#00E5FF);--on-brand:#02171C}
-[data-theme="wine"]{--bg:#14060C;--card:#210B15;--soft:#2D111E;--ink:#FBE9F0;--ink-2:#D2A1B5;--ink-3:#9B6B7F;--line:#3A1626;--line-2:#57223B;--brand:#E0527E;--brand-2:#EE7D9E;--brand-dim:rgba(224,82,126,.15);--grad:linear-gradient(135deg,#C2325F,#E0527E);--on-brand:#2A0613}
-[data-theme="peach"]{--bg:#FFF3EC;--card:#fff;--soft:#FFE9DD;--ink:#2D1810;--ink-2:#5E3A2A;--ink-3:#9A6F5B;--line:#F7DCCB;--line-2:#EBC4AA;--brand:#D9551F;--brand-2:#F28350;--brand-dim:rgba(217,85,31,.15);--grad:linear-gradient(135deg,#D9551F,#F28350);--on-brand:#fff}
-[data-theme="sky"]{--bg:#EAF5FF;--card:#fff;--soft:#DDEEFC;--ink:#0E2236;--ink-2:#36506B;--ink-3:#6B88A3;--line:#CFE4F6;--line-2:#B2D2EC;--brand:#1473E6;--brand-2:#4A97F0;--brand-dim:rgba(20,115,230,.15);--grad:linear-gradient(135deg,#1473E6,#4A97F0);--on-brand:#fff}
-[data-theme="lemon"]{--bg:#FFFBE6;--card:#fff;--soft:#FFF5C2;--ink:#2B2600;--ink-2:#5A5100;--ink-3:#8F8636;--line:#F2E9A8;--line-2:#E4D87A;--brand:#9A7400;--brand-2:#BE9400;--brand-dim:rgba(154,116,0,.15);--grad:linear-gradient(135deg,#9A7400,#BE9400);--on-brand:#fff}
-[data-theme="sage"]{--bg:#F1F5EE;--card:#fff;--soft:#E5EDE0;--ink:#1C261A;--ink-2:#44553F;--ink-3:#7A8C74;--line:#DAE5D3;--line-2:#C3D4B9;--brand:#4F7F3A;--brand-2:#6C9E55;--brand-dim:rgba(79,127,58,.15);--grad:linear-gradient(135deg,#4F7F3A,#6C9E55);--on-brand:#fff}
-[data-theme="paper"]{--bg:#F7F5F0;--card:#fff;--soft:#EFECE4;--ink:#1A1A1A;--ink-2:#4A4A4A;--ink-3:#858585;--line:#E4E0D6;--line-2:#D0CBBD;--brand:#1A1A1A;--brand-2:#444444;--brand-dim:rgba(26,26,26,.15);--grad:linear-gradient(135deg,#1A1A1A,#444444);--on-brand:#fff}
-[data-theme="cotton"]{--bg:#FFF0F8;--card:#fff;--soft:#FFE3F2;--ink:#2B1226;--ink-2:#5C3555;--ink-3:#9A6F92;--line:#F7D6EA;--line-2:#EBBBD9;--brand:#B5179E;--brand-2:#D63FBB;--brand-dim:rgba(181,23,158,.15);--grad:linear-gradient(135deg,#B5179E,#D63FBB);--on-brand:#fff}
+[data-theme="midnight"]{color-scheme:dark;--good:#34D399;--warn:#FBBF24;--bad:#FB7185;--info:#38BDF8;--good-dim:rgba(52,211,153,.14);--good-line:rgba(52,211,153,.38);--warn-dim:rgba(251,191,36,.14);--bad-dim:rgba(251,113,133,.14);--info-dim:rgba(56,189,248,.14);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 6px 24px -10px rgba(0,0,0,.6)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 [data-theme="midnight"]{--bg:#000;--card:#111113;--soft:#1C1C1F;--ink:#F5F5F7;--ink-2:#B0B0B8;--ink-3:#8E8E99;--line:#232327;--line-2:#34343A;--brand:#2997FF;--brand-2:#64B5FF;--brand-dim:rgba(41,151,255,.16);--grad:linear-gradient(135deg,#0A84FF,#2997FF)}
-[data-theme="ocean"]{--bg:#061519;--card:#0C242B;--soft:#12333C;--ink:#E6F4F4;--ink-2:#9FC2C6;--ink-3:#6B9196;--line:#16363E;--line-2:#22505A;--brand:#2DD4BF;--brand-2:#5EEAD4;--brand-dim:rgba(45,212,191,.15);--grad:linear-gradient(135deg,#14B8A6,#2DD4BF);--on-brand:#04201C}
-[data-theme="graphite"]{--bg:#121212;--card:#1C1C1C;--soft:#262626;--ink:#EDEDED;--ink-2:#ABABAB;--ink-3:#777;--line:#2A2A2A;--line-2:#3A3A3A;--brand:#EDEDED;--brand-2:#fff;--brand-dim:rgba(237,237,237,.12);--grad:linear-gradient(135deg,#d4d4d4,#fff);--on-brand:#111}
-[data-theme="sunset"]{--bg:#18100E;--card:#241816;--soft:#2F201C;--ink:#F8EDE8;--ink-2:#C7A99E;--ink-3:#8F7468;--line:#3A2722;--line-2:#523630;--brand:#FF8A4C;--brand-2:#FFA877;--brand-dim:rgba(255,138,76,.15);--grad:linear-gradient(135deg,#F97316,#FF8A4C);--on-brand:#2A1204}
-[data-theme="rose"]{--bg:#FBF1F4;--card:#fff;--soft:#F8E8ED;--ink:#2A1620;--ink-2:#5C3A48;--ink-3:#97707F;--line:#F0DCE3;--line-2:#E2C6D0;--brand:#D9206B;--brand-2:#EC4C8C;--brand-dim:rgba(217,32,107,.1);--grad:linear-gradient(135deg,#D9206B,#EC4C8C);--on-brand:#fff}
-[data-theme="lavender"]{--bg:#F3F0FC;--card:#fff;--soft:#EEE9FA;--ink:#1E1933;--ink-2:#463E66;--ink-3:#807A9C;--line:#E4DEF5;--line-2:#D0C8EA;--brand:#6D4AE8;--brand-2:#8B6FF0;--brand-dim:rgba(109,74,232,.1);--grad:linear-gradient(135deg,#6D4AE8,#8B6FF0);--on-brand:#fff}
-[data-theme="aurora"]{--bg:#0B1020;--card:#131A30;--soft:#1B2442;--ink:#EEF1FF;--ink-2:#A9B2D6;--ink-3:#7480A8;--line:#222C4D;--line-2:#34416F;--brand:#8B7CFF;--brand-2:#B0A5FF;--brand-dim:rgba(139,124,255,.16);--grad:linear-gradient(135deg,#6C5CE7,#2DD4BF);--on-brand:#0B0820}
-[data-theme="crimson"]{--bg:#12080A;--card:#1E1013;--soft:#2A171B;--ink:#FBEDEE;--ink-2:#CDA3A8;--ink-3:#966D73;--line:#38191E;--line-2:#512730;--brand:#FF4D5E;--brand-2:#FF7A87;--brand-dim:rgba(255,77,94,.15);--grad:linear-gradient(135deg,#E11D48,#FF4D5E);--on-brand:#2A0509}
-[data-theme="neon"]{--bg:#050A07;--card:#0C1510;--soft:#122019;--ink:#E8FFF0;--ink-2:#9FD1B2;--ink-3:#69957A;--line:#15281D;--line-2:#1F3D2B;--brand:#39FF88;--brand-2:#7CFFB2;--brand-dim:rgba(57,255,136,.14);--grad:linear-gradient(135deg,#00E676,#39FF88);--on-brand:#03140A}
-[data-theme="gold"]{--bg:#0C0A06;--card:#171309;--soft:#221C0E;--ink:#FAF3E0;--ink-2:#CDBF98;--ink-3:#968A67;--line:#2E2612;--line-2:#473B1C;--brand:#F5C242;--brand-2:#FAD779;--brand-dim:rgba(245,194,66,.15);--grad:linear-gradient(135deg,#E0A420,#F5C242);--on-brand:#241A02}
-[data-theme="coffee"]{--bg:#15100C;--card:#201813;--soft:#2B211A;--ink:#F3E9DF;--ink-2:#C2AE9B;--ink-3:#8C7A69;--line:#35291F;--line-2:#4E3D2E;--brand:#D49A6A;--brand-2:#E4B38A;--brand-dim:rgba(212,154,106,.15);--grad:linear-gradient(135deg,#B9763F,#D49A6A);--on-brand:#241508}
-[data-theme="arctic"]{--bg:#EEF6FB;--card:#fff;--soft:#E6F1F8;--ink:#10202C;--ink-2:#3B5568;--ink-3:#6F8B9E;--line:#D7E6F0;--line-2:#BED5E4;--brand:#0A84C6;--brand-2:#2FA3E0;--brand-dim:rgba(10,132,198,.11);--grad:linear-gradient(135deg,#0A84C6,#2FA3E0);--on-brand:#fff}
-[data-theme="mint"]{--bg:#EFF8F3;--card:#fff;--soft:#E3F3EA;--ink:#102418;--ink-2:#3A5848;--ink-3:#6C8C79;--line:#D6EBDF;--line-2:#BBDCC9;--brand:#12905B;--brand-2:#2FB07A;--brand-dim:rgba(18,144,91,.11);--grad:linear-gradient(135deg,#12905B,#2FB07A);--on-brand:#fff}
+
+
+
+
+
+
+
+
+
+
+
+
 
 :root{--glass:color-mix(in srgb,var(--card) 56%,transparent);--glass-line:color-mix(in srgb,var(--ink) 11%,transparent);--hi:color-mix(in srgb,var(--ink) 9%,transparent)}
 .feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item{background:var(--glass);border:1px solid var(--glass-line);border-radius:30px;box-shadow:inset 0 1px 0 var(--hi),var(--shadow)}
@@ -482,18 +470,18 @@ body.is-ar .t-name, body.is-ar .pick-match { unicode-bidi: plaintext; }
 .match{transition:none}
 @media (hover:hover){.match:hover{transform:none}}
 
-.globe-bg { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
-.globe-stage { position:absolute; left:50%; top:auto; bottom:0; width:min(max(140vw,120vh),2600px); aspect-ratio:1; transform:translate(-50%,58%); opacity:0; transition:opacity 2s ease; }
-.globe-bg.is-ready .globe-stage { opacity:.55; }
-.globe-stage::before { content:none; display:none;
+.globe-bg{ position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+.globe-stage{ position:absolute; left:50%; top:auto; bottom:0; width:min(max(140vw,120vh),2600px); aspect-ratio:1; transform:translate(-50%,58%); opacity:0; transition:opacity 2s ease; }
+.globe-bg.is-ready .globe-stage{ opacity:.55; }
+.globe-stage::before{ content:none; display:none;
   background:radial-gradient(circle, var(--brand-dim), transparent 70%); }
-.globe-canvas { position:relative; display:block; width:100%; height:100%; contain:layout paint size; }
-.globe-bg.is-fallback { display:none; }
-.globe-online { display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap;
+.globe-canvas{ position:relative; display:block; width:100%; height:100%; contain:layout paint size; }
+.globe-bg.is-fallback{ display:none; }
+.globe-online{ display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap;
   color:var(--good); background:var(--good-dim); border:1px solid var(--good-line); }
-.globe-online b { font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
-.globe-online .dot { width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 1.2s infinite; }
-.hero-badge + .globe-online, .landing-left > .globe-online { margin:0 0 14px 8px; vertical-align:middle; }
+.globe-online b{ font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.globe-online .dot{ width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 1.2s infinite; }
+.hero-badge + .globe-online, .landing-left > .globe-online{ margin:0 0 14px 8px; vertical-align:middle; }
 
 .globe-online,.hero-badge + .globe-online,.landing-left > .globe-online{display:none!important}
 .app-header,.bottom-nav{-webkit-backdrop-filter:none;backdrop-filter:none}
@@ -512,10 +500,10 @@ html{scroll-behavior:auto}
 @media (max-width:760px){.globe-stage{width:max(165vw,80vh)}}
 .globe-bg{inset:auto;top:0;left:0;right:0;height:100vh;height:100lvh}
 
-html.lenis, html.lenis body { height:auto; }
-.lenis.lenis-smooth { scroll-behavior:auto !important; }
-.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior:contain; }
-.lenis.lenis-stopped { overflow:hidden; }
+html.lenis, html.lenis body{ height:auto; }
+.lenis.lenis-smooth{ scroll-behavior:auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent]{ overscroll-behavior:contain; }
+.lenis.lenis-stopped{ overflow:hidden; }
 
 .consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-sub);margin:4px 2px 12px;line-height:1.45;text-align:start}
 .consent input{margin-top:2px;width:18px;height:18px;flex:none;accent-color:var(--brand)}
@@ -532,26 +520,26 @@ html.lenis, html.lenis body { height:auto; }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 /* Discover Feed Styles */
-.discover-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
-.dc-header { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-.dc-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: bold; }
-.dc-time { font-size: 12px; color: var(--ink-3); margin-left: auto; }
-.dc-del { background: transparent; border: 0; color: var(--ink-3); cursor: pointer; padding: 6px; border-radius: 8px; display: grid; place-items: center; transition: .2s; }
-.dc-del:hover { color: var(--bad); background: var(--soft); }
-.dc-text { font-size: 15px; white-space: pre-wrap; }
-.dc-img { width: 100%; border-radius: 14px; max-height: 400px; object-fit: cover; border: 1px solid var(--line-2); }
-.dc-actions { display: flex; gap: 16px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
-.dc-btn { display: flex; align-items: center; gap: 6px; background: transparent; border: 0; color: var(--ink-3); cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s; }
-.dc-btn:hover { color: var(--brand); }
-.dc-btn.active { color: var(--brand); }
-.dc-btn.active svg { fill: var(--brand); }
-.dc-comments { display: none; margin-top: 12px; border-top: 1px dashed var(--line-2); padding-top: 12px; flex-direction: column; gap: 8px; }
-.dc-comments.open { display: flex; }
-.dc-comment { font-size: 13px; background: var(--soft); padding: 8px 12px; border-radius: 12px; }
-.dc-comment b { color: var(--brand); }
-.dc-comment-input { display: flex; gap: 8px; margin-top: 4px; }
-.dc-comment-input input { flex: 1; padding: 8px 12px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--soft); color: var(--ink); font-size: 13px; }
-.dc-comment-input button { background: var(--brand); color: #fff; border: 0; border-radius: 99px; padding: 0 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.discover-card{ background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
+.dc-header{ display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.dc-avatar{ width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: bold; }
+.dc-time{ font-size: 12px; color: var(--ink-3); margin-left: auto; }
+.dc-del{ background: transparent; border: 0; color: var(--ink-3); cursor: pointer; padding: 6px; border-radius: 8px; display: grid; place-items: center; transition: .2s; }
+.dc-del:hover{ color: var(--bad); background: var(--soft); }
+.dc-text{ font-size: 15px; white-space: pre-wrap; }
+.dc-img{ width: 100%; border-radius: 14px; max-height: 400px; object-fit: cover; border: 1px solid var(--line-2); }
+.dc-actions{ display: flex; gap: 16px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.dc-btn{ display: flex; align-items: center; gap: 6px; background: transparent; border: 0; color: var(--ink-3); cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s; }
+.dc-btn:hover{ color: var(--brand); }
+.dc-btn.active{ color: var(--brand); }
+.dc-btn.active svg{ fill: var(--brand); }
+.dc-comments{ display: none; margin-top: 12px; border-top: 1px dashed var(--line-2); padding-top: 12px; flex-direction: column; gap: 8px; }
+.dc-comments.open{ display: flex; }
+.dc-comment{ font-size: 13px; background: var(--soft); padding: 8px 12px; border-radius: 12px; }
+.dc-comment b{ color: var(--brand); }
+.dc-comment-input{ display: flex; gap: 8px; margin-top: 4px; }
+.dc-comment-input input{ flex: 1; padding: 8px 12px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--soft); color: var(--ink); font-size: 13px; }
+.dc-comment-input button{ background: var(--brand); color: #fff; border: 0; border-radius: 99px; padding: 0 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
 </style>
 <link rel="stylesheet" href="/demo-arena.css">
 <link rel="stylesheet" href="/fx.css">
@@ -614,11 +602,6 @@ html.lenis, html.lenis body { height:auto; }
     <button type="button" id="searchClose" aria-label="Close search">✕</button>
   </div>
 
-  <div class="ticker" aria-hidden="true"><div class="ticker-track">
-    <span data-i18n="tick_1">Live Odds</span><span data-i18n="tick_2">+EV Value Bets</span><span data-i18n="tick_3">Poisson Model</span><span data-i18n="tick_4">Daily Picks</span>
-    <span data-i18n="tick_1">Live Odds</span><span data-i18n="tick_2">+EV Value Bets</span><span data-i18n="tick_3">Poisson Model</span><span data-i18n="tick_4">Daily Picks</span>
-  </div></div>
-
   <div id="landingPage">
     <div class="landing-left">
       <h1 class="hero-title" data-i18n="hero_title">Match analytics.<br>The decision is yours.</h1>
@@ -629,7 +612,7 @@ html.lenis, html.lenis body { height:auto; }
     <div class="landing-right">
       <div class="cta-box">
         <div class="cta-title" data-i18n="get_started">Get Started Now</div>
-        <div class="cta-desc adapt-ink" data-i18n="cta_desc">Create a free account or log in to open the dashboard and daily value bets.</div>
+        <div class="cta-desc adapt-ink" data-i18n="cta_desc">Enter your email to get a login code and open today's value bets.</div>
         <button class="btn-main" onclick="openAuthModal()" data-i18n="login_dash">Login to Dashboard</button>
       </div>
     </div>
@@ -800,23 +783,31 @@ html.lenis, html.lenis body { height:auto; }
 </div>
 
 <style>
-#ssoWrap { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:14px; }
-#ssoWrap.hidden { display:none; }
-#consentWrap { margin:2px 0 10px; }
-.auth-legal { font-size:12px; color:var(--ink-3); text-align:center; margin:10px 0 0; line-height:1.5; }
-.auth-legal a { color:inherit; text-decoration:underline; }
-#ssoWrap .consent { font-size:13px; margin-bottom:2px; max-width:300px; }
+#ssoWrap{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:14px; }
+#ssoWrap.hidden{ display:none; }
+.lg-bar{ display:flex; flex-direction:column; gap:10px; margin:0 0 14px; }
+.lg-meta{ font-size:12px; color:var(--ink-3); letter-spacing:.01em; }
+.lg-chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.lg-chips::-webkit-scrollbar{ display:none; }
+.lg-chip{ flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink-2); border-radius:999px; padding:7px 13px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.lg-chip span{ color:var(--ink-3); font-weight:500; margin-left:2px; }
+.lg-chip.on{ background:var(--brand); border-color:var(--brand); color:var(--on-brand); }
+.lg-chip.on span{ color:inherit; opacity:.8; }
+#consentWrap{ margin:2px 0 10px; }
+.auth-legal{ font-size:12px; color:var(--ink-3); text-align:center; margin:10px 0 0; line-height:1.5; }
+.auth-legal a{ color:inherit; text-decoration:underline; }
+#ssoWrap .consent{ font-size:13px; margin-bottom:2px; max-width:300px; }
 /* Both buttons share one fixed footprint so Google (rendered) and Apple (custom) line up exactly. */
-#googleBtn { display:flex; justify-content:center; width:300px; height:40px; color-scheme:light; }
-#googleBtn.hidden, .sso-btn.hidden { display:none; }
-.sso-apple { display:flex; align-items:center; justify-content:center; gap:8px; width:300px; height:40px; border:none; border-radius:999px;
+#googleBtn{ display:flex; justify-content:center; width:300px; height:40px; color-scheme:light; }
+#googleBtn.hidden, .sso-btn.hidden{ display:none; }
+.sso-apple{ display:flex; align-items:center; justify-content:center; gap:8px; width:300px; height:40px; border:none; border-radius:999px;
   background:#000; color:#fff; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent; }
-.sso-apple:hover { background:#1a1a1a; }
-.sso-apple:active { transform:scale(.99); }
-.sso-apple:disabled { opacity:.6; cursor:default; }
-.sso-apple svg { margin-top:-2px; }
-.auth-divider { display:flex; align-items:center; gap:10px; color:var(--ink-3); font-size:12px; text-transform:uppercase; letter-spacing:.08em; margin:2px 0; }
-.auth-divider::before, .auth-divider::after { content:""; flex:1; height:1px; background:var(--line, rgba(255,255,255,.12)); }
+.sso-apple:hover{ background:#1a1a1a; }
+.sso-apple:active{ transform:scale(.99); }
+.sso-apple:disabled{ opacity:.6; cursor:default; }
+.sso-apple svg{ margin-top:-2px; }
+.auth-divider{ display:flex; align-items:center; gap:10px; color:var(--ink-3); font-size:12px; text-transform:uppercase; letter-spacing:.08em; margin:2px 0; }
+.auth-divider::before, .auth-divider::after{ content:""; flex:1; height:1px; background:var(--line, rgba(255,255,255,.12)); }
 </style>
 <div id="authModal" class="modal-overlay hidden">
   <div class="modal-box">
@@ -910,42 +901,10 @@ html.lenis, html.lenis body { height:auto; }
           <label class="control-label" data-i18n="theme_label">Theme</label>
           <div id="themeGrid" class="theme-grid" role="radiogroup" aria-label="Theme"></div>
           <select id="themeSelect" class="settings-select" hidden style="display:none">
-            <option value="fintech">Fintech (green &amp; white)</option>
-            <option value="mono">Mono (clean light)</option>
-            <option value="dark" data-i18n="theme_dark">Dark Mode</option>
-            <option value="blue" data-i18n="theme_blue">1uciBet Blue</option>
-            <option value="light" data-i18n="theme_light">Light Mode</option>
-            <option value="slate">Slate (calm dark)</option>
-            <option value="forest">Forest (calm green)</option>
-            <option value="mist">Mist (soft light)</option>
-            <option value="sand">Sand (warm light)</option>
+            <option value="fintech">LuciBet (default)</option>
             <option value="midnight">Midnight (OLED black)</option>
-            <option value="ocean">Ocean (deep teal)</option>
-            <option value="graphite">Graphite (neutral dark)</option>
-            <option value="sunset">Sunset (warm dark)</option>
-            <option value="rose">Rose (soft pink)</option>
-            <option value="lavender">Lavender (soft violet)</option>
-            <option value="aurora">Aurora (violet night)</option>
-            <option value="crimson">Crimson (red night)</option>
-            <option value="neon">Neon (green on black)</option>
-            <option value="gold">Gold (black &amp; gold)</option>
-            <option value="coffee">Coffee (warm brown)</option>
-            <option value="arctic">Arctic (ice blue)</option>
-            <option value="mint">Mint (fresh light)</option>
-            <option value="nord">Nord (arctic dark)</option>
-            <option value="dracula">Dracula (purple dark)</option>
-            <option value="tokyo">Tokyo (night blue)</option>
-            <option value="ember">Ember (fire orange)</option>
-            <option value="royal">Royal (deep blue)</option>
-            <option value="emerald">Emerald (rich green)</option>
-            <option value="cyber">Cyber (cyan & magenta)</option>
-            <option value="wine">Wine (deep red)</option>
-            <option value="peach">Peach (warm light)</option>
-            <option value="sky">Sky (clear blue light)</option>
-            <option value="lemon">Lemon (soft yellow)</option>
-            <option value="sage">Sage (calm green light)</option>
-            <option value="paper">Paper (ink on paper)</option>
-            <option value="cotton">Cotton (candy pink)</option>
+            <option value="dark" data-i18n="theme_dark">Dark Mode</option>
+            <option value="light" data-i18n="theme_light">Light Mode</option>
           </select>
         </div>
       </div>
@@ -1056,7 +1015,7 @@ const translations = {
     last_7: "Last 7 Days", last_30: "Last 30 Days",
     wins: "Wins", losses: "Losses", with_odds: "With odds", value_bets: "Value bets",
     get_started: "Get Started Now",
-    cta_desc: "Create a free account or log in to open the dashboard and daily value bets.",
+    cta_desc: "Enter your email to get a login code and open today's value bets.",
     login_dash: "Login to Dashboard",
     get_key: "Get your Key from Telegram",
     show_more: "Show more",
@@ -1071,7 +1030,7 @@ const translations = {
     login_btn: "Login", cancel: "Cancel",
     settings_title: "Settings", filters_title: "Model Filters", filters_sub: "Adjust how the bot calculates Value Bets.",
     lang_label: "Language", theme_label: "Theme",
-    theme_blue: "1uciBet Blue", theme_dark: "Dark Mode", theme_light: "Light Mode",
+    theme_blue: "LuciBet Blue", theme_dark: "Dark Mode", theme_light: "Light Mode",
     mw_title: "Market weight in final probability", mw_hint: "0% trusts the Poisson model only, 100% trusts the market only.",
     mev_title: "Minimum EV to flag a bet", mev_hint: "Only prices with expected value above this threshold are flagged.",
     q_high: "High — direct xG + odds", q_med: "Medium — forms-derived xG", q_low: "Low — H2H estimate", q_est: "Est. — league average",
@@ -1112,7 +1071,7 @@ const translations = {
     last_7: "7 Derniers Jours", last_30: "30 Derniers Jours",
     wins: "Victoires", losses: "Défaites", with_odds: "Avec cotes", value_bets: "Value Bets",
     get_started: "Commencer Maintenant",
-    cta_desc: "Créez un compte gratuit ou connectez-vous pour ouvrir le tableau de bord.",
+    cta_desc: "Entrez votre email pour recevoir un code et ouvrir les value bets du jour.",
     login_dash: "Se connecter au tableau de bord",
     get_key: "Obtenez votre clé sur Telegram",
     show_more: "Voir plus",
@@ -1127,7 +1086,7 @@ const translations = {
     login_btn: "Connexion", cancel: "Annuler",
     settings_title: "Paramètres", filters_title: "Filtres du Modèle", filters_sub: "Ajustez le calcul des Value Bets.",
     lang_label: "Langue", theme_label: "Thème",
-    theme_blue: "Bleu 1uciBet", theme_dark: "Mode Sombre", theme_light: "Mode Clair",
+    theme_blue: "Bleu LuciBet", theme_dark: "Mode Sombre", theme_light: "Mode Clair",
     mw_title: "Poids du marché dans la probabilité finale", mw_hint: "0% fait confiance au modèle, 100% fait confiance au marché.",
     mev_title: "EV minimum pour signaler un pari", mev_hint: "Seuls les prix avec une EV supérieure à ce seuil sont signalés.",
     q_high: "Haute — xG direct + cotes", q_med: "Moyenne — xG dérivé des formes", q_low: "Basse — estimation H2H", q_est: "Est. — moyenne de la ligue",
@@ -1168,7 +1127,7 @@ const translations = {
     last_7: "آخر 7 أيام", last_30: "آخر 30 يوم",
     wins: "أرباح", losses: "خسائر", with_odds: "مع أسعار", value_bets: "رهانات قيمة",
     get_started: "ابدأ الآن",
-    cta_desc: "أنشئ حسابًا مجانيًا أو سجل الدخول لفتح لوحة التحكم والرهانات اليومية.",
+    cta_desc: "أدخل بريدك الإلكتروني لتتلقى رمز الدخول وتفتح رهانات اليوم.",
     login_dash: "تسجيل الدخول للوحة التحكم",
     get_key: "احصل على مفتاحك من تيليجرام",
     show_more: "عرض المزيد",
@@ -1183,7 +1142,7 @@ const translations = {
     login_btn: "دخول", cancel: "إلغاء",
     settings_title: "الإعدادات", filters_title: "فلاتر النموذج", filters_sub: "اضبط كيفية حساب أفضل الرهانات.",
     lang_label: "اللغة", theme_label: "المظهر",
-    theme_blue: "أزرق 1uciBet", theme_dark: "الوضع الداكن", theme_light: "الوضع الفاتح",
+    theme_blue: "أزرق LuciBet", theme_dark: "الوضع الداكن", theme_light: "الوضع الفاتح",
     mw_title: "وزن السوق في الاحتمال النهائي", mw_hint: "0% يثق بنموذج بواسون فقط، 100% يثق بالسوق فقط.",
     mev_title: "الحد الأدنى للقيمة المتوقعة لتمييز الرهان", mev_hint: "يتم تمييز الأسعار التي تزيد قيمتها المتوقعة عن هذا الحد فقط.",
     q_high: "عالي — xG مباشر + أسعار", q_med: "متوسط — xG مشتق من الأشكال", q_low: "منخفض — تقدير المواجهات", q_est: "تقديري — متوسط الدوري",
@@ -1200,9 +1159,9 @@ const translations = {
   }
 };
 
-Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email", apple_btn: "Continue with Apple", consent_age: "I am 18 or older", legal_a: "By continuing, you accept the", login_sub: "Enter your email and we'll send you a login code.", consent_req: "Please confirm you are 18 or older." });
-Object.assign(translations.fr, { or_email: "ou avec l'email", apple_btn: "Continuer avec Apple", consent_age: "J'ai 18 ans ou plus", legal_a: "En continuant, vous acceptez les", login_sub: "Entrez votre email, nous vous enverrons un code de connexion.", consent_req: "Confirmez que vous avez 18 ans ou plus." });
-Object.assign(translations.ar, { or_email: "أو بالبريد الإلكتروني", apple_btn: "المتابعة مع Apple", consent_age: "عمري 18 سنة أو أكثر", legal_a: "بالمتابعة، أنت توافق على", login_sub: "أدخل بريدك الإلكتروني وسنرسل لك رمز الدخول.", consent_req: "يرجى تأكيد أن عمرك 18 سنة أو أكثر." });
+Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email", apple_btn: "Continue with Apple", consent_age: "I am 18 or older", legal_a: "By continuing, you accept the", login_sub: "Enter your email and we'll send you a login code.", consent_req: "Please confirm you are 18 or older.", other_comp: "Football", all_leagues: "All", updated: "Updated", matches_n: "matches", filter_league: "Filter by league" });
+Object.assign(translations.fr, { or_email: "ou avec l'email", apple_btn: "Continuer avec Apple", consent_age: "J'ai 18 ans ou plus", legal_a: "En continuant, vous acceptez les", login_sub: "Entrez votre email, nous vous enverrons un code de connexion.", consent_req: "Confirmez que vous avez 18 ans ou plus.", other_comp: "Football", all_leagues: "Tout", updated: "Mis à jour", matches_n: "matchs", filter_league: "Filtrer par compétition" });
+Object.assign(translations.ar, { or_email: "أو بالبريد الإلكتروني", apple_btn: "المتابعة مع Apple", consent_age: "عمري 18 سنة أو أكثر", legal_a: "بالمتابعة، أنت توافق على", login_sub: "أدخل بريدك الإلكتروني وسنرسل لك رمز الدخول.", consent_req: "يرجى تأكيد أن عمرك 18 سنة أو أكثر.", other_comp: "كرة القدم", all_leagues: "الكل", updated: "آخر تحديث", matches_n: "مباراة", filter_league: "تصفية حسب البطولة" });
 Object.assign(translations.en, { globe_kicker: "Live now", globe_title: "Around the world", globe_online: "online", globe_note: "Approximate city-level locations of people on the site right now." });
 Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
 Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partout dans le monde", globe_online: "en ligne", globe_note: "Localisation approximative (niveau ville) des personnes présentes sur le site en ce moment." });
@@ -1241,6 +1200,7 @@ function applyTheme(theme) {
   if (!valid.includes(theme)) theme = 'fintech';
   document.documentElement.setAttribute('data-theme', theme);
   try { localStorage.setItem('mde:theme', theme); } catch (e) {}
+  try { const mc = document.querySelector('meta[name="theme-color"]'); const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(); if (mc && bg) mc.setAttribute('content', bg); } catch (e) {}
   if (sel) sel.value = theme;
   document.querySelectorAll('#themeGrid .theme-chip').forEach(c => {
     const on = c.dataset.theme === theme;
@@ -1692,6 +1652,9 @@ const fxLocalDate = fx => { const d = fxDateTime(fx); return isNaN(d.getTime()) 
 /* Women's matches: the team name shows "(W)" after it (a trailing "W" / "Women" / "Féminin"... from the provider is folded into it) */
 const W_NAME_RE = /\s*(\(\s*w\s*\)|\bwomen'?s?|\bladies|\bf[eé]minin[ea]?|\bfemen[ií]n?[oa]?|\bfemminile|\bfrauen|\bfeminino|\bw)\s*$/i;
 const W_LEAGUE_RE = /\b(women|womens|woman|ladies|f[eé]minin[ea]?|femen[ií]n?[oa]?|femminile|frauen|feminino|nwsl|wsl|damallsvenskan)\b|\(w\)|\bliga f\b/i;
+// Provider fallback "League #72" means the name is unknown: show a neutral label instead of an internal id.
+const LEAGUE_ID_RE = /^League #\d+$/;
+function leagueDisp(fx) { const l = String((fx && fx.league) || ''); return !l || LEAGUE_ID_RE.test(l) ? (tNow().other_comp || 'Football') : l; }
 function isWomenFx(fx) {
   if (!fx) return false;
   if (fx.women === true) return true;
@@ -2255,7 +2218,7 @@ function buildCard(r, t) {
 
       return `<article data-fx="${esc(fx.id)}" data-odds="${fx.odds && fx.odds.length ? 1 : 0}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
       <div class="m-top">
-        <div class="m-league">${esc(fx.league)}</div>
+        <div class="m-league">${esc(leagueDisp(fx))}</div>
         <div class="m-top-right">
           <span class="mh-quality ${fx.dataQuality || 'very-low'}">${(fx.dataQuality || 'EST').toUpperCase()}</span>
           ${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}
@@ -2340,7 +2303,7 @@ function renderHistory() {
 
     return `<div class="hc-card">
       <div class="hc-header">
-        <span>${esc(fx.league)}</span>
+        <span>${esc(leagueDisp(fx))}</span>
         ${head}
       </div>
       <div class="hc-teams">
@@ -2779,17 +2742,37 @@ $('profileMenu').addEventListener('click', e => {
   animHide($('profileMenu'));
 });
 
+// League chips + "Updated hh:mm · N matches" above a match list. State is kept per list so a refresh keeps the user's choice.
+const lgState = {};
+function lgBar(elId, list, rerender) {
+  const t = tNow(), el = $(elId); if (!el) return list;
+  let bar = document.getElementById(elId + 'Bar');
+  if (!bar) { bar = document.createElement('div'); bar.id = elId + 'Bar'; bar.className = 'lg-bar'; el.parentNode.insertBefore(bar, el); }
+  const st = lgState[elId] || (lgState[elId] = { sel: 'all', list: [], rerender: null });
+  st.list = list; st.rerender = rerender;
+  const counts = new Map();
+  for (const fx of list) { const k = leagueDisp(fx); counts.set(k, (counts.get(k) || 0) + 1); }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 12);
+  if (st.sel !== 'all' && !counts.has(st.sel)) st.sel = 'all';
+  const now = new Date(), hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  const chip = (k, label, n) => `<button type="button" class="lg-chip${st.sel === k ? ' on' : ''}" data-lg="${esc(k)}">${esc(label)}${n != null ? ` <span>${n}</span>` : ''}</button>`;
+  bar.innerHTML = `<div class="lg-meta">${esc(t.updated || 'Updated')} ${hhmm} · ${list.length} ${esc(t.matches_n || 'matches')}</div>`
+    + (top.length > 1 ? `<div class="lg-chips" role="toolbar" aria-label="${esc(t.filter_league || 'Filter by league')}">${chip('all', t.all_leagues || 'All', null)}${top.map(([k, n]) => chip(k, k, n)).join('')}</div>` : '');
+  bar.onclick = e => { const b = e.target.closest('.lg-chip'); if (!b) return; st.sel = b.dataset.lg; st.rerender(); };
+  return st.sel === 'all' ? list : list.filter(fx => leagueDisp(fx) === st.sel);
+}
 function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
   const t = tNow();
   const el = $(elId); if (!el) return;
-  if (!list.length) { el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
-  el.innerHTML = list.map(fx => {
+  if (!list.length) { const bar = document.getElementById(elId + 'Bar'); if (bar) bar.innerHTML = ''; el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
+  const shown = lgBar(elId, list, () => renderLanding(list, elId, unlockCall));
+  el.innerHTML = shown.map(fx => {
     const live = fx.status === 'started';
     const mid = live
       ? `<span class="m-live-score">${scoreTxt(fx)}</span><span class="m-live-tag">LIVE</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
       : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`;
     return `<article class="match ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
-      <div class="m-top"><div class="m-league">${esc(fx.league)}</div></div>
+      <div class="m-top"><div class="m-league">${esc(leagueDisp(fx))}</div></div>
       <div class="m-teams">
         <div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(teamDisp(fx.home, fx))}</div></div>
         <div class="m-mid">${mid}</div>
@@ -2970,7 +2953,7 @@ function discoverMatchHTML(m) {
     : `<span class="m-time">${esc(fxLocalTime(m))}</span><span class="m-date">${esc(fxDateLabel(m))}</span><span class="m-vs">VS</span>`;
   const t = tNow(), pk = m.pick && m.pick.key;
   const pickName = pk === 'home' ? m.home.name : pk === 'away' ? m.away.name : pk === 'draw' ? t.draw : '';
-  const body = `<div class="dc-lg">${esc(m.league || '')}</div><div class="dc-match">
+  const body = `<div class="dc-lg">${esc(leagueDisp(m))}</div><div class="dc-match">
     <div class="team">${crestHTML(m.home)}<span>${esc(teamDisp(m.home, m))}</span></div>
     <div class="dc-mid">${mid}</div>
     <div class="team">${crestHTML(m.away)}<span>${esc(teamDisp(m.away, m))}</span></div></div>
