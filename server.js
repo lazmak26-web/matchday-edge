@@ -287,53 +287,84 @@ function ensureFdSeasonStats() {
    fixtures / forms / crests jobs keep their share of the free plan. Answers are cached; stale data is served while a
    refresh runs, and a failed refresh is not retried for 5 minutes.
    ═══════════════════════════════════════════════════════════ */
-const FD_INFO_BUDGET = 5;
+const FD_INFO_BUDGET = { hi: 7, lo: 4 };      // calls in the last minute under which a user (hi) / background (lo) info call may go out
 const INFO_TTL = { table: 60 * 60 * 1000, scorers: 6 * 60 * 60 * 1000, team: 24 * 60 * 60 * 1000 };
-const INFO_FAIL_TTL = 5 * 60 * 1000, INFO_MAX_TEAMS = 400;
+const INFO_FAIL_TTL = 5 * 60 * 1000, INFO_MAX_TEAMS = 600;
 const infoCache = new Map();                 // key -> { ts, ok, data }
-const infoInflight = new Map();
-let infoChain = Promise.resolve();
+const infoJobs = new Map();                  // key -> { endpoint, parse, prio, promise, resolve }
+const infoQ = { hi: [], lo: [] };            // keys waiting, user requests first
+let infoWorking = false;
 const sleepMs = ms => new Promise(r => setTimeout(r, ms));
-function infoGet(key, endpoint, parse, ttl, maxWaitMs = 20000) {
+async function infoWorker() {
+  if (infoWorking) return;
+  infoWorking = true;
+  try {
+    while (infoQ.hi.length || infoQ.lo.length) {
+      const hi = infoQ.hi.length > 0;
+      if (Date.now() < fdBlockedUntil || fdRecentCalls() >= (hi ? FD_INFO_BUDGET.hi : FD_INFO_BUDGET.lo)) { await sleepMs(700); continue; }
+      const key = (hi ? infoQ.hi : infoQ.lo).shift();
+      const job = infoJobs.get(key); if (!job) continue;
+      let data = null;
+      try {
+        data = job.parse(await apiGet(job.endpoint));
+        if (!data) throw new Error('empty');
+        infoCache.set(key, { ts: Date.now(), ok: true, data });
+        if (key.startsWith('team:')) {           // bounded: drop the oldest team sheets
+          const teams = [...infoCache.keys()].filter(k => k.startsWith('team:'));
+          for (const k of teams.slice(0, Math.max(0, teams.length - INFO_MAX_TEAMS))) infoCache.delete(k);
+        }
+      } catch (e) {
+        const prev = infoCache.get(key);
+        data = (prev && prev.data) || null;
+        infoCache.set(key, { ts: Date.now(), ok: false, data });
+      }
+      infoJobs.delete(key); job.resolve(data);
+    }
+  } finally { infoWorking = false; }
+}
+// prio 'hi' = a person is waiting for it; 'lo' = background warm-up. A later 'hi' request promotes a queued 'lo' job.
+function infoGet(key, endpoint, parse, ttl, prio = 'hi', maxWaitMs = 8000) {
   const c = infoCache.get(key), age = c ? Date.now() - c.ts : Infinity;
   if (c && c.ok && age < ttl) return Promise.resolve(c.data);
   if (c && !c.ok && age < INFO_FAIL_TTL) return Promise.resolve(c.data || null);
-  if (!infoInflight.has(key)) {
-    const job = infoChain.then(async () => {
-      const giveUp = Date.now() + 90 * 1000;
-      while ((fdRecentCalls() >= FD_INFO_BUDGET || Date.now() < fdBlockedUntil) && Date.now() < giveUp) await sleepMs(1500);
-      const data = parse(await apiGet(endpoint));
-      if (!data) throw new Error('empty');
-      infoCache.set(key, { ts: Date.now(), ok: true, data });
-      if (key.startsWith('team:')) {           // bounded: drop the oldest team sheets
-        const teams = [...infoCache.keys()].filter(k => k.startsWith('team:'));
-        for (const k of teams.slice(0, Math.max(0, teams.length - INFO_MAX_TEAMS))) infoCache.delete(k);
-      }
-      return data;
-    }).catch(() => {
-      const prev = infoCache.get(key);
-      infoCache.set(key, { ts: Date.now(), ok: false, data: (prev && prev.data) || null });
-      return (prev && prev.data) || null;
-    }).finally(() => infoInflight.delete(key));
-    infoChain = job.then(() => {}, () => {});
-    infoInflight.set(key, job);
+  let job = infoJobs.get(key);
+  if (!job) {
+    let resolve; const promise = new Promise(r => { resolve = r; });
+    job = { endpoint, parse, prio, promise, resolve };
+    infoJobs.set(key, job); infoQ[prio].push(key);
+  } else if (prio === 'hi' && job.prio === 'lo') {
+    job.prio = 'hi'; infoQ.lo = infoQ.lo.filter(k => k !== key); infoQ.hi.push(key);
   }
+  infoWorker();
   if (c && c.data) return Promise.resolve(c.data);               // stale while revalidating
-  return Promise.race([infoInflight.get(key), sleepMs(maxWaitMs).then(() => undefined)]);   // undefined = still queued
+  if (prio === 'lo') return job.promise;
+  return Promise.race([job.promise, sleepMs(maxWaitMs).then(() => undefined)]);   // undefined = still queued, client retries
 }
-const fbTable = code => infoGet('table:' + code, `/competitions/${code}/standings`, football.parseStandings, INFO_TTL.table);
-const fbScorers = code => infoGet('scorers:' + code, `/competitions/${code}/scorers?limit=15`, football.parseScorers, INFO_TTL.scorers);
-const fbTeam = id => infoGet('team:' + id, `/teams/${id}`, d => football.parseTeam(d), INFO_TTL.team);
-// Warm every league table in the background (one queued call at a time), then keep them fresh.
-function warmLeagueTables() {
-  if (!API_KEY) return;
-  Promise.all(football.LEAGUES.map(l => fbTable(l.code).then(d => !!d, () => false))).then(r => {
-    // fbTable resolves undefined after 20 s while still queued; count what is cached once the queue has drained
-    setTimeout(() => console.log(`League tables cached: ${football.LEAGUES.filter(l => { const c = infoCache.get('table:' + l.code); return c && c.ok; }).length}/${football.LEAGUES.length}`), 5 * 60 * 1000).unref();
-  });
+const fbTable = (code, prio) => infoGet('table:' + code, `/competitions/${code}/standings`, football.parseStandings, INFO_TTL.table, prio);
+const fbScorers = (code, prio) => infoGet('scorers:' + code, `/competitions/${code}/scorers?limit=15`, football.parseScorers, INFO_TTL.scorers, prio);
+const fbTeam = (id, prio) => infoGet('team:' + id, `/teams/${id}`, d => football.parseTeam(d), INFO_TTL.team, prio);
+// Background warm-up, lowest priority: every league table, then top scorers, then every team sheet in those tables,
+// so clicks are answered from cache. ~230 calls spread over the free plan's spare capacity, refreshed every few hours.
+let warmRunning = false;
+async function warmFootball() {
+  if (!API_KEY || warmRunning) return;
+  warmRunning = true;
+  try {
+    await Promise.all(football.LEAGUES.map(l => fbTable(l.code, 'lo')));
+    await Promise.all(football.LEAGUES.map(l => fbScorers(l.code, 'lo')));
+    const ids = new Set();
+    for (const l of football.LEAGUES) {
+      const t = infoCache.get('table:' + l.code);
+      for (const g of (t && t.data && t.data.groups) || []) for (const r of g.rows) if (r.team && r.team.id) ids.add(r.team.id);
+    }
+    for (const id of ids) await fbTeam(id, 'lo');
+    const n = k => [...infoCache.entries()].filter(([x, v]) => x.startsWith(k) && v.ok).length;
+    console.log(`Football cache warm: tables ${n('table:')}/${football.LEAGUES.length}, scorers ${n('scorers:')}/${football.LEAGUES.length}, teams ${n('team:')}/${ids.size}`);
+  } catch (e) { console.error('Football warm-up failed:', e.message); }
+  finally { warmRunning = false; }
 }
-setTimeout(warmLeagueTables, 90 * 1000).unref();
-setInterval(warmLeagueTables, 2 * 60 * 60 * 1000).unref();
+setTimeout(warmFootball, 60 * 1000).unref();
+setInterval(warmFootball, 3 * 60 * 60 * 1000).unref();
 
 /* ═══════════════════════════════════════════════════════════
    TEAM FORMS FROM BZZOIRO RESULTS
