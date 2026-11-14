@@ -822,11 +822,23 @@ html.lenis, html.lenis body { height:auto; }
 </footer>
 </div>
 
+<style>
+#googleWrap { display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+#googleWrap.hidden { display:none; }
+#googleWrap .consent { font-size:13px; }
+.auth-divider { display:flex; align-items:center; gap:10px; color:var(--ink-3); font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+.auth-divider::before, .auth-divider::after { content:""; flex:1; height:1px; background:var(--line, rgba(255,255,255,.12)); }
+</style>
 <div id="authModal" class="modal-overlay hidden">
   <div class="modal-box">
     <h2 id="authTitle" data-i18n="login_title">🔐 Login</h2>
     <p id="authSub" data-i18n="login_sub">Log in with your email, or create a free account.</p>
     <div id="authStep">
+    <div id="googleWrap" class="hidden">
+      <label class="consent"><input type="checkbox" id="gConsent"><span><span data-i18n="consent_a">I am 18 or older and I accept the</span> <a href="/terms" target="_blank" rel="noopener" data-i18n="terms_link">Terms of Service</a> <span data-i18n="consent_and">and</span> <a href="/privacy" target="_blank" rel="noopener" data-i18n="privacy_link">Privacy Policy</a>.</span></label>
+      <div id="googleBtn" style="display:flex;justify-content:center"></div>
+      <div class="auth-divider"><span data-i18n="or_email">or use email</span></div>
+    </div>
     <input type="text" class="auth-input" id="loginUser" placeholder="Email" data-i18n-ph="ph_user" inputmode="email" autocapitalize="none" autocomplete="email">
     <input type="password" class="auth-input" id="loginPass" placeholder="Password" data-i18n-ph="ph_pass" autocomplete="current-password">
     <label class="consent hidden" id="consentWrap"><input type="checkbox" id="regConsent"><span><span data-i18n="consent_a">I am 18 or older and I accept the</span> <a href="/terms" target="_blank" rel="noopener" data-i18n="terms_link">Terms of Service</a> <span data-i18n="consent_and">and</span> <a href="/privacy" target="_blank" rel="noopener" data-i18n="privacy_link">Privacy Policy</a>.</span></label>
@@ -1197,7 +1209,7 @@ const translations = {
   }
 };
 
-Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "📧 Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "🔑 Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "✨ Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again." });
+Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "📧 Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "🔑 Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "✨ Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email" });
 Object.assign(translations.en, { globe_kicker: "Live now", globe_title: "Around the world", globe_online: "online", globe_note: "Approximate city-level locations of people on the site right now." });
 Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "📧 Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "🔑 Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "✨ Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
 Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partout dans le monde", globe_online: "en ligne", globe_note: "Localisation approximative (niveau ville) des personnes présentes sur le site en ce moment." });
@@ -1471,6 +1483,49 @@ function finishLogin(data) {
   closeAuthModal();
   updateAuthUI();
   pollFeed();
+}
+
+/* ── Sign in with Google (GIS) ───────────────────────────── */
+let googleClientId = null, gsiRendered = false;
+async function loadGoogleConfig() {
+  try {
+    const r = await fetch('/api/public/config');
+    const cfg = await r.json().catch(() => ({}));
+    googleClientId = cfg.googleClientId || null;
+  } catch (e) { googleClientId = null; }
+  renderGoogleButton();
+}
+function renderGoogleButton() {
+  if (gsiRendered || !googleClientId) return;
+  if (!(window.google && google.accounts && google.accounts.id)) return;   // GIS script not ready yet; onGoogleLibraryLoad will retry
+  const host = document.getElementById('googleBtn');
+  if (!host) return;
+  google.accounts.id.initialize({ client_id: googleClientId, callback: onGoogleCredential, auto_select: false, cancel_on_tap_outside: true });
+  const dark = /dark|night|black|mid/i.test(document.documentElement.getAttribute('data-theme') || '');
+  google.accounts.id.renderButton(host, { type: 'standard', theme: dark ? 'filled_black' : 'outline', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: 280 });
+  document.getElementById('googleWrap').classList.remove('hidden');
+  gsiRendered = true;
+}
+// GIS calls this global automatically once gsi/client has loaded.
+window.onGoogleLibraryLoad = renderGoogleButton;
+async function onGoogleCredential(resp) {
+  const errEl = document.getElementById('authError'); errEl.textContent = '';
+  const t = tNow();
+  const consent = !!document.getElementById('gConsent').checked;
+  try {
+    const r = await fetch('/api/auth/google', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: resp.credential, consent, ageConfirmed: consent })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 403 && data.consentRequired) {
+      errEl.textContent = t.consent_req || 'Please confirm you are 18 or older and accept the Terms and Privacy Policy.';
+      document.getElementById('gConsent').focus();
+      return;
+    }
+    if (!r.ok) throw new Error(data.error || 'Google sign-in failed.');
+    finishLogin(data);
+  } catch (e) { errEl.textContent = e.message; }
 }
 
 let otpEmail = '', otpTimer = null;
@@ -2992,6 +3047,7 @@ async function addComment(id) {
 
 /* BOOT */
 checkAuth();
+loadGoogleConfig();
 loadHistory(); 
 loadPublicFixtures();
 setInterval(() => { if (!document.hidden) loadPublicFixtures(); }, 60000);
@@ -3102,5 +3158,6 @@ document.addEventListener('DOMContentLoaded',function(){
 <script src="fx.js" defer></script>
 <script src="vendor/lenis.min.js" defer></script>
 <script src="demo-arena.js" defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
 </html>
