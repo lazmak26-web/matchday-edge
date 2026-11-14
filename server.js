@@ -272,7 +272,7 @@ function ensureFdSeasonStats() {
         try {
           const d = await apiGet(`/competitions/${code}/standings`);
           fdSeasonCache.set(code, { ts: Date.now(), ok: true, teams: fdStats.parseStandings(d) });
-          if (football.LEAGUE_CODES.has(code)) infoCache.set('table:' + code, { ts: Date.now(), ok: true, data: football.parseStandings(d) });
+          if (football.LEAGUE_CODES.has(code)) { infoCache.set('table:' + code, { ts: Date.now(), ok: true, data: football.parseStandings(d) }); footballSaver.soon(); }
         } catch (e) { fdSeasonCache.set(code, { ts: Date.now(), ok: false, teams: new Map() }); }
         await new Promise(r => setTimeout(r, FD_SEASON_GAP));
       }
@@ -291,6 +291,18 @@ const FD_INFO_BUDGET = { hi: 7, lo: 4 };      // calls in the last minute under 
 const INFO_TTL = { table: 60 * 60 * 1000, scorers: 6 * 60 * 60 * 1000, team: 24 * 60 * 60 * 1000 };
 const INFO_FAIL_TTL = 5 * 60 * 1000, INFO_MAX_TEAMS = 600;
 const infoCache = new Map();                 // key -> { ts, ok, data }
+// Kept on the data volume so a restart / deploy serves tables, scorers and team sheets at once instead of re-downloading.
+const footballCacheFile = () => path.join(path.dirname(HISTORY_FILE), 'football-cache.json');   // HISTORY_FILE is defined further down
+const footballSaver = makeSaver('Football cache', () => writeAtomic(footballCacheFile(), JSON.stringify([...infoCache.entries()].filter(([, v]) => v.ok))), 60 * 1000);
+function loadFootballCache() {
+  try {
+    const f = footballCacheFile();
+    if (!fs.existsSync(f)) return;
+    const arr = JSON.parse(fs.readFileSync(f, 'utf8'));
+    if (Array.isArray(arr)) for (const e of arr) if (Array.isArray(e) && typeof e[0] === 'string' && e[1] && e[1].ok && e[1].data && typeof e[1].ts === 'number') infoCache.set(e[0], e[1]);
+    console.log(`⚽ Loaded football cache: ${infoCache.size} entries`);
+  } catch (e) { console.error('Football cache load error:', e.message); }
+}
 const infoJobs = new Map();                  // key -> { endpoint, parse, prio, promise, resolve }
 const infoQ = { hi: [], lo: [] };            // keys waiting, user requests first
 let infoWorking = false;
@@ -309,6 +321,7 @@ async function infoWorker() {
         data = job.parse(await apiGet(job.endpoint));
         if (!data) throw new Error('empty');
         infoCache.set(key, { ts: Date.now(), ok: true, data });
+        footballSaver.soon();
         if (key.startsWith('team:')) {           // bounded: drop the oldest team sheets
           const teams = [...infoCache.keys()].filter(k => k.startsWith('team:'));
           for (const k of teams.slice(0, Math.max(0, teams.length - INFO_MAX_TEAMS))) infoCache.delete(k);
@@ -1509,6 +1522,7 @@ const userSaver = makeSaver('Users', () => writeAtomic(USERS_FILE, JSON.stringif
 const saveUsersSoon = userSaver.soon;
 loadUsers();
 loadSessions();
+loadFootballCache();
 const TERMS_VERSION = '2026-11-01';
 const SCRYPT_MAX = 3, SCRYPT_QUEUE = 40;
 let scryptActive = 0;
@@ -2226,7 +2240,7 @@ function shutdown(signal, code = 0) {
   shuttingDown = true;
   console.log(`${signal}: saving data before exit`);
   // Each saver is read inside try/catch: one that is not created yet (early signal) or that throws must not block the exit.
-  for (const getSaver of [() => userSaver, () => sessionSaver, () => licenseSaver, () => snapshotSaver, () => discoverSaver, () => demoSaver]) {
+  for (const getSaver of [() => userSaver, () => sessionSaver, () => licenseSaver, () => snapshotSaver, () => discoverSaver, () => demoSaver, () => footballSaver]) {
     try { const sv = getSaver(); if (sv) sv.now(); } catch (e) { console.error('Shutdown save error:', e && e.message); }
   }
   server.close(() => process.exit(code));
