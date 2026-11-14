@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>DARKWORLD — NoClip Explorer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;font-family:'Courier New',monospace}
+canvas{display:block}
+#ov{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.5),rgba(0,0,0,.96));display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;z-index:100;cursor:pointer;user-select:none}
+#ov h1{font-size:clamp(2rem,8vw,4.5rem);letter-spacing:.4em;color:#c0a060;text-shadow:0 0 60px #ff6600,0 0 20px #ff4400}
+.sub{margin-top:.8rem;color:#888;letter-spacing:.2em;font-size:.85rem}
+.keys{margin-top:2rem;color:#555;font-size:.75rem;line-height:2;text-align:center}
+.enter{margin-top:2rem;font-size:1.1rem;color:#ff6600;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+#zn{position:fixed;top:22px;left:50%;transform:translateX(-50%);color:#c8a850;font-size:1rem;letter-spacing:.25em;text-shadow:0 0 15px #cc6600;pointer-events:none;z-index:10;opacity:0;transition:opacity .6s}
+#co{position:fixed;bottom:14px;left:14px;color:#334;font-size:.65rem;letter-spacing:.1em;pointer-events:none;z-index:10}
+#hi{position:fixed;bottom:14px;right:14px;color:#445;font-size:.65rem;pointer-events:none;z-index:10}
+#xh{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:16px;pointer-events:none;z-index:10;display:none}
+#xh::before,#xh::after{content:'';position:absolute;background:rgba(255,255,255,.45)}
+#xh::before{width:100%;height:1px;top:50%;transform:translateY(-50%)}
+#xh::after{width:1px;height:100%;left:50%;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<div id="ov">
+  <h1>DARKWORLD</h1>
+  <div class="sub">— N O C L I P &nbsp; E X P L O R E R —</div>
+  <div class="keys">W A S D &nbsp;·&nbsp; Move &emsp; Mouse &nbsp;·&nbsp; Look<br>Space &nbsp;·&nbsp; Rise &emsp; Ctrl &nbsp;·&nbsp; Descend<br>Shift &nbsp;·&nbsp; Speed &emsp; Esc &nbsp;·&nbsp; Pause</div>
+  <div class="enter">▶ &nbsp;CLICK TO ENTER &nbsp;◀</div>
+</div>
+<div id="zn"></div>
+<div id="co"></div>
+<div id="hi">SHIFT: BOOST</div>
+<div id="xh"></div>
+<canvas id="c"></canvas>
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<script>
+'use strict';
+
+// ── Renderer ──────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping      = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+// ── Scene / Camera ────────────────────────────────────────────────
+const scene  = new THREE.Scene();
+scene.fog    = new THREE.FogExp2(0x060b18, 0.004);
+renderer.setClearColor(scene.fog.color);
+
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1800);
+camera.position.set(0, 10, 55);
+
+// ── Zone definitions ─────────────────────────────────────────────
+const ZONES = [
+  { name:'THE DARK FOREST',    cx:   0, cz:-600, fog:0x060b18, fd:0.006, amb:0x0a1428, ai:0.25 },
+  { name:'FROZEN PEAKS',       cx: 600, cz:   0, fog:0x8090a0, fd:0.003, amb:0x304060, ai:0.65 },
+  { name:'CRYPT OF THE KING',  cx:   0, cz:   0, fog:0x140a04, fd:0.012, amb:0x2a1408, ai:0.35 },
+  { name:'WASTELAND OF SOULS', cx:-600, cz:   0, fog:0x07041a, fd:0.004, amb:0x0e0520, ai:0.28 },
+  { name:'CURSED SEA',         cx:   0, cz: 600, fog:0x080b14, fd:0.004, amb:0x08101e, ai:0.30 },
+];
+
+function nearestZone(x, z) {
+  let best = ZONES[0], bestD = Infinity;
+  for (const zone of ZONES) {
+    const d = Math.hypot(x - zone.cx, z - zone.cz);
+    if (d < bestD) { bestD = d; best = zone; }
+  }
+  return best;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+const dummy = new THREE.Object3D();
+
+function mkm(geo, mat, x, y, z, rx, ry, rz, sx, sy, sz) {
+  const m = new THREE.Mesh(geo, mat);
+  if (x  !== undefined) m.position.set(x, y, z);
+  if (rx !== undefined) m.rotation.set(rx, ry, rz);
+  if (sx !== undefined) m.scale.set(sx, sy, sz);
+  return m;
+}
+
+// Shared mats
+const M = {
+  stone:  new THREE.MeshLambertMaterial({ color:0x484852 }),
+  dstone: new THREE.MeshLambertMaterial({ color:0x1e1e28 }),
+  snow:   new THREE.MeshLambertMaterial({ color:0xd0dae8 }),
+  dark:   new THREE.MeshLambertMaterial({ color:0x060a06 }),
+  dwood:  new THREE.MeshLambertMaterial({ color:0x14100a }),
+  mnstr:  new THREE.MeshLambertMaterial({ color:0x081408 }),
+  sail:   new THREE.MeshLambertMaterial({ color:0x6a0012, side:THREE.DoubleSide }),
+  ship:   new THREE.MeshLambertMaterial({ color:0x1a0c06 }),
+  water:  new THREE.MeshLambertMaterial({ color:0x040810, flatShading:true }),
+  gold:   new THREE.MeshLambertMaterial({ color:0xd4a000, emissive:0x402000, emissiveIntensity:0.6 }),
+  robe:   new THREE.MeshLambertMaterial({ color:0x7a0010 }),
+  eyes:   new THREE.MeshLambertMaterial({ color:0xff0000, emissive:0xff0000, emissiveIntensity:3 }),
+  geyes:  new THREE.MeshLambertMaterial({ color:0x00ff44, emissive:0x00ff44, emissiveIntensity:3 }),
+  fire:   new THREE.MeshLambertMaterial({ color:0xff7700, emissive:0xff4400, emissiveIntensity:2 }),
+  moon:   new THREE.MeshLambertMaterial({ color:0xd0e0ff, emissive:0xb0c8ff, emissiveIntensity:0.7 }),
+  bolt:   new THREE.MeshLambertMaterial({ color:0xffffff, emissive:0xeeeeff, emissiveIntensity:3 }),
+  money:  new THREE.MeshLambertMaterial({ color:0x208040, emissive:0x0a3018, emissiveIntensity:0.4 }),
+  mast:   new THREE.MeshLambertMaterial({ color:0x1e1208 }),
+  wall:   new THREE.MeshLambertMaterial({ color:0x2e2820 }),
+  crown:  new THREE.MeshLambertMaterial({ color:0xd4a000, emissive:0x402000, emissiveIntensity:0.5 }),
+  skull:  new THREE.MeshLambertMaterial({ color:0x405030, emissive:0x204010, emissiveIntensity:0.3 }),
+};
+
+// ── Global lights ─────────────────────────────────────────────────
+const moonDir = new THREE.DirectionalLight(0x8090c0, 0.9);
+moonDir.position.set(100, 400, -400);
+scene.add(moonDir);
+
+const ambient = new THREE.AmbientLight(0x0a1428, 0.3);
+scene.add(ambient);
+
+// ── Sky + Stars ───────────────────────────────────────────────────
+{
+  scene.add(mkm(new THREE.SphereGeometry(1400,32,16), new THREE.MeshBasicMaterial({ color:0x040610, side:THREE.BackSide })));
+  const sg = new THREE.BufferGeometry();
+  const sp = new Float32Array(9000);
+  for (let i = 0; i < 9000; i += 3) {
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.acos(2 * Math.random() - 1);
+    const r  = 1300 + Math.random() * 80;
+    sp[i]   = r * Math.sin(ph) * Math.cos(th);
+    sp[i+1] = Math.abs(r * Math.sin(ph)) * 0.6 + 50;
+    sp[i+2] = r * Math.sin(ph) * Math.sin(th);
+  }
+  sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffffff, size:1.8, sizeAttenuation:true })));
+}
+
+// ── Base ground ───────────────────────────────────────────────────
+{
+  const g = mkm(new THREE.PlaneGeometry(2400,2400), new THREE.MeshLambertMaterial({ color:0x0d0f0b }));
+  g.rotation.x = -Math.PI / 2;
+  scene.add(g);
+}
+
+// ── Global moon ───────────────────────────────────────────────────
+{
+  const mg = new THREE.Group();
+  mg.add(mkm(new THREE.SphereGeometry(45,24,16), M.moon));
+  mg.add(mkm(new THREE.SphereGeometry(55,24,16), new THREE.MeshLambertMaterial({ color:0x6070a0, transparent:true, opacity:0.12, side:THREE.BackSide })));
+  mg.position.set(180, 380, -550);
+  scene.add(mg);
+  const ml = new THREE.PointLight(0xb0c8ff, 2, 2500);
+  ml.position.copy(mg.position);
+  scene.add(ml);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ZONE 1 — THE DARK FOREST  (0, −600)
+// ═══════════════════════════════════════════════════════════════════
+(function buildForest() {
+  const ZX = 0, ZZ = -600;
+
+  // Rough dark ground
+  const fg = new THREE.PlaneGeometry(620, 620, 32, 32);
+  { const p = fg.attributes.position; for (let i=0;i<p.count;i++) p.setY(i,(Math.random()-.5)*3); fg.computeVertexNormals(); }
+  const fm = new THREE.Mesh(fg, new THREE.MeshLambertMaterial({ color:0x060c06 }));
+  fm.rotation.x = -Math.PI/2; fm.position.set(ZX, 0, ZZ); scene.add(fm);
+
+  // Instanced trunks
+  {
+    const N=230, inst = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.25,0.4,14,6), new THREE.MeshLambertMaterial({ color:0x0a0804 }), N);
+    for (let i=0;i<N;i++) {
+      const a=Math.random()*Math.PI*2, d=25+Math.random()*270;
+      dummy.position.set(ZX+Math.cos(a)*d, 7, ZZ+Math.sin(a)*d);
+      dummy.scale.setScalar(.5+Math.random()*1.6); dummy.rotation.y=Math.random()*Math.PI*2;
+      dummy.updateMatrix(); inst.setMatrixAt(i, dummy.matrix);
+    }
+    inst.instanceMatrix.needsUpdate=true; scene.add(inst);
+  }
+  // Instanced branches
+  {
+    const N=460, inst = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1,0.15,4.5,4), new THREE.MeshLambertMaterial({ color:0x070604 }), N);
+    for (let i=0;i<N;i++) {
+      const a=Math.random()*Math.PI*2, d=20+Math.random()*290;
+      dummy.position.set(ZX+Math.cos(a)*d, 9+Math.random()*8, ZZ+Math.sin(a)*d);
+      dummy.rotation.set((Math.random()-.5)*1.4, Math.random()*Math.PI*2, (Math.random()-.5)*1.4);
+      dummy.scale.setScalar(.4+Math.random()); dummy.updateMatrix(); inst.setMatrixAt(i, dummy.matrix);
+    }
+    inst.instanceMatrix.needsUpdate=true; scene.add(inst);
+  }
+
+  // Forest moon
+  scene.add(mkm(new THREE.SphereGeometry(28,16,10), M.moon, ZX+80, 290, ZZ-320));
+  const fmL = new THREE.PointLight(0xb0c8ff, 1.8, 1800); fmL.position.set(ZX+80,290,ZZ-320); scene.add(fmL);
+
+  // Mist points
+  { const g=new THREE.BufferGeometry(), p=new Float32Array(900);
+    for(let i=0;i<900;i+=3){p[i]=ZX+(Math.random()-.5)*500;p[i+1]=Math.random()*5;p[i+2]=ZZ+(Math.random()-.5)*500;}
+    g.setAttribute('position',new THREE.BufferAttribute(p,3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({color:0x2030a0,size:10,transparent:true,opacity:.10,sizeAttenuation:true}))); }
+
+  // ── Horror Creature ────────────────────────────────────────────
+  const cr = new THREE.Group();
+  cr.add(mkm(new THREE.BoxGeometry(3,5,2.2), M.mnstr, 0,2.5,0));
+  cr.add(mkm(new THREE.SphereGeometry(1.3,8,6), M.mnstr, 0,6.3,0));
+  const spkG=new THREE.ConeGeometry(0.14,1.6,4), spkM=new THREE.MeshLambertMaterial({color:0x081208});
+  [[0,7.6,0,0,0,0],[-0.4,7.3,-0.6,0.3,0,0],[0.4,7.3,-0.6,-0.3,0,0],
+   [-0.7,7,0,0,0,0.5],[0.7,7,0,0,0,-0.5],
+   [-1.7,4,0.5,0,0,0.8],[1.7,4,0.5,0,0,-0.8],
+   [-1.7,2,-0.4,0,0,0.65],[1.7,2,-0.4,0,0,-0.65],
+   [0,5.5,-1.2,0.85,0,0],[0,1,-1.2,0.85,0,0]
+  ].forEach(([x,y,z,rx,ry,rz])=>cr.add(mkm(spkG,spkM,x,y,z,rx,ry,rz)));
+  cr.add(mkm(new THREE.SphereGeometry(0.2,6,4), M.eyes, -0.38,6.4,-1.1));
+  cr.add(mkm(new THREE.SphereGeometry(0.2,6,4), M.eyes,  0.38,6.4,-1.1));
+  const el=new THREE.PointLight(0xff0000,4,18); el.position.set(0,6.4,-1.5); cr.add(el);
+  cr.add(mkm(new THREE.CylinderGeometry(0.3,0.3,4.5,6), M.mnstr, -2.2,2.5,0, 0,0, 0.3));
+  cr.add(mkm(new THREE.CylinderGeometry(0.3,0.3,4.5,6), M.mnstr,  2.2,2.5,0, 0,0,-0.3));
+  const cs=new THREE.Group();
+  cs.add(mkm(new THREE.BoxGeometry(0.6,0.6,3.8), new THREE.MeshLambertMaterial({color:0x303030})));
+  cs.add(mkm(new THREE.BoxGeometry(0.25,0.08,3.8), new THREE.MeshLambertMaterial({color:0x505050}), 0,0.34,0));
+  cs.position.set(-2.5,1.3,0.6); cs.rotation.z=0.3; cr.add(cs);
+  cr.add(mkm(new THREE.CylinderGeometry(0.4,0.55,4.5,6), M.mnstr, -0.7,-2,0));
+  cr.add(mkm(new THREE.CylinderGeometry(0.4,0.55,4.5,6), M.mnstr,  0.7,-2,0));
+  cr.position.set(ZX+18,4,ZZ-22); cr.rotation.y=0.6; scene.add(cr);
+
+  // ── Old Cabin ─────────────────────────────────────────────────
+  const h=new THREE.Group();
+  h.add(mkm(new THREE.BoxGeometry(12,10,10), new THREE.MeshLambertMaterial({color:0x1e1208}), 0,5,0));
+  h.add(mkm(new THREE.BoxGeometry(13.5,0.4,11.5), M.dwood, 0,10.2,0));
+  h.add(mkm(new THREE.BoxGeometry(7.5,8,0.4), M.dwood, -3.75,14.5,0, 0,0, 0.58));
+  h.add(mkm(new THREE.BoxGeometry(7.5,8,0.4), M.dwood,  3.75,14.5,0, 0,0,-0.58));
+  const wl=new THREE.PointLight(0xff8820,2.5,25); wl.position.set(-3,5,-5.6); h.add(wl);
+  h.add(mkm(new THREE.BoxGeometry(2,2,0.1), new THREE.MeshLambertMaterial({color:0xff8820,emissive:0xff6600,emissiveIntensity:1.5}), -3,5,-5.6));
+  h.position.set(ZX-55,0,ZZ-15); h.rotation.y=0.25; scene.add(h);
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+//  ZONE 2 — FROZEN PEAKS  (600, 0)
+// ═══════════════════════════════════════════════════════════════════
+(function buildPeaks() {
+  const ZX=600, ZZ=0;
+
+  // Snow ground
+  { const g=new THREE.PlaneGeometry(560,560,32,32);
+    const p=g.attributes.position; for(let i=0;i<p.count;i++) p.setY(i,(Math.random()-.5)*2); g.computeVertexNormals();
+    const m=new THREE.Mesh(g,M.snow); m.rotation.x=-Math.PI/2; m.position.set(ZX,0.01,ZZ); scene.add(m); }
+
+  // Mountains
+  [[0,0,0,55,170,55],[120,0,-80,45,145,45],[-90,0,-100,65,165,65],
+   [160,0,55,38,115,38],[-130,0,80,52,138,52],[210,0,-55,32,98,32],[-210,0,0,60,160,60]
+  ].forEach(([x,y,z,sx,sy,sz])=>{
+    scene.add(mkm(new THREE.ConeGeometry(1,1,6), M.stone, ZX+x,sy/2,ZZ+z, 0,0,0, sx,sy,sz));
+    scene.add(mkm(new THREE.ConeGeometry(1,1,6), M.snow,  ZX+x,sy*0.38,ZZ+z, 0,0,0, sx*0.45,sy*0.28,sz*0.45));
+  });
+
+  // Dark tall monoliths
+  [[30,45,-25],[-30,55,18],[68,42,8],[-58,65,-50],[105,38,55],[0,70,82],[-85,48,28],[140,36,-80]
+  ].forEach(([x,h,z])=>{
+    scene.add(mkm(new THREE.BoxGeometry(9,h*2,9), M.dstone, ZX+x,h,ZZ+z, 0,Math.random()*0.2,0));
+  });
+
+  // Snow particles
+  { const g=new THREE.BufferGeometry(), p=new Float32Array(3600);
+    for(let i=0;i<3600;i+=3){p[i]=ZX+(Math.random()-.5)*580;p[i+1]=Math.random()*220;p[i+2]=ZZ+(Math.random()-.5)*580;}
+    g.setAttribute('position',new THREE.BufferAttribute(p,3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({color:0xffffff,size:1.5,transparent:true,opacity:0.7,sizeAttenuation:true}))); }
+
+  // Stone path
+  { const pm=new THREE.MeshLambertMaterial({color:0x323238});
+    for(let i=0;i<28;i++){const t=i/28;
+      scene.add(mkm(new THREE.BoxGeometry(3+Math.random()*2,0.25,4+Math.random()*2),pm,
+        ZX+Math.sin(t*Math.PI*2.5)*70, 0.15, ZZ+t*320-160, 0,Math.random()*0.35,0)); }}
+
+  // Paraglider
+  { const pg=new THREE.Group();
+    const rM=new THREE.MeshLambertMaterial({color:0xaa1a1a,side:THREE.DoubleSide});
+    const gM=new THREE.MeshLambertMaterial({color:0x1aaa1a,side:THREE.DoubleSide});
+    const yM=new THREE.MeshLambertMaterial({color:0xddaa00,side:THREE.DoubleSide});
+    for(let i=0;i<10;i++){
+      const a=(i/10)*Math.PI;
+      const col=i<4?gM:i<7?yM:rM;
+      pg.add(mkm(new THREE.BoxGeometry(0.9,1.8,0.4),col,
+        Math.cos(a+Math.PI)*12, Math.sin(a+Math.PI)*5+5, 0, 0,a+Math.PI/2,0));
+    }
+    // Lines
+    for(let i=-5;i<=5;i++){const lm=new THREE.MeshLambertMaterial({color:0x888888});
+      pg.add(mkm(new THREE.CylinderGeometry(0.05,0.05,10,4),lm,i*1.1,-2,0,0,0,0.05*i));}
+    pg.add(mkm(new THREE.BoxGeometry(1.5,2.5,1), new THREE.MeshLambertMaterial({color:0x1a3010}), 0,-9,0));
+    pg.position.set(ZX+55,110,ZZ-45); pg.rotation.y=0.4; scene.add(pg); }
+
+  const zL=new THREE.PointLight(0x6080c0,1.2,900); zL.position.set(ZX,120,ZZ); scene.add(zL);
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+//  ZONE 3 — CRYPT OF THE KING  (0, 0)
+// ═══════════════════════════════════════════════════════════════════
+(function buildCrypt() {
+  const ZX=0, ZZ=0;
+
+  // Floor
+  scene.add(mkm(new THREE.BoxGeometry(90,1,80), new THREE.MeshLambertMaterial({color:0x252020}), ZX,-.5,ZZ));
+  // Walls
+  scene.add(mkm(new THREE.BoxGeometry(90,35,2),   M.wall, ZX,17.5,ZZ-40));
+  scene.add(mkm(new THREE.BoxGeometry(90,35,2),   M.wall, ZX,17.5,ZZ+40));
+  scene.add(mkm(new THREE.BoxGeometry(2,35,80),   M.wall, ZX-45,17.5,ZZ));
+  scene.add(mkm(new THREE.BoxGeometry(2,35,80),   M.wall, ZX+45,17.5,ZZ));
+  scene.add(mkm(new THREE.BoxGeometry(90,2,80), new THREE.MeshLambertMaterial({color:0x1a1816}), ZX,35,ZZ));
+
+  // Columns
+  [-34,-12,12,34].forEach(x=>{
+    scene.add(mkm(new THREE.CylinderGeometry(2.5,2.5,34,8), new THREE.MeshLambertMaterial({color:0x302820}), ZX+x,17,ZZ-22));
+    scene.add(mkm(new THREE.CylinderGeometry(2.5,2.5,34,8), new THREE.MeshLambertMaterial({color:0x302820}), ZX+x,17,ZZ+12));
+  });
+
+  // Throne
+  const th=new THREE.Group();
+  const tm=new THREE.MeshLambertMaterial({color:0x3a2010});
+  th.add(mkm(new THREE.BoxGeometry(9,1.2,8),tm,0,0,0));
+  th.add(mkm(new THREE.BoxGeometry(9,16,2),tm,0,8,-4));
+  th.add(mkm(new THREE.BoxGeometry(1.8,12,8),tm,-3.6,6,0));
+  th.add(mkm(new THREE.BoxGeometry(1.8,12,8),tm, 3.6,6,0));
+  th.add(mkm(new THREE.SphereGeometry(1.5,8,6), M.crown, 0,17,-4));
+  th.position.set(ZX,0,ZZ-32); scene.add(th);
+
+  // ── Skeleton King ─────────────────────────────────────────────
+  const kg=new THREE.Group();
+  kg.add(mkm(new THREE.SphereGeometry(1.8,10,8), M.skull, 0,9,0));
+  // Crown
+  kg.add(mkm(new THREE.CylinderGeometry(1.9,2.1,2.2,8), M.crown, 0,11.5,0));
+  for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;
+    kg.add(mkm(new THREE.ConeGeometry(0.3,1.5,4), M.crown, Math.cos(a)*1.7,13,Math.sin(a)*1.7));}
+  // Body robe
+  kg.add(mkm(new THREE.BoxGeometry(5,7,4), new THREE.MeshLambertMaterial({color:0x0a0a14}), 0,4.5,0));
+  // Medallion
+  kg.add(mkm(new THREE.CylinderGeometry(1.2,1.2,0.3,12), M.gold, 0,6,-2.2));
+  // Green glowing eyes
+  kg.add(mkm(new THREE.SphereGeometry(0.25,6,4), M.geyes, -0.6,9.2,-1.6));
+  kg.add(mkm(new THREE.SphereGeometry(0.25,6,4), M.geyes,  0.6,9.2,-1.6));
+  const kgl=new THREE.PointLight(0x00ff20,2.5,18); kgl.position.set(0,9,-2); kg.add(kgl);
+  // Sword
+  const sw=new THREE.Group();
+  sw.add(mkm(new THREE.BoxGeometry(0.5,13,0.3), new THREE.MeshLambertMaterial({color:0xc0a060}), 0,6.5,0));
+  sw.add(mkm(new THREE.BoxGeometry(4.5,0.5,0.6), M.gold, 0,2,0));
+  sw.position.set(4,-6,1); sw.rotation.z=0.2; kg.add(sw);
+  kg.position.set(ZX,1,ZZ-30); scene.add(kg);
+
+  // Money piles
+  for(let i=0;i<35;i++){
+    const a=Math.random()*Math.PI*2, d=2+Math.random()*12;
+    scene.add(mkm(new THREE.BoxGeometry(2+Math.random()*3,0.1+Math.random()*0.3,1+Math.random()*2), M.money,
+      ZX+Math.cos(a)*d, Math.random()*0.5, ZZ-30+Math.sin(a)*d, 0,Math.random()*Math.PI,0)); }
+
+  // Torches
+  [[-38,10,-38],[38,10,-38],[-38,10,10],[38,10,10]].forEach(([x,y,z])=>{
+    const tl=new THREE.PointLight(0xff8820,3.5,45); tl.position.set(ZX+x,y,ZZ+z); scene.add(tl);
+    scene.add(mkm(new THREE.CylinderGeometry(0.3,0.3,2.5,6), new THREE.MeshLambertMaterial({color:0x3a2010}), ZX+x,y-0.6,ZZ+z));
+    scene.add(mkm(new THREE.SphereGeometry(0.65,6,4), M.fire, ZX+x,y+0.7,ZZ+z)); });
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+//  ZONE 4 — WASTELAND OF SOULS  (−600, 0)
+// ═══════════════════════════════════════════════════════════════════
+(function buildWasteland() {
+  const ZX=-600, ZZ=0;
+
+  // Snow plain
+  { const g=new THREE.PlaneGeometry(620,620,36,36);
+    const p=g.attributes.position; for(let i=0;i<p.count;i++) p.setY(i,(Math.random()-.5)*1.5); g.computeVertexNormals();
+    const m=new THREE.Mesh(g, new THREE.MeshLambertMaterial({color:0xd0d8e8})); m.rotation.x=-Math.PI/2; m.position.set(ZX,0.01,ZZ); scene.add(m); }
+
+  // Large monolith circle
+  const bigM=new THREE.MeshLambertMaterial({color:0x405060});
+  for(let i=0;i<6;i++){
+    const a=(i/6)*Math.PI*2, r=90, h=55+Math.random()*45;
+    scene.add(mkm(new THREE.BoxGeometry(10+Math.random()*5,h,8+Math.random()*5), bigM,
+      ZX+Math.cos(a)*r, h/2, ZZ+Math.sin(a)*r, 0,Math.random()*0.15,0)); }
+
+  // Extra scattered monoliths in background
+  [[-150,30,80],[-180,40,-60],[-70,50,180],[70,38,-150],[-220,55,20],[100,45,200]
+  ].forEach(([x,h,z])=>{
+    scene.add(mkm(new THREE.BoxGeometry(8,h,7), bigM, ZX+x,h/2,ZZ+z, 0,Math.random()*0.3,0)); });
+
+  // Cracked stone path
+  { const pm=new THREE.MeshLambertMaterial({color:0x303840});
+    for(let i=0;i<22;i++){const t=i/22;
+      scene.add(mkm(new THREE.BoxGeometry(5+Math.random()*3,0.22,6+Math.random()*4),pm,
+        ZX+Math.sin(t*Math.PI*1.5)*65, 0.11, ZZ-200+t*400, 0,Math.random()*0.4,0)); }}
+
+  // Robed figure
+  { const rg=new THREE.Group();
+    rg.add(mkm(new THREE.CylinderGeometry(1.2,2.2,8.5,8), new THREE.MeshLambertMaterial({color:0x800010}), 0,4.25,0));
+    rg.add(mkm(new THREE.SphereGeometry(1.5,8,6), new THREE.MeshLambertMaterial({color:0x1a1a1a}), 0,9.5,0));
+    rg.add(mkm(new THREE.ConeGeometry(1.3,2.5,8), new THREE.MeshLambertMaterial({color:0x600010}), 0,11.5,0));
+    rg.position.set(ZX,0,ZZ-105); scene.add(rg); }
+
+  // Large wasteland moon
+  scene.add(mkm(new THREE.SphereGeometry(55,24,16), M.moon, ZX,420,ZZ-350));
+  const wml=new THREE.PointLight(0x9080c0,2,1200); wml.position.set(ZX,420,ZZ-350); scene.add(wml);
+
+  // Purple sky light
+  const pl=new THREE.PointLight(0x6030a0,1.5,700); pl.position.set(ZX,300,ZZ); scene.add(pl);
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+//  ZONE 5 — CURSED SEA  (0, 600)
+// ═══════════════════════════════════════════════════════════════════
+const WATER_REF = { mesh:null, base:null };
+const SHIP_REF  = { group:null };
+const RAIN_REF  = { pts:null };
+const LIGHTNING_BOLTS = [];
+
+(function buildSea() {
+  const ZX=0, ZZ=600;
+
+  // Water
+  { const wg=new THREE.PlaneGeometry(900,900,55,55);
+    const wp=wg.attributes.position;
+    const wb=Float32Array.from(wp.array);
+    const wm=new THREE.Mesh(wg, M.water); wm.rotation.x=-Math.PI/2; wm.position.set(ZX,-1,ZZ); scene.add(wm);
+    WATER_REF.mesh=wm; WATER_REF.base=wb; }
+
+  // Rock spires
+  const spireM=new THREE.MeshLambertMaterial({color:0x1a1a24});
+  [[-150,0,-50,15,80,15],[180,0,80,20,100,20],[-80,0,150,12,70,12],
+   [100,0,-120,25,120,25],[-200,0,100,10,60,10],[220,0,-80,18,90,18],
+   [60,0,200,22,110,22],[-130,0,-140,14,75,14]
+  ].forEach(([x,y,z,sx,sy,sz])=>scene.add(mkm(new THREE.ConeGeometry(1,1,6),spireM,ZX+x,sy/2,ZZ+z,0,Math.random()*0.4,0,sx,sy,sz)));
+
+  // ── Pirate Ship ───────────────────────────────────────────────
+  const ship=new THREE.Group();
+  // Hull
+  ship.add(mkm(new THREE.BoxGeometry(14,6,52), M.ship, 0,0,0));
+  ship.add(mkm(new THREE.BoxGeometry(10,3.5,56), M.ship, 0,4.75,0));
+  ship.add(mkm(new THREE.BoxGeometry(8,2.5,22), new THREE.MeshLambertMaterial({color:0x1e1208}), 0,6.5,-17));
+  ship.add(mkm(new THREE.BoxGeometry(8,2,16), new THREE.MeshLambertMaterial({color:0x1e1208}), 0,6,20));
+  // Masts
+  ship.add(mkm(new THREE.CylinderGeometry(0.45,0.45,38,6), M.mast, 0,25,-8));
+  ship.add(mkm(new THREE.CylinderGeometry(0.35,0.35,30,6), M.mast, 0,21,10));
+  ship.add(mkm(new THREE.CylinderGeometry(0.28,0.28,22,6), M.mast, 0,16,-20));
+  // Booms
+  ship.add(mkm(new THREE.CylinderGeometry(0.2,0.2,22,6), M.mast, 0,15,-8, 0,0,Math.PI/2));
+  ship.add(mkm(new THREE.CylinderGeometry(0.2,0.2,18,6), M.mast, 0,10,-8, 0,0,Math.PI/2));
+  ship.add(mkm(new THREE.CylinderGeometry(0.2,0.2,18,6), M.mast, 0,15, 10, 0,0,Math.PI/2));
+  // Sails
+  ship.add(mkm(new THREE.BoxGeometry(21,13,0.4), M.sail, 0,16,-8));
+  ship.add(mkm(new THREE.BoxGeometry(17,11,0.4), M.sail, 0,11,-8));
+  ship.add(mkm(new THREE.BoxGeometry(17,11,0.4), M.sail, 0,16, 10));
+  // Skull emblem
+  const em=new THREE.MeshLambertMaterial({color:0xd4a000,emissive:0x402000,emissiveIntensity:0.5});
+  ship.add(mkm(new THREE.SphereGeometry(2,8,6),em, 0,16,-8.3));
+  ship.add(mkm(new THREE.CylinderGeometry(0.3,0.3,4,6),em,-1.5,15.2,-8.3, 0,0, 0.65));
+  ship.add(mkm(new THREE.CylinderGeometry(0.3,0.3,4,6),em, 1.5,15.2,-8.3, 0,0,-0.65));
+  // Ropes
+  const rm=new THREE.MeshLambertMaterial({color:0x251a0a});
+  ship.add(mkm(new THREE.CylinderGeometry(0.1,0.1,28,4),rm, -4,19,-4, 0.3,0, 0.5));
+  ship.add(mkm(new THREE.CylinderGeometry(0.1,0.1,28,4),rm,  4,19,-4, 0.3,0,-0.5));
+  ship.add(mkm(new THREE.CylinderGeometry(0.1,0.1,28,4),rm,  0,19, 5, 0.3,0.6,0));
+
+  ship.position.set(ZX+30, 2, ZZ-50); ship.rotation.y=0.3;
+  scene.add(ship); SHIP_REF.group=ship;
+
+  // Lightning bolts (static geometry, flickered via visibility)
+  for(let b=0;b<4;b++){
+    const bg=new THREE.Group();
+    const bx=ZX+(Math.random()-.5)*350, bz=ZZ+(Math.random()-.5)*350;
+    let cx=bx, cy=320, cz=bz;
+    while(cy>15){
+      const seg=18+Math.random()*28;
+      const nx=cx+(Math.random()-.5)*22, nz=cz+(Math.random()-.5)*22;
+      bg.add(mkm(new THREE.BoxGeometry(0.6,seg,0.6), M.bolt, nx,cy-seg/2,nz));
+      cx=nx; cz=nz; cy-=seg;
+    }
+    bg.visible=false; scene.add(bg); LIGHTNING_BOLTS.push(bg);
+  }
+
+  // Rain
+  { const rg=new THREE.BufferGeometry(), rp=new Float32Array(7200);
+    for(let i=0;i<7200;i+=3){rp[i]=ZX+(Math.random()-.5)*750;rp[i+1]=Math.random()*270;rp[i+2]=ZZ+(Math.random()-.5)*750;}
+    rg.setAttribute('position',new THREE.BufferAttribute(rp,3));
+    const rm2=new THREE.Points(rg, new THREE.PointsMaterial({color:0x8090c0,size:0.9,transparent:true,opacity:0.45,sizeAttenuation:true}));
+    scene.add(rm2); RAIN_REF.pts=rm2; }
+
+  const sl=new THREE.PointLight(0x405060,1,1200); sl.position.set(ZX,200,ZZ); scene.add(sl);
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════════════
+const keys      = {};
+const euler     = new THREE.Euler(0, 0, 0, 'YXZ');
+let   isLocked  = false;
+let   lastZone  = '';
+let   zoneTimer = 0;
+
+document.addEventListener('keydown', e => { keys[e.code]=true;  if(['Space','ArrowUp','ArrowDown'].includes(e.code)) e.preventDefault(); });
+document.addEventListener('keyup',   e => { keys[e.code]=false; });
+
+const ov = document.getElementById('ov');
+const zn = document.getElementById('zn');
+const co = document.getElementById('co');
+const xh = document.getElementById('xh');
+
+renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
+
+document.addEventListener('pointerlockchange', () => {
+  isLocked = document.pointerLockElement === renderer.domElement;
+  ov.style.display = isLocked ? 'none' : 'flex';
+  xh.style.display = isLocked ? 'block' : 'none';
+});
+
+document.addEventListener('mousemove', e => {
+  if (!isLocked) return;
+  euler.y -= e.movementX * 0.0022;
+  euler.x -= e.movementY * 0.0022;
+  euler.x  = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, euler.x));
+  camera.quaternion.setFromEuler(euler);
+});
+
+// Mobile touch look
+let tx=0, ty=0;
+renderer.domElement.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; e.preventDefault(); }, {passive:false});
+renderer.domElement.addEventListener('touchmove', e => {
+  euler.y -= (e.touches[0].clientX-tx)*0.004; euler.x -= (e.touches[0].clientY-ty)*0.004;
+  euler.x = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, euler.x));
+  camera.quaternion.setFromEuler(euler);
+  tx=e.touches[0].clientX; ty=e.touches[0].clientY; e.preventDefault();
+}, {passive:false});
+
+// ═══════════════════════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════════
+const clock     = new THREE.Clock();
+const fogTarget = new THREE.Color();
+const ambTarget = new THREE.Color();
+let time = 0;
+
+// Reusable vec for movement
+const moveDir = new THREE.Vector3();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  time += dt;
+
+  // ── Movement ────────────────────────────────────────────────
+  if (isLocked) {
+    const spd = (keys['ShiftLeft']||keys['ShiftRight']) ? 90 : 22;
+    moveDir.set(0,0,0);
+    if (keys['KeyW']||keys['ArrowUp'])    moveDir.z -= 1;
+    if (keys['KeyS']||keys['ArrowDown'])  moveDir.z += 1;
+    if (keys['KeyA']||keys['ArrowLeft'])  moveDir.x -= 1;
+    if (keys['KeyD']||keys['ArrowRight']) moveDir.x += 1;
+    if (moveDir.lengthSq() > 0) {
+      moveDir.applyQuaternion(camera.quaternion).normalize().multiplyScalar(spd * dt);
+      camera.position.add(moveDir);
+    }
+    if (keys['Space'])       camera.position.y += spd * dt;
+    if (keys['ControlLeft']||keys['ControlRight']||keys['KeyQ']) camera.position.y -= spd * dt;
+    camera.position.y = Math.max(0.5, camera.position.y);
+
+    // ── Zone atmosphere ───────────────────────────────────────
+    const zone = nearestZone(camera.position.x, camera.position.z);
+    fogTarget.setHex(zone.fog);
+    ambTarget.setHex(zone.amb);
+    scene.fog.color.lerp(fogTarget, 0.025);
+    scene.fog.density = THREE.MathUtils.lerp(scene.fog.density, zone.fd, 0.02);
+    ambient.color.lerp(ambTarget, 0.025);
+    ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, zone.ai, 0.025);
+    renderer.setClearColor(scene.fog.color);
+
+    if (zone.name !== lastZone) {
+      lastZone = zone.name;
+      zn.textContent = zone.name;
+      zn.style.opacity = '1';
+      zoneTimer = 3.5;
+    }
+    if (zoneTimer > 0) { zoneTimer -= dt; if (zoneTimer <= 0) zn.style.opacity = '0'; }
+
+    co.textContent = `X:${camera.position.x.toFixed(0)}  Y:${camera.position.y.toFixed(0)}  Z:${camera.position.z.toFixed(0)}`;
+  }
+
+  // ── Water waves ───────────────────────────────────────────────
+  if (WATER_REF.mesh && WATER_REF.base) {
+    const wp = WATER_REF.mesh.geometry.attributes.position;
+    const wb = WATER_REF.base;
+    for (let i=0; i < wp.count; i++) {
+      const ox = wb[i*3], oz = wb[i*3+2];
+      wp.setY(i, Math.sin(ox*0.055 + time*1.6)*0.9 + Math.cos(oz*0.045 + time*1.1)*0.7);
+    }
+    wp.needsUpdate = true;
+    WATER_REF.mesh.geometry.computeVertexNormals();
+  }
+
+  // ── Ship bob ──────────────────────────────────────────────────
+  if (SHIP_REF.group) {
+    SHIP_REF.group.position.y = 2 + Math.sin(time*0.5)*0.9;
+    SHIP_REF.group.rotation.z = Math.sin(time*0.3)*0.03;
+    SHIP_REF.group.rotation.x = Math.sin(time*0.4)*0.015;
+  }
+
+  // ── Rain fall ─────────────────────────────────────────────────
+  if (RAIN_REF.pts) {
+    const rp = RAIN_REF.pts.geometry.attributes.position;
+    for (let i=0; i < rp.count; i++) {
+      let y = rp.getY(i) - 70*dt;
+      if (y < -1) y = 268;
+      rp.setY(i, y);
+    }
+    rp.needsUpdate = true;
+  }
+
+  // ── Lightning flickers ────────────────────────────────────────
+  LIGHTNING_BOLTS.forEach((bolt, i) => {
+    const phase = (time*2.8 + i*2.1) % 11;
+    bolt.visible = phase < 0.12 || (phase > 0.25 && phase < 0.33);
+  });
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>
