@@ -21,27 +21,63 @@ canvas{display:block}
 #xh::before,#xh::after{content:'';position:absolute;background:rgba(255,255,255,.45)}
 #xh::before{width:100%;height:1px;top:50%;transform:translateY(-50%)}
 #xh::after{width:1px;height:100%;left:50%;transform:translateX(-50%)}
+
+#ov{-webkit-tap-highlight-color:transparent}
+#zn{white-space:nowrap;font-size:clamp(.7rem,3.6vw,1rem)}
+.keys-touch{display:none}
+body.touch .keys-desk{display:none}
+body.touch .keys-touch{display:block}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;color:#c0a060;background:#000;z-index:200;letter-spacing:.1em;line-height:1.8}
+canvas{touch-action:none}
+/* touch controls */
+#tc{display:none;position:fixed;inset:0;z-index:20;pointer-events:none}
+body.touch.playing #tc{display:block}
+body.touch #hi,body.touch #xh{display:none!important}
+#joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:1px solid rgba(200,168,80,.35);background:rgba(0,0,0,.25);display:none;pointer-events:none}
+#knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(200,168,80,.45)}
+.tb{position:fixed;right:16px;width:58px;height:58px;border-radius:50%;border:1px solid rgba(200,168,80,.4);background:rgba(0,0,0,.35);color:#c8a850;font:600 12px 'Courier New',monospace;display:flex;align-items:center;justify-content:center;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none}
+.tb.on{background:rgba(200,168,80,.35);color:#000}
+#bUp{bottom:150px}#bDn{bottom:84px}#bBoost{bottom:84px;right:84px}
+#bPause{top:14px;right:14px;bottom:auto;width:44px;height:44px}
+#jhint{position:fixed;left:16px;bottom:46px;color:#556;font-size:.65rem;letter-spacing:.1em;pointer-events:none}
 </style>
 </head>
 <body>
 <div id="ov">
   <h1>DARKWORLD</h1>
   <div class="sub">— N O C L I P &nbsp; E X P L O R E R —</div>
-  <div class="keys">W A S D &nbsp;·&nbsp; Move &emsp; Mouse &nbsp;·&nbsp; Look<br>Space &nbsp;·&nbsp; Rise &emsp; Ctrl &nbsp;·&nbsp; Descend<br>Shift &nbsp;·&nbsp; Speed &emsp; Esc &nbsp;·&nbsp; Pause</div>
-  <div class="enter">▶ &nbsp;CLICK TO ENTER &nbsp;◀</div>
+  <div class="keys keys-desk">W A S D &nbsp;·&nbsp; Move &emsp; Mouse &nbsp;·&nbsp; Look<br>Space &nbsp;·&nbsp; Rise &emsp; Q / C &nbsp;·&nbsp; Descend<br>Shift &nbsp;·&nbsp; Speed &emsp; Esc &nbsp;·&nbsp; Pause</div>
+  <div class="keys keys-touch">Left thumb &nbsp;·&nbsp; Move &emsp; Drag right side &nbsp;·&nbsp; Look<br>▲ ▼ &nbsp;·&nbsp; Rise / Descend &emsp; ⏵⏵ &nbsp;·&nbsp; Speed</div>
+  <div class="enter" id="enterTxt">▶ &nbsp;CLICK TO ENTER &nbsp;◀</div>
 </div>
+<div id="err"></div>
 <div id="zn"></div>
 <div id="co"></div>
 <div id="hi">SHIFT: BOOST</div>
 <div id="xh"></div>
+<div id="tc">
+  <div id="joy"><div id="knob"></div></div>
+  <div id="jhint">MOVE</div>
+  <div class="tb" id="bUp">▲</div>
+  <div class="tb" id="bDn">▼</div>
+  <div class="tb" id="bBoost">⏵⏵</div>
+  <div class="tb" id="bPause">II</div>
+</div>
 <canvas id="c"></canvas>
-<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
 <script>
 'use strict';
+// Touch phones/tablets have no pointer lock and no keyboard: they get on-screen controls instead.
+const IS_TOUCH = matchMedia('(pointer:coarse)').matches || (('ontouchstart' in window) && !matchMedia('(pointer:fine)').matches);
+if (IS_TOUCH) { document.body.classList.add('touch'); document.getElementById('enterTxt').innerHTML = '▶ &nbsp;TAP TO ENTER &nbsp;◀'; }
+function fail(msg) { const e = document.getElementById('err'); e.textContent = msg; e.style.display = 'flex'; }
 
+window.startWorld = function () {
+if (!window.THREE) { fail('Could not load the 3D engine. Check your connection and reload.'); return; }
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: !IS_TOUCH, powerPreference: 'high-performance' }); }
+catch (e) { fail('Your browser or device does not support WebGL, which this explorer needs.'); return; }
 // ── Renderer ──────────────────────────────────────────────────────
-const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, IS_TOUCH ? 1.5 : 2));   // phones: fewer pixels, steadier frame rate
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping      = THREE.ACESFilmicToneMapping;
@@ -482,48 +518,112 @@ const LIGHTNING_BOLTS = [];
   const sl=new THREE.PointLight(0x405060,1,1200); sl.position.set(ZX,200,ZZ); scene.add(sl);
 })();
 
+// three.js r155+ uses physical light falloff (1/d², decay 2), which made every torch, eye and moon light almost
+// invisible at these distances. decay 0 keeps the authored ranges: full strength fading out at `distance`.
+scene.traverse(o => { if (o.isPointLight) o.decay = 0; });
+
 // ═══════════════════════════════════════════════════════════════════
 //  CONTROLS
 // ═══════════════════════════════════════════════════════════════════
 const keys      = {};
 const euler     = new THREE.Euler(0, 0, 0, 'YXZ');
-let   isLocked  = false;
+let   active    = false;          // exploring (pointer locked on desktop, touch mode on phones)
 let   lastZone  = '';
 let   zoneTimer = 0;
-
-document.addEventListener('keydown', e => { keys[e.code]=true;  if(['Space','ArrowUp','ArrowDown'].includes(e.code)) e.preventDefault(); });
-document.addEventListener('keyup',   e => { keys[e.code]=false; });
+const touch = { joyId: null, ox: 0, oy: 0, x: 0, y: 0, look: new Map(), up: false, dn: false, boost: false };
 
 const ov = document.getElementById('ov');
 const zn = document.getElementById('zn');
 const co = document.getElementById('co');
 const xh = document.getElementById('xh');
+const canvas = renderer.domElement;
 
-renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
+function clearInput() {
+  for (const k in keys) keys[k] = false;
+  touch.joyId = null; touch.x = touch.y = 0; touch.look.clear(); touch.up = touch.dn = false;
+  document.getElementById('joy').style.display = 'none';
+  document.getElementById('bUp').classList.remove('on'); document.getElementById('bDn').classList.remove('on');
+}
+function setActive(on) {
+  active = on;
+  ov.style.display = on ? 'none' : 'flex';
+  xh.style.display = on && !IS_TOUCH ? 'block' : 'none';
+  document.body.classList.toggle('playing', on);
+  if (!on) clearInput();
+}
+function enter() {
+  if (IS_TOUCH) { setActive(true); return; }
+  try {
+    const p = canvas.requestPointerLock();
+    if (p && p.catch) p.catch(() => { document.getElementById('enterTxt').textContent = 'CLICK AGAIN TO ENTER'; });
+  } catch (e) {}
+}
+// The overlay sits on top of the canvas, so it must start the session itself (clicking it used to do nothing).
+ov.addEventListener('click', enter);
+canvas.addEventListener('click', () => { if (!active) enter(); });
 
-document.addEventListener('pointerlockchange', () => {
-  isLocked = document.pointerLockElement === renderer.domElement;
-  ov.style.display = isLocked ? 'none' : 'flex';
-  xh.style.display = isLocked ? 'block' : 'none';
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (active && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
 });
+document.addEventListener('keyup',   e => { keys[e.code] = false; });
+window.addEventListener('blur', clearInput);
+document.addEventListener('visibilitychange', () => { if (document.hidden) clearInput(); });
 
-document.addEventListener('mousemove', e => {
-  if (!isLocked) return;
-  euler.y -= e.movementX * 0.0022;
-  euler.x -= e.movementY * 0.0022;
+document.addEventListener('pointerlockchange', () => { if (!IS_TOUCH) setActive(document.pointerLockElement === canvas); });
+document.addEventListener('pointerlockerror', () => { document.getElementById('enterTxt').textContent = 'CLICK AGAIN TO ENTER'; });
+
+function look(dx, dy, k) {
+  euler.y -= dx * k;
+  euler.x -= dy * k;
   euler.x  = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, euler.x));
   camera.quaternion.setFromEuler(euler);
-});
+}
+document.addEventListener('mousemove', e => { if (active && !IS_TOUCH) look(e.movementX, e.movementY, 0.0022); });
 
-// Mobile touch look
-let tx=0, ty=0;
-renderer.domElement.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; e.preventDefault(); }, {passive:false});
-renderer.domElement.addEventListener('touchmove', e => {
-  euler.y -= (e.touches[0].clientX-tx)*0.004; euler.x -= (e.touches[0].clientY-ty)*0.004;
-  euler.x = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, euler.x));
-  camera.quaternion.setFromEuler(euler);
-  tx=e.touches[0].clientX; ty=e.touches[0].clientY; e.preventDefault();
-}, {passive:false});
+// ── Touch: left thumb = floating joystick, any other finger = look, buttons on the right ──
+const JOY_R = 60, joyEl = document.getElementById('joy'), knob = document.getElementById('knob');
+function hold(id, on) { const b = document.getElementById(id); b.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); on(true); b.classList.add('on'); }, { passive: false });
+  const off = e => { e.preventDefault(); e.stopPropagation(); on(false); b.classList.remove('on'); }; b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false }); }
+hold('bUp', v => { touch.up = v; });
+hold('bDn', v => { touch.dn = v; });
+document.getElementById('bBoost').addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); touch.boost = !touch.boost; e.currentTarget.classList.toggle('on', touch.boost); }, { passive: false });
+document.getElementById('bPause').addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); setActive(false); }, { passive: false });
+
+canvas.addEventListener('touchstart', e => {
+  if (!active) return;
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (touch.joyId === null && t.clientX < innerWidth * 0.45) {
+      touch.joyId = t.identifier; touch.ox = t.clientX; touch.oy = t.clientY; touch.x = touch.y = 0;
+      joyEl.style.left = t.clientX + 'px'; joyEl.style.top = t.clientY + 'px'; joyEl.style.display = 'block'; knob.style.transform = '';
+    } else touch.look.set(t.identifier, { x: t.clientX, y: t.clientY });
+  }
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  if (!active) return;
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === touch.joyId) {
+      let dx = t.clientX - touch.ox, dy = t.clientY - touch.oy;
+      const d = Math.hypot(dx, dy); if (d > JOY_R) { dx *= JOY_R / d; dy *= JOY_R / d; }
+      touch.x = dx / JOY_R; touch.y = dy / JOY_R;
+      knob.style.transform = `translate(${dx}px,${dy}px)`;
+    } else if (touch.look.has(t.identifier)) {
+      const p = touch.look.get(t.identifier);
+      look(t.clientX - p.x, t.clientY - p.y, 0.005);
+      p.x = t.clientX; p.y = t.clientY;
+    }
+  }
+}, { passive: false });
+function touchEnd(e) {
+  for (const t of e.changedTouches) {
+    if (t.identifier === touch.joyId) { touch.joyId = null; touch.x = touch.y = 0; joyEl.style.display = 'none'; }
+    touch.look.delete(t.identifier);
+  }
+}
+canvas.addEventListener('touchend', touchEnd);
+canvas.addEventListener('touchcancel', touchEnd);
 
 // ═══════════════════════════════════════════════════════════════════
 //  ANIMATION LOOP
@@ -542,19 +642,22 @@ function animate() {
   time += dt;
 
   // ── Movement ────────────────────────────────────────────────
-  if (isLocked) {
-    const spd = (keys['ShiftLeft']||keys['ShiftRight']) ? 90 : 22;
+  if (active) {
+    const spd = (keys['ShiftLeft'] || keys['ShiftRight'] || touch.boost) ? 90 : 22;
     moveDir.set(0,0,0);
     if (keys['KeyW']||keys['ArrowUp'])    moveDir.z -= 1;
     if (keys['KeyS']||keys['ArrowDown'])  moveDir.z += 1;
     if (keys['KeyA']||keys['ArrowLeft'])  moveDir.x -= 1;
     if (keys['KeyD']||keys['ArrowRight']) moveDir.x += 1;
+    if (moveDir.lengthSq() > 0) moveDir.normalize();
+    else if (Math.hypot(touch.x, touch.y) > 0.08) moveDir.set(touch.x, 0, touch.y);   // analog: half push = half speed
     if (moveDir.lengthSq() > 0) {
-      moveDir.applyQuaternion(camera.quaternion).normalize().multiplyScalar(spd * dt);
+      moveDir.applyQuaternion(camera.quaternion).multiplyScalar(spd * dt);
       camera.position.add(moveDir);
     }
-    if (keys['Space'])       camera.position.y += spd * dt;
-    if (keys['ControlLeft']||keys['ControlRight']||keys['KeyQ']) camera.position.y -= spd * dt;
+    // Ctrl is not used for descending: Ctrl+W (close tab), Ctrl+S, Ctrl+D are browser shortcuts.
+    if (keys['Space'] || touch.up) camera.position.y += spd * dt;
+    if (keys['KeyQ'] || keys['KeyC'] || touch.dn) camera.position.y -= spd * dt;
     camera.position.y = Math.max(0.5, camera.position.y);
 
     // ── Zone atmosphere ───────────────────────────────────────
@@ -579,6 +682,8 @@ function animate() {
   }
 
   // ── Water waves ───────────────────────────────────────────────
+  // The water material uses flatShading, which derives normals per pixel, so recomputing vertex normals every
+  // frame (3,136 vertices) was pure cost.
   if (WATER_REF.mesh && WATER_REF.base) {
     const wp = WATER_REF.mesh.geometry.attributes.position;
     const wb = WATER_REF.base;
@@ -587,7 +692,6 @@ function animate() {
       wp.setY(i, Math.sin(ox*0.055 + time*1.6)*0.9 + Math.cos(oz*0.045 + time*1.1)*0.7);
     }
     wp.needsUpdate = true;
-    WATER_REF.mesh.geometry.computeVertexNormals();
   }
 
   // ── Ship bob ──────────────────────────────────────────────────
@@ -624,6 +728,21 @@ window.addEventListener('resize', () => {
 });
 
 animate();
+};
+
+// three r158 still ships the classic build. Try unpkg, then jsdelivr; show a message instead of a black screen if both fail.
+(function loadThree() {
+  const urls = ['https://unpkg.com/three@0.158.0/build/three.min.js', 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js'];
+  let i = 0;
+  (function next() {
+    if (i >= urls.length) { fail('Could not load the 3D engine. Check your connection and reload.'); return; }
+    const s = document.createElement('script');
+    s.src = urls[i++];
+    s.onload = () => window.startWorld();
+    s.onerror = next;
+    document.head.appendChild(s);
+  })();
+})();
 </script>
 </body>
 </html>
