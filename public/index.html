@@ -625,6 +625,14 @@ html.lenis, html.lenis body { height:auto; }
 
     </div>
 
+    <div class="landing-right">
+      <div class="cta-box">
+        <div class="cta-title" data-i18n="get_started">Get Started Now</div>
+        <div class="cta-desc adapt-ink" data-i18n="cta_desc">Create a free account or log in to open the dashboard and daily value bets.</div>
+        <button class="btn-main" onclick="openAuthModal()" data-i18n="login_dash">Login to Dashboard</button>
+      </div>
+    </div>
+
     <section class="lp-matches">
       <div class="section-head"><div><div class="section-label"><span data-i18n="fixtures">Fixtures</span></div><h2 data-i18n="lp_today">Today's Matches</h2></div></div>
       <div class="match-grid" id="lpCards"></div>
@@ -3112,9 +3120,9 @@ document.addEventListener('DOMContentLoaded',function(){
       if(/^\s+$/.test(p)){f.appendChild(document.createTextNode(' '));return}
       var s=document.createElement('span');s.className='w';s.textContent=p;f.appendChild(s)});
     x.parentNode.replaceChild(f,x)})})(title);
-  gsap.timeline({defaults:{ease:'power3.out'},onComplete:function(){gsap.set('.hero-title .w,.hero-subtitle',{clearProps:'all'})}})
+  gsap.timeline({defaults:{ease:'power3.out'},onComplete:function(){gsap.set('.hero-title .w,.hero-subtitle,.cta-box',{clearProps:'all'})}})
     .from('.hero-title .w',{opacity:0,y:30,duration:.7,stagger:.06},'-=.2')
-    .from('.hero-subtitle',{opacity:0,y:16,duration:.5},'-=.4');
+    .from('.hero-subtitle,.cta-box',{opacity:0,y:16,duration:.5,stagger:.1},'-=.4');
 });
 </script>
 <script>

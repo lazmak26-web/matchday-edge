@@ -68,7 +68,7 @@ body{
 }
 [data-theme="light"] .tile,[data-theme="mist"] .tile,[data-theme="sand"] .tile,[data-theme="mono"] .tile,[data-theme="arctic"] .tile,[data-theme="mint"] .tile{
   background:color-mix(in srgb,var(--soft) 80%,transparent);box-shadow:inset 0 1px 2px rgba(30,40,70,.12),inset 0 -1px 0 rgba(255,255,255,.8)}
-.tile.top{background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 60%),var(--brand);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 18px -8px var(--brand)}
+.tile.top{background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 60%),var(--brand);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
 .pill{background:color-mix(in srgb,var(--soft) 60%,transparent);box-shadow:inset 0 1px 0 var(--sp-spec-soft)}
 .pill.good,.pill.low{background:var(--good-dim)}.pill.warn,.pill.medium{background:var(--warn-dim)}.pill.bad,.pill.high{background:var(--bad-dim)}
 .hero-badge{background:var(--sp-tint);border:0;box-shadow:var(--sp-edge),0 8px 20px -12px rgba(0,0,0,.5);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%)}
@@ -97,10 +97,10 @@ body{
 .nav-item.active{
   color:var(--ink);
   background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.08)),color-mix(in srgb,var(--brand) 22%,transparent);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 0 1px rgba(255,255,255,.1),0 8px 20px -8px var(--brand);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 0 1px rgba(255,255,255,.1);
 }
 [data-theme="light"] .nav-item.active,[data-theme="mist"] .nav-item.active,[data-theme="sand"] .nav-item.active,[data-theme="mono"] .nav-item.active,[data-theme="arctic"] .nav-item.active,[data-theme="mint"] .nav-item.active{
-  background:linear-gradient(180deg,#fff,rgba(255,255,255,.55)),color-mix(in srgb,var(--brand) 14%,#fff);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(20,30,50,.06),0 8px 18px -8px var(--brand)}
+  background:linear-gradient(180deg,#fff,rgba(255,255,255,.55)),color-mix(in srgb,var(--brand) 14%,#fff);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(20,30,50,.06)}
 
 /* side menu: a floating pane inset from the screen edge, not a wall */
 .side-menu{
@@ -134,10 +134,10 @@ body{
 /* ───────── controls ───────── */
 .btn-main,.auth-btn{
   background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,0) 52%),var(--brand);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 4px rgba(0,0,0,.14),0 10px 24px -10px var(--brand),0 2px 4px rgba(0,0,0,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 4px rgba(0,0,0,.14),0 2px 4px rgba(0,0,0,.2);
   transition:transform .4s var(--sp-ease),box-shadow .4s var(--sp-ease),filter .2s;
 }
-@media (hover:hover){.btn-main:hover,.auth-btn:hover{transform:translateY(-2px);filter:brightness(1.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 4px rgba(0,0,0,.14),0 18px 34px -12px var(--brand),0 3px 6px rgba(0,0,0,.22)}}
+@media (hover:hover){.btn-main:hover,.auth-btn:hover{transform:translateY(-2px);filter:brightness(1.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 4px rgba(0,0,0,.14),0 3px 6px rgba(0,0,0,.22)}}
 .btn-main:active,.auth-btn:active{transform:translateY(0) scale(.975)}
 .auth-btn.auth-secondary,.btn-main.secondary,.dc-btn{
   background:var(--sp-pane),color-mix(in srgb,var(--card) 55%,transparent);color:var(--ink);
