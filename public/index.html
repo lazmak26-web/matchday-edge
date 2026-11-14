@@ -825,6 +825,9 @@ html.lenis, html.lenis body { height:auto; }
 <style>
 #ssoWrap { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:14px; }
 #ssoWrap.hidden { display:none; }
+#consentWrap { margin:2px 0 10px; }
+.auth-legal { font-size:12px; color:var(--ink-3); text-align:center; margin:10px 0 0; line-height:1.5; }
+.auth-legal a { color:inherit; text-decoration:underline; }
 #ssoWrap .consent { font-size:13px; margin-bottom:2px; max-width:300px; }
 /* Both buttons share one fixed footprint so Google (rendered) and Apple (custom) line up exactly. */
 #googleBtn { display:flex; justify-content:center; width:300px; height:40px; color-scheme:light; }
@@ -844,7 +847,6 @@ html.lenis, html.lenis body { height:auto; }
     <p id="authSub" data-i18n="login_sub">Log in with your email, or create a free account.</p>
     <div id="authStep">
     <div id="ssoWrap" class="hidden">
-      <label class="consent"><input type="checkbox" id="gConsent"><span><span data-i18n="consent_a">I am 18 or older and I accept the</span> <a href="/terms" target="_blank" rel="noopener" data-i18n="terms_link">Terms of Service</a> <span data-i18n="consent_and">and</span> <a href="/privacy" target="_blank" rel="noopener" data-i18n="privacy_link">Privacy Policy</a>.</span></label>
       <div id="googleBtn" class="sso-btn hidden"></div>
       <button type="button" id="appleBtn" class="sso-btn sso-apple hidden">
         <svg viewBox="0 0 384 512" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
@@ -853,10 +855,9 @@ html.lenis, html.lenis body { height:auto; }
       <div class="auth-divider"><span data-i18n="or_email">or use email</span></div>
     </div>
     <input type="text" class="auth-input" id="loginUser" placeholder="Email" data-i18n-ph="ph_user" inputmode="email" autocapitalize="none" autocomplete="email">
-    <input type="password" class="auth-input" id="loginPass" placeholder="Password" data-i18n-ph="ph_pass" autocomplete="current-password">
-    <label class="consent hidden" id="consentWrap"><input type="checkbox" id="regConsent"><span><span data-i18n="consent_a">I am 18 or older and I accept the</span> <a href="/terms" target="_blank" rel="noopener" data-i18n="terms_link">Terms of Service</a> <span data-i18n="consent_and">and</span> <a href="/privacy" target="_blank" rel="noopener" data-i18n="privacy_link">Privacy Policy</a>.</span></label>
+    <label class="consent" id="consentWrap"><input type="checkbox" id="gConsent"><span data-i18n="consent_age">I am 18 or older</span></label>
     <button class="auth-btn" id="loginSubmitBtn" data-i18n="login_btn">Login</button>
-    <button class="auth-btn auth-secondary" id="registerBtn" type="button" data-i18n="reg_btn">Create free account</button>
+    <p class="auth-legal"><span data-i18n="legal_a">By continuing, you accept the</span> <a href="/terms" target="_blank" rel="noopener" data-i18n="terms_link">Terms of Service</a> <span data-i18n="consent_and">and</span> <a href="/privacy" target="_blank" rel="noopener" data-i18n="privacy_link">Privacy Policy</a>.</p>
     <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" onclick="closeAuthModal()" data-i18n="cancel">Cancel</button>
     <div class="auth-error" id="authError"></div>
     </div>
@@ -1222,7 +1223,9 @@ const translations = {
   }
 };
 
-Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "📧 Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "🔑 Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "✨ Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email", apple_btn: "Continue with Apple" });
+Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "📧 Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "🔑 Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "✨ Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email", apple_btn: "Continue with Apple", consent_age: "I am 18 or older", legal_a: "By continuing, you accept the", login_sub: "Enter your email and we'll send you a login code.", consent_req: "Please confirm you are 18 or older." });
+Object.assign(translations.fr, { or_email: "ou avec l'email", apple_btn: "Continuer avec Apple", consent_age: "J'ai 18 ans ou plus", legal_a: "En continuant, vous acceptez les", login_sub: "Entrez votre email, nous vous enverrons un code de connexion.", consent_req: "Confirmez que vous avez 18 ans ou plus." });
+Object.assign(translations.ar, { or_email: "أو بالبريد الإلكتروني", apple_btn: "المتابعة مع Apple", consent_age: "عمري 18 سنة أو أكثر", legal_a: "بالمتابعة، أنت توافق على", login_sub: "أدخل بريدك الإلكتروني وسنرسل لك رمز الدخول.", consent_req: "يرجى تأكيد أن عمرك 18 سنة أو أكثر." });
 Object.assign(translations.en, { globe_kicker: "Live now", globe_title: "Around the world", globe_online: "online", globe_note: "Approximate city-level locations of people on the site right now." });
 Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "📧 Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "🔑 Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "✨ Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
 Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partout dans le monde", globe_online: "en ligne", globe_note: "Localisation approximative (niveau ville) des personnes présentes sur le site en ce moment." });
@@ -1366,7 +1369,7 @@ function updateAuthUI() {
 }
 
 function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
-function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authError').textContent = ''; resetAuthSteps(); document.getElementById('loginPass').value = ''; setAuthMode('login'); }
+function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authError').textContent = ''; resetAuthSteps(); setAuthMode('login'); }
 function openSettingsModal() { const m = document.getElementById('settingsModal'); m.classList.remove('closing'); m.classList.remove('hidden');  document.getElementById('menuSetBtn').classList.add('active'); }
 function animHide(el, ms) { ms = ms || 460; if (!el || el.classList.contains('hidden') || el.classList.contains('closing')) return; if (matchMedia('(prefers-reduced-motion:reduce)').matches) { el.classList.add('hidden'); return; } el.classList.add('closing'); setTimeout(() => { el.classList.add('hidden'); el.classList.remove('closing'); }, ms); }
 function closeSettingsModal() { animHide(document.getElementById('settingsModal')); document.getElementById('menuSetBtn').classList.remove('active'); }
@@ -1486,7 +1489,7 @@ function getDeviceHWID() {
   } catch (e) { return Promise.resolve('unknown-device'); }
 }
 
-['loginUser', 'loginPass'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click(); }));
+['loginUser'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click(); }));
 
 function finishLogin(data) {
   authState.token = data.token;
@@ -1592,17 +1595,13 @@ function resetAuthSteps() {
   setAuthMode(authMode);
 }
 function setAuthMode(mode) {
-  authMode = mode;
-  const reg = mode === 'register', t = tNow();
+  authMode = 'login';   // single passwordless flow: e-mail -> code (sign-up happens automatically on first code)
+  const t = tNow();
   const set = (id, key) => { const el = document.getElementById(id); el.setAttribute('data-i18n', key); if (t[key]) el.textContent = t[key]; };
-  set('authTitle', reg ? 'reg_title' : 'login_title');
-  set('authSub', reg ? 'reg_sub' : 'login_sub');
-  set('loginSubmitBtn', reg ? 'reg_submit' : 'login_btn');
-  set('registerBtn', reg ? 'have_acc' : 'reg_btn');
-  document.getElementById('consentWrap').classList.toggle('hidden', !reg);
-  document.getElementById('loginPass').autocomplete = reg ? 'new-password' : 'current-password';
+  set('authTitle', 'login_title');
+  set('authSub', 'login_sub');
+  set('loginSubmitBtn', 'login_btn');
   document.getElementById('authError').textContent = '';
-  if (reg) setTimeout(() => document.getElementById('loginUser').focus(), 30);
 }
 function startOtpCountdown(sec) {
   clearInterval(otpTimer);
@@ -1655,35 +1654,28 @@ document.getElementById('otpCode').addEventListener('keydown', e => { if (e.key 
 document.getElementById('otpCode').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); if (e.target.value.length === 6) verifyOtp(); });
 
 async function authSubmit() {
-  const reg = authMode === 'register', t = tNow();
-  const authUrl = reg ? '/api/auth/register' : '/api/auth/login';
-  const u = document.getElementById('loginUser').value.trim();
-  const p = document.getElementById('loginPass').value;
+  const t = tNow();
+  const email = document.getElementById('loginUser').value.trim().toLowerCase();
   const errEl = document.getElementById('authError');
-  if (reg && !document.getElementById('regConsent').checked) { errEl.textContent = t.consent_req; document.getElementById('regConsent').focus(); return; }
-  if (!u || !p) return;
+  errEl.textContent = '';
+  if (!email) { document.getElementById('loginUser').focus(); return; }
+  const consent = document.getElementById('gConsent');
+  if (!consent.checked) { errEl.textContent = t.consent_req || 'Please confirm you are 18 or older.'; consent.focus(); return; }
   const btn = document.getElementById('loginSubmitBtn');
   if (btn.disabled) return;
   btn.disabled = true; btn.classList.add('loading');
-  errEl.textContent = '';
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
   try {
-    const body = { username: u, password: p };
-    if (reg) { body.consent = true; body.ageConfirmed = true; }
-    else if (!u.includes('@')) body.hwid = await getDeviceHWID();
-    const r = await fetch(authUrl, {
+    const r = await fetch('/api/auth/email-start', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body), signal: controller.signal
+      body: JSON.stringify({ email, consent: true, ageConfirmed: true }), signal: controller.signal
     });
-    let data;
-    try { data = await r.json(); } catch (err) { throw new Error('Server error (invalid response).'); }
-    if (!r.ok) throw new Error(data.error || 'Invalid username or password');
-    if (data.otpRequired) { showOtpStep(data.email, data.resendIn); return; }
-    finishLogin(data);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'Could not send the code. Please try again.');
+    showOtpStep(data.email || email, data.resendIn);
   } catch (e) {
     if (e.name === 'AbortError') errEl.textContent = 'Connection timed out. Please try again.';
-    else if (e.name === 'TypeError' && String(e.message).toLowerCase().includes('fetch')) errEl.textContent = 'Network error. Is the server running?';
     else errEl.textContent = e.message;
   } finally {
     clearTimeout(timeoutId);
@@ -1691,7 +1683,6 @@ async function authSubmit() {
   }
 }
 document.getElementById('loginSubmitBtn').onclick = authSubmit;
-document.getElementById('registerBtn').onclick = () => setAuthMode(authMode === 'login' ? 'register' : 'login');
 
 async function checkAuth() {
   if (!authState.token) { updateAuthUI(); return; }

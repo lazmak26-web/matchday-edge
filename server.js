@@ -1355,7 +1355,7 @@ function loadUsers() {
   try {
     if (!fs.existsSync(USERS_FILE)) return;
     const arr = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-    if (Array.isArray(arr)) for (const u of arr) if (u && u.email && ((u.salt && u.hash) || u.kind === 'google' || u.kind === 'apple')) users.set(u.email, u);
+    if (Array.isArray(arr)) for (const u of arr) if (u && u.email && ((u.salt && u.hash) || u.kind === 'google' || u.kind === 'apple' || u.kind === 'email')) users.set(u.email, u);
     console.log(`👤 Loaded ${users.size} accounts`);
   } catch (e) { console.error('Users load error:', e.message); }
 }
@@ -1418,7 +1418,7 @@ async function sendMail(to, subject, text, html) {
   if (!r.ok) throw new Error(`Mail API HTTP ${r.status}: ${(await r.text().catch(() => '')).slice(0, 200)}`);
 }
 
-async function sendOtp(email) {
+async function sendOtp(email, extra) {
   const now = Date.now();
   const prev = otps.get(email);
   if (prev && now < prev.exp && now - prev.sentAt < OTP_RESEND_GAP) {
@@ -1430,7 +1430,7 @@ async function sendOtp(email) {
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
   // Reserve the slot BEFORE awaiting the mail: two quick requests (double click, login + resend) used to both pass the resend-gap check,
   // send two different codes, and the user then typed the one that had been overwritten.
-  otps.set(email, { hash: otpHash(email, code), exp: now + OTP_TTL, tries: 0, sentAt: now });
+  otps.set(email, { hash: otpHash(email, code), exp: now + OTP_TTL, tries: 0, sentAt: now, ...(extra || {}) });
   cap.n++; otpSends.set(email, cap);
   try {
     await sendMail(email, 'Your LuciBet login code',
@@ -1573,25 +1573,51 @@ app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) =
   }
 });
 
+// Passwordless e-mail login / sign-up: type an e-mail, get a 6-digit code, done. Existing password accounts use it too.
+app.post('/api/auth/email-start', loginLimiter, otpLimiter, async (req, res) => {
+  if (!OTP_ENABLED) return res.status(503).json({ error: 'Email login is temporarily unavailable.' });
+  const body = req.body || {};
+  const email = String(body.email || '').trim().toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 120) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  const u = users.get(email);
+  let extra = null;
+  if (!u) {
+    if (body.consent !== true || body.ageConfirmed !== true) return res.status(403).json({ consentRequired: true, error: 'You must confirm you are 18 or older and accept the Terms and Privacy Policy.' });
+    extra = { newUser: { consentAt: Date.now() } };
+  }
+  const o = await sendOtp(email, extra);
+  if (!o.ok) return res.status(o.status).json({ error: o.error });
+  res.json({ otpRequired: true, email, resendIn: o.resendIn });
+});
+
 app.post('/api/auth/verify-otp', otpLimiter, (req, res) => {
   const body = req.body || {};
   const email = String(body.email || '').trim().toLowerCase();
   const code = String(body.code || '').replace(/\D/g, '');
-  const u = users.get(email), rec = otps.get(email);
-  if (!u || !rec || Date.now() > rec.exp) return res.status(400).json({ error: 'Code expired. Please request a new one.' });
+  let u = users.get(email);
+  const rec = otps.get(email);
+  if (!rec || Date.now() > rec.exp || (!u && !rec.newUser)) return res.status(400).json({ error: 'Code expired. Please request a new one.' });
   if (rec.tries >= OTP_MAX_TRIES) { otps.delete(email); return res.status(429).json({ error: 'Too many wrong attempts. Please request a new code.' }); }
   rec.tries++;
   const ok = code.length === 6 && crypto.timingSafeEqual(Buffer.from(otpHash(email, code), 'hex'), Buffer.from(rec.hash, 'hex'));
   if (!ok) return res.status(400).json({ error: 'Wrong code.', triesLeft: OTP_MAX_TRIES - rec.tries });
   otps.delete(email);
-  if (u.verified === false) { u.verified = true; saveUsersSoon(); }
+  if (!u) {
+    // Passwordless sign-up: the account only exists once the emailed code proves the address (no junk rows from unverified e-mails).
+    if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
+    const seq = [...users.values()].reduce((m, x) => Math.max(m, x.seq || 0), 0) + 1;
+    u = { email, kind: 'email', plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: true, consentAt: rec.newUser.consentAt, termsVersion: TERMS_VERSION };
+    users.set(email, u);
+    saveUsersSoon();
+  } else if (u.verified === false) { u.verified = true; saveUsersSoon(); }
   startSession(res, { kind: 'local', username: email });
 });
 
 app.post('/api/auth/resend-otp', otpLimiter, async (req, res) => {
   const email = String((req.body || {}).email || '').trim().toLowerCase();
-  if (!OTP_ENABLED || !users.has(email) || !otps.has(email)) return res.status(400).json({ error: 'Please log in again to get a new code.' });
-  const o = await sendOtp(email);
+  const rec = otps.get(email);
+  if (!OTP_ENABLED || !rec || (!users.has(email) && !rec.newUser)) return res.status(400).json({ error: 'Please log in again to get a new code.' });
+  const o = await sendOtp(email, rec.newUser ? { newUser: rec.newUser } : null);
   if (!o.ok) return res.status(o.status).json({ error: o.error });
   if (o.reused) return res.status(429).json({ error: `Please wait ${o.resendIn}s before requesting a new code.`, resendIn: o.resendIn });
   res.json({ ok: true, resendIn: o.resendIn });
