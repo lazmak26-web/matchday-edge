@@ -1674,6 +1674,11 @@ function miH2H(d) {
     ${h.homeGoals != null ? `<div class="mi-stat" style="margin-top:8px"><span>${esc(t.mi_goals || 'Goals')} (${esc(d.home.name)} : ${esc(d.away.name)})</span><b>${h.homeGoals} : ${h.awayGoals}</b></div>` : ''}
   </div>${games ? `<div class="mi-col"><h4>${esc(t.mi_last_meet || 'Last meetings')}</h4>${games}</div>` : ''}`;
 }
+// Analysis for a match that has a prediction in the current list (nothing for matches opened from Match Center without one).
+function miAnalysis(id) {
+  const r = (st.results || []).find(x => x && x.fx && String(x.fx.id) === String(id));
+  return r && r.v ? mxAnalysis(r, tNow()) : '';
+}
 function miRender(d, uid) {
   const t = tNow();
   const fx = miFx(d.id);
@@ -1692,7 +1697,7 @@ function miRender(d, uid) {
     <div class="mi-teams"><div class="mi-team">${crestHTML(d.home)}<b>${esc(d.home.name)}</b></div><div class="mi-vs">${score}</div><div class="mi-team">${crestHTML(d.away)}<b>${esc(d.away.name)}</b></div></div>
     <div class="mi-meta">${meta.map(m => `<span>${esc(m)}</span>`).join('')}</div>
     <div class="mi-tabs" role="tablist">${tabs.map(([k, l], i) => `<button type="button" role="tab" class="mi-tab${i === 0 ? ' on' : ''}" data-mi="${k}" onclick="miTab(this,'${uid}')">${esc(l)}</button>`).join('')}</div>
-    <div class="mi-pane on" data-pane="ov"><div class="mi-grid">${miTeamCol(d.home)}${miTeamCol(d.away)}</div></div>
+    <div class="mi-pane on" data-pane="ov"><div class="mi-grid">${miTeamCol(d.home)}${miTeamCol(d.away)}</div>${miAnalysis(d.id)}</div>
     <div class="mi-pane" data-pane="lu">${luPane}</div>
     <div class="mi-pane" data-pane="ab"><div class="mi-grid">${miAbsCol(d.home, ab ? ab.home : null)}${miAbsCol(d.away, ab ? ab.away : null)}</div></div>
     <div class="mi-pane" data-pane="h2h">${miH2H(d)}</div>
@@ -2124,12 +2129,7 @@ function syncStatsFromCards() {
 }
 
 // ── Match card parts, shared by the Pro card, the free/locked card and the landing page ──
-// Which analysis panels are open. Cards are rebuilt on every refresh, so the open state lives here, not in the DOM.
-const mxOpen = new Set();
-function mxToggle(el) { const id = el.dataset.mx; if (el.open) mxOpen.add(id); else mxOpen.delete(id); }
 const mxLive = fx => fx.status === 'started' || fx.status === 'inplay';
-// One score digit per team row. A finished match with no score yet shows "–" (never a made-up 0).
-const mxScore = (fx, n) => Number.isInteger(n) ? String(n) : (fx.status === 'finished' ? '–' : '0');
 const MX_Q = { high: 3, medium: 2, low: 1 };
 function mxQuality(fx) {
   const q = fx.dataQuality || 'very-low', n = MX_Q[q] || 0, t = tNow();
@@ -2139,27 +2139,24 @@ function mxQuality(fx) {
 function mxTop(fx, extra) {
   return `<div class="mx-top"><div class="mx-comp">${esc(leagueDisp(fx))}</div>${extra || ''}</div>`;
 }
-// Scoreboard layout: one row per team (crest, name, score), kickoff or live state in its own column on the right.
+// Teams side by side with the score (or kickoff time) in the middle.
 function mxTeams(fx, started) {
-  const H = fx.home, A = fx.away, hs = fx.homeScore, as = fx.awayScore;
-  const both = Number.isInteger(hs) && Number.isInteger(as);
-  const row = (T, n, lead) => `<div class="mx-team${lead ? ' lead' : ''}">${crestHTML(T)}<span class="t-name">${esc(teamDisp(T, fx))}</span>${started ? `<b class="mx-sc">${mxScore(fx, n)}</b>` : ''}</div>`;
-  const when = started
-    ? `<span class="mx-state ${fx.status === 'finished' ? 'ft' : 'live'}">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="mx-date">${esc(fxDateLabel(fx))}</span>`
-    : `<span class="mx-time">${esc(fxLocalTime(fx))}</span><span class="mx-date">${esc(fxDateLabel(fx))}</span>`;
-  return `<div class="mx-teams"><div class="mx-rows">${row(H, hs, started && both && hs > as)}${row(A, as, started && both && as > hs)}</div><div class="mx-when">${when}</div></div>`;
+  const mid = started
+    ? `<span class="m-live-score">${scoreTxt(fx)}</span><span class="mx-state ${fx.status === 'finished' ? 'ft' : 'live'}">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
+    : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`;
+  return `<div class="mx-duel"><div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(teamDisp(fx.home, fx))}</div></div><div class="m-mid">${mid}</div><div class="team away">${crestHTML(fx.away)}<div class="t-name">${esc(teamDisp(fx.away, fx))}</div></div></div>`;
 }
-// Home / draw / away as one bar cut in three, plus a legend. The three parts differ by pattern and by their 1 / X / 2 key, not by colour alone.
+// Home / draw / away: a bar cut in three, one colour per outcome, above the three tiles. Each tile carries a dot in its bar colour.
 function mxProb(p, t) {
-  const cell = (k, key, label, val, top) => `<div class="mx-p ${k}${top ? ' top' : ''}"><span class="mx-k">${key}</span><span class="mx-l">${label}</span><b>${p ? pct1(val) : '—'}</b></div>`;
-  if (!p) return `<div class="mx-prob"><div class="mx-bar is-empty"></div><div class="mx-legend">${cell('h', '1', t.home, 0)}${cell('d', 'X', t.draw, 0)}${cell('a', '2', t.away, 0)}</div></div>`;
+  const tile = (k, label, val, top) => `<div class="tile ${k}${top ? ' top' : ''}"><i><span class="mx-dot" aria-hidden="true"></span>${label}</i><b>${p ? pct1(val) : '—'}</b></div>`;
+  if (!p) return `<div class="mx-prob"><div class="mx-bar is-empty"></div><div class="tiles">${tile('h', t.home, 0)}${tile('d', t.draw, 0)}${tile('a', t.away, 0)}</div></div>`;
   const mx = Math.max(p.h, p.d, p.a), w = x => (x * 100).toFixed(1);
   return `<div class="mx-prob" role="group" aria-label="${esc(t.home)} ${pct1(p.h)}, ${esc(t.draw)} ${pct1(p.d)}, ${esc(t.away)} ${pct1(p.a)}">
         <div class="mx-bar" aria-hidden="true"><i class="h" style="width:${w(p.h)}%"></i><i class="d" style="width:${w(p.d)}%"></i><i class="a" style="width:${w(p.a)}%"></i></div>
-        <div class="mx-legend">${cell('h', '1', t.home, p.h, p.h === mx)}${cell('d', 'X', t.draw, p.d, p.d === mx && p.h !== mx)}${cell('a', '2', t.away, p.a, p.a === mx && p.h !== mx && p.d !== mx)}</div>
+        <div class="tiles">${tile('h', t.home, p.h, p.h === mx)}${tile('d', t.draw, p.d, p.d === mx && p.h !== mx)}${tile('a', t.away, p.a, p.a === mx && p.h !== mx && p.d !== mx)}</div>
       </div>`;
 }
-// The "Analysis" panel: everything that explains the pick but is not needed at a glance.
+// The "Analysis" block shown in Team news (Overview): what explains the pick. Returns '' when the match has no prediction.
 function mxAnalysis(r, t) {
   const { fx, json, v } = r, H = fx.home, A = fx.away, rows = [];
   const kvr = (k, val) => `<div class="mx-ar"><span>${k}</span><div>${val}</div></div>`;
@@ -2180,11 +2177,7 @@ function mxAnalysis(r, t) {
     prices = `<div class="mx-prices-h">${t.an_prices || 'Best prices'} <small>${books.length} ${books.length === 1 ? (t.an_book || 'bookmaker') : (t.an_books || 'bookmakers')}</small></div><div class="mx-prices">${pc('1', t.home, 'home')}${pc('X', t.draw, 'draw')}${pc('2', t.away, 'away')}</div>`;
   }
   if (!rows.length && !prices) return '';
-  const id = String(fx.id);
-  return `<details class="mx-more" data-mx="${esc(id)}" ontoggle="mxToggle(this)"${mxOpen.has(id) ? ' open' : ''}>
-        <summary><span>${t.an_title || 'Analysis'}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
-        <div class="mx-an">${rows.join('')}${prices}</div>
-      </details>`;
+  return `<div class="mi-col mi-an"><h4><span>${t.an_title || 'Analysis'}</span></h4><div class="mx-an">${rows.join('')}${prices}</div></div>`;
 }
 
 function buildCard(r, t) {
@@ -2210,7 +2203,6 @@ function buildCard(r, t) {
         <div class="kv-row"><span>${t.scoreline}</span><div>${scoreHTML}</div></div>
       </div>
       ${valueHTML}
-      ${mxAnalysis(r, t)}
     </article>`;
 }
 

@@ -1320,7 +1320,7 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .app-header .icon-btn{width:40px;height:40px;min-width:40px;min-height:40px;border-radius:var(--r-sm);background:transparent;border:1px solid var(--line);color:var(--ink-2);box-shadow:none}
 .app-header .icon-btn:hover{background:var(--soft);color:var(--ink);border-color:var(--line-2)}
 .app-header .icon-btn:active{transform:none;background:var(--line)}
-.icon-btn:focus-visible,.nav-item:focus-visible,.stat-search:focus-visible,.filter-btn:focus-visible,.pin-btn:focus-visible,.bell-btn:focus-visible,.mx-more summary:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.icon-btn:focus-visible,.nav-item:focus-visible,.stat-search:focus-visible,.filter-btn:focus-visible,.pin-btn:focus-visible,.bell-btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
 /* ── Section heading ── */
 .section-head{margin:var(--s-6) 0 var(--s-3);align-items:center}
@@ -1371,41 +1371,41 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .mx-actions .pin-btn,.mx-actions .bell-btn{width:36px;height:36px;border-radius:var(--r-sm);background:transparent;border:0;color:var(--ink-3);box-shadow:none}
 .mx-actions .pin-btn:hover,.mx-actions .bell-btn:hover{background:var(--soft);color:var(--ink)}
 .mx-actions .pin-btn.on,.mx-actions .bell-btn.on{background:transparent;color:var(--brand)}
-/* Teams as a scoreboard: a row per team, kickoff / live state in a column of its own */
-.mx-teams{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s-4);align-items:stretch}
-.mx-rows{display:flex;flex-direction:column;gap:10px;min-width:0}
-.mx-team{display:flex;align-items:center;gap:10px;min-width:0}
-.mx-team .crest{width:28px;height:28px;border-radius:6px;font-size:var(--fs-xs)}
-.mx-team .crest.has-logo{filter:none}
-.mx-team .t-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-md);font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--ink)}
-.mx-sc{flex:none;min-width:1.2ch;text-align:end;font-size:var(--fs-lg);font-weight:700;line-height:1;color:var(--ink-2)}
-.mx-team.lead .t-name{font-weight:700}
-.mx-team.lead .mx-sc{color:var(--ink)}
-.mx-when{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px;min-width:68px;padding-inline-start:var(--s-4);border-inline-start:1px solid var(--line)}
-.mx-time{font-size:var(--fs-lg);font-weight:700;letter-spacing:-.02em;line-height:1.1;color:var(--ink)}
-.mx-date{font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap}
+/* Teams side by side, score or kickoff in the middle */
+.mx-duel{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:start;gap:var(--s-2)}
+.mx-duel .team{gap:10px}
+.mx-duel .crest{width:52px;height:52px;border-radius:var(--r-sm)}
+.mx-duel .crest.has-logo{filter:none}
+.mx-duel .t-name{font-size:var(--fs-sm);font-weight:600;line-height:1.25;color:var(--ink)}
+.m-mid{display:flex;flex-direction:column;align-items:center;gap:5px;align-self:center;min-width:84px}
+.m-mid .m-live-score{font-size:var(--fs-xl);font-weight:700;letter-spacing:.02em;line-height:1;color:var(--ink)}
+.m-mid .m-time{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.02em;line-height:1;color:var(--ink)}
+.m-mid .m-date{font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap}
+.m-mid .m-vs{font-size:var(--fs-xs);font-weight:700;letter-spacing:.1em;color:var(--ink-3)}
 .mx-state{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;letter-spacing:.08em;color:var(--ink-3)}
 .mx-state.live{color:var(--ink)}
 .mx-state.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--bad);animation:mxLive 1.6s ease-in-out infinite}
 @keyframes mxLive{50%{opacity:.25}}
-/* Probabilities: one bar in three parts. Home is solid, draw is a flat grey, away is hatched — readable without colour. */
+/* Probabilities: a bar in three colours (home blue, draw amber, away violet) over the three tiles; each tile has a dot in its bar colour */
+:root{--p-home:var(--brand);--p-draw:var(--warn);--p-away:#9B8CFF}
 .mx-prob{display:flex;flex-direction:column;gap:10px}
-.mx-bar{display:flex;gap:2px;height:6px}
-.mx-bar i{display:block;min-width:2px;border-radius:1px}
-.mx-bar i.h{background:var(--brand);border-radius:3px 1px 1px 3px}
-.mx-bar i.d{background:var(--line-2)}
-.mx-bar i.a{border-radius:1px 3px 3px 1px;background:repeating-linear-gradient(135deg,var(--ink-2) 0 2px,transparent 2px 4px)}
-.mx-bar.is-empty{background:var(--line);border-radius:3px}
-.mx-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
-.mx-p{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:6px;row-gap:3px;align-items:center;justify-content:start}
-.mx-p.d{justify-content:center}.mx-p.a{justify-content:end}
-.mx-p{grid-template-columns:auto auto}
-.mx-k{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:4px;border:1px solid var(--line-2);font-size:var(--fs-xs);font-weight:700;line-height:1;color:var(--ink-2)}
-.mx-l{font-size:var(--fs-xs);color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mx-p b{grid-column:1/-1;font-size:var(--fs-md);font-weight:600;letter-spacing:-.02em;line-height:1.1;color:var(--ink-2)}
-.mx-p.d b{text-align:center}.mx-p.a b{text-align:end}
-.mx-p.top b{color:var(--ink);font-weight:700}
-.mx-p.top .mx-k{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.mx-bar{display:flex;gap:2px;height:8px}
+.mx-bar i{display:block;min-width:3px;border-radius:2px}
+.mx-bar i.h{background:var(--p-home);border-radius:4px 2px 2px 4px}
+.mx-bar i.d{background:var(--p-draw)}
+.mx-bar i.a{background:var(--p-away);border-radius:2px 4px 4px 2px}
+.mx-bar.is-empty{background:var(--line);border-radius:4px}
+.match .tiles{gap:var(--s-2)}
+.match .tile{background:var(--soft);border:1px solid transparent;border-radius:var(--r-sm);padding:10px 6px;box-shadow:none}
+.match .tile i{display:flex;align-items:center;justify-content:center;gap:6px;font-size:var(--fs-xs);color:var(--ink-3);opacity:1}
+.match .tile b{display:block;margin-top:3px;font-size:var(--fs-md);font-weight:700;letter-spacing:-.02em;color:var(--ink-2)}
+.mx-dot{width:8px;height:8px;border-radius:2px;flex:none}
+.tile.h .mx-dot{background:var(--p-home)}.tile.d .mx-dot{background:var(--p-draw)}.tile.a .mx-dot{background:var(--p-away)}
+/* The most likely outcome: outlined in its own colour, number at full strength */
+.match .tile.top{background:var(--soft);color:inherit}
+.match .tile.top b{color:var(--ink)}
+.match .tile.top i{color:var(--ink-2)}
+.match .tile.h.top{border-color:var(--p-home)}.match .tile.d.top{border-color:var(--p-draw)}.match .tile.a.top{border-color:var(--p-away)}
 /* Picks */
 .match .kv{border-top:1px solid var(--line);padding-top:12px;font-size:var(--fs-sm)}
 .match .kv-row{padding:7px 0;border-top:0}
@@ -1419,14 +1419,9 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .vb-head{font-size:var(--fs-xs);letter-spacing:.06em;text-transform:uppercase}
 .vb-price{font-size:var(--fs-lg)}
 .pill{box-shadow:none;border-radius:4px;padding:2px 7px}
-/* Expandable analysis */
-.mx-more{margin:0 calc(var(--s-4) * -1) calc(var(--s-4) * -1);border-top:1px solid var(--line)}
-.mx-more summary{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);min-height:44px;padding:0 var(--s-4);list-style:none;cursor:pointer;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);-webkit-tap-highlight-color:transparent}
-.mx-more summary::-webkit-details-marker{display:none}
-.mx-more summary:hover{color:var(--ink)}
-.mx-more summary svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease}
-.mx-more[open] summary svg{transform:rotate(180deg)}
-.mx-an{padding:0 var(--s-4) var(--s-4);font-size:var(--fs-sm)}
+/* Analysis block (Team news, Overview) */
+.mi-an{margin-top:12px}
+.mx-an{font-size:var(--fs-sm)}
 .mx-ar{display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);padding:7px 0}
 .mx-ar>span{flex:none;color:var(--ink-3)}
 .mx-ar>div{min-width:0;text-align:end}
@@ -1441,7 +1436,7 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .mx-price b{font-size:var(--fs-md);font-weight:700;text-align:end}
 .mx-price small{grid-column:1/-1;font-size:var(--fs-xs);color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Locked (free plan) cards keep the paywall blur on the new parts */
-.match.is-locked .mx-top,.match.is-locked .mx-teams{filter:blur(7px);opacity:.7;pointer-events:none;user-select:none;-webkit-user-select:none}
+.match.is-locked .mx-top,.match.is-locked .mx-duel{filter:blur(7px);opacity:.7;pointer-events:none;user-select:none;-webkit-user-select:none}
 .lp-lock .mx-prob{filter:blur(7px);opacity:.75;pointer-events:none;user-select:none;-webkit-user-select:none}
 .lp-unlock{border-radius:var(--r-sm);box-shadow:none}
 .lp-lock:hover .lp-unlock{transform:translate(-50%,-50%)}
@@ -1479,7 +1474,7 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .tg-fab:hover{transform:none;filter:brightness(1.08)}
 .tg-fab::before{display:none}
 
-@media (prefers-reduced-motion:reduce){.mx-state.live::before,.mx-skel{animation:none}.mx-more summary svg{transition:none}}
+@media (prefers-reduced-motion:reduce){.mx-state.live::before,.mx-skel{animation:none}}
 /* Form: W / D / L as lettered squares (was colour-only dots) */
 .fb-form{gap:3px}
 .fb-form i{width:16px;height:16px;border-radius:4px;display:inline-grid;place-items:center;font-style:normal;font-size:var(--fs-xs);font-weight:700;line-height:1;color:var(--bg);background:var(--line-2)}
@@ -1495,3 +1490,4 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
   .sx{grid-template-columns:minmax(0,1fr);gap:var(--s-4)}
   .sx-fig:first-child{padding-inline-start:0;border-inline-start:0}
 }
+.mx-price .mx-k{font-size:var(--fs-xs);font-weight:700;color:var(--ink-3)}
