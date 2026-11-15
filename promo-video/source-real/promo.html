@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LuciBet — Match Day Edge · Promo (real site)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
+body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden}
+.scene{position:absolute;inset:0;opacity:0;visibility:hidden}
+.bg{position:absolute;inset:0}
+.bg.white{background:radial-gradient(ellipse at 50% 40%,#ffffff 0%,#f3f3f6 60%,#e9e9ee 100%)}
+.bg.black{background:#000}
+.a{position:absolute;will-change:transform,opacity}
+.label{left:110px;top:56px;font-size:21px;letter-spacing:.32em;font-weight:600;color:#1a1a22;display:flex;align-items:center;gap:20px}
+.label b{color:#2d7bff;font-weight:700}
+.label i{display:block;width:52px;height:1.5px;background:#9a9aa8}
+.cap{left:0;right:0;bottom:46px;text-align:center;font-size:44px;font-weight:700;color:#14141c;letter-spacing:-.02em}
+.cap em{font-style:normal;color:#2d7bff}
+.persp{position:absolute;inset:0;perspective:2400px}
+.shot{position:absolute;left:50%;width:1296px;height:810px;margin-left:-648px;top:118px;border-radius:24px;overflow:hidden;background:#05070d;
+  box-shadow:0 60px 120px -30px rgba(10,10,30,.5),0 24px 50px -20px rgba(10,10,30,.4),0 0 0 1px rgba(0,0,0,.08);transform-origin:50% 50%}
+.shot img{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;will-change:transform}
+.big{background:#fff;border-radius:22px;padding:22px 34px;text-align:center;box-shadow:0 30px 60px -20px rgba(20,20,40,.4);color:#0d0d14;white-space:nowrap}
+.big b{display:block;font-size:76px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.big span{display:block;font-size:17px;color:#5f5f70;margin-top:8px;font-weight:500}
+.big.green b{color:#12a86b}.big.blue b{color:#2d7bff}
+.tk{position:absolute;font-weight:600;color:#fff;white-space:nowrap}
+.hook{left:0;right:0;text-align:center;font-weight:800;color:#fff;font-size:96px;letter-spacing:-.035em;line-height:1.1}
+.strike{position:absolute;height:7px;background:#fff;border-radius:4px}
+.pill{display:inline-flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:13px 22px;font-size:22px;font-weight:600;color:#14141c;box-shadow:0 10px 30px -10px rgba(0,0,0,.2);white-space:nowrap}
+.pill b{color:#12a86b}
+.mark{width:110px;height:110px;border-radius:28px;background:#1f3f8f url(assets/logo.png) center/70% no-repeat}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const stage = document.getElementById('stage');
+const scenes = [];
+function scene(t0, t1, bg){ const s=document.createElement('section'); s.className='scene'; s.innerHTML=`<div class="bg ${bg}"></div>`; stage.appendChild(s); scenes.push({el:s,t0,t1}); return s; }
+function add(parent, html, cls, style, spec){
+  const d=document.createElement('div'); d.className='a '+(cls||''); d.style.cssText=style||''; d.innerHTML=html;
+  d._a=Object.assign({d:0,u:.8,x:0,y:40,s:1,r:0,rx:0,o:0,e:'oc',f:0},spec||{}); parent.appendChild(d); return d;
+}
+const label=(s,n,name)=>add(s,`<b>${n}</b><i></i>${name}`,'label','',{d:.15,u:.7,y:0,x:-30});
+const cap=(s,txt,d)=>add(s,txt,'cap','',{d,u:.7,y:24});
+/* real screenshot panel with camera move: z = [fromRect, toRect], rects = [x0,y0,x1,y1] normalised, zoom from zd for zu seconds */
+function shot(s, img, z, zd, zu, spec){
+  const p=document.createElement('div'); p.className='persp'; s.appendChild(p);
+  const el=add(p, `<img src="assets/${img}.jpg">`, 'shot', '', Object.assign({d:.2,u:1.1,y:90,s:.93,r:-14,rx:6,f:1},spec||{}));
+  el._z={from:z[0],to:z[1],d:zd,u:zu}; return el;
+}
+const big=(s,n,label,cls,style,d)=>add(s,`<div class="big ${cls||''}"><b>${n}</b><span>${label}</span></div>`,'',style,{d,u:.8,y:50,s:.85});
+
+/* S0 · HOOK */
+{ const s=scene(0,7.4,'black');
+  const W=['CÁDIZ 5.39','VASCO 63.8%','MEXICO 62.1%','NY RED BULLS 42.7%','OVER 1.5 92.1%','SPAIN 54.1%','ENGLAND 22.4%','NEW ZEALAND 81.4%','AS TEFANA 53.7%','FCSB 52.0%','LEIXÕES 44.5%','JAMAICA 14.7%','CLUB AMÉRICA 35.9%','DRAW 20.5%','UNDER 2.5 53.3%','CHAPECOENSE 15.7%','ARSENAL 27 PTS','+8.57% EV'];
+  let seed=11; const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  for(let i=0;i<46;i++){ const t=document.createElement('div'); t.className='tk'; t.textContent=W[i%W.length]; t._tk={x:rnd()*2100-90,y:rnd()*1220,sp:10+rnd()*22,o:.05+rnd()*.11}; t.style.fontSize=(16+rnd()*14)+'px'; s.appendChild(t); }
+  add(s,'You backed the favourite.','hook','top:380px',{d:.5,u:.9,y:40});
+  const st=add(s,'','strike','top:446px;left:392px;width:0',{d:0,u:.01,y:0,o:1}); st._strike={t0:3.0,t1:3.6,w:1140};
+  add(s,'You missed <span style="color:#2fce8f">the edge.</span>','hook','top:520px',{d:2.0,u:.9,y:40});
+  add(s,'The match was easy to pick. The price was the mistake.','cap','bottom:120px;font-size:32px;font-weight:500;color:#9a9ab0',{d:4.0,u:.8,y:20});
+}
+/* S1 · LOGO LINE */
+{ const s=scene(7.0,12.4,'white');
+  add(s,'<div class="mark"></div>','','left:905px;top:150px',{d:.3,u:.8,y:0,s:.6,f:1});
+  add(s,'LuciBet reads every match<br>before kick-off.','hook','top:310px;color:#0d0d14;font-size:92px',{d:.7,u:.9,y:40,f:1});
+  [['93 matches today',''],['Cádiz to win · ','+8.57% EV'],['Over 1.5 · ','92.1%']].forEach((p,i)=>add(s,`<div class="pill">${p[0]}<b>${p[1]}</b></div>`,'',`left:${[455,790,1180][i]}px;top:600px`,{d:1.6+i*.18,u:.7,y:30}));
+  cap(s,'Football analytics on a <em>Poisson model</em> + <em>live market odds</em>.',2.6);
+}
+/* S2 · 01 SIGNALS */
+{ const s=scene(12.0,19.4,'white'); label(s,'01','SIGNALS');
+  shot(s,'01_signals',[[0,0,1,1],[.05,0,.95,.9]],1.6,5.4);
+  big(s,'93','matches modelled today','','left:90px;top:700px',1.8);
+  big(s,'+8.57%','best EV on the board','green','left:1500px;top:700px',2.1);
+  cap(s,'Every match today, <em>priced by the model.</em>',2.6);
+}
+/* S3 · 02 MATCH MODEL */
+{ const s=scene(19.0,26.0,'white'); label(s,'02','MATCH MODEL');
+  shot(s,'02_cards',[[0,0,1,1],[.03,0,.65,.62]],1.4,5.0);
+  big(s,'92.1%','Over 1.5 goals · NY Red Bulls v América','blue','left:1520px;top:300px',2.2);
+  cap(s,'Win, draw, goals: <em>every market.</em>',2.6);
+}
+/* S4 · 03 VALUE BETS */
+{ const s=scene(25.6,33.0,'white'); label(s,'03','VALUE BETS');
+  shot(s,'03_value',[[0,0,1,1],[.27,0,.73,.46]],1.3,4.4);
+  big(s,'+8.57%','expected value','green','left:90px;top:690px',2.4);
+  big(s,'5.39','Cádiz to win','','left:1560px;top:690px',2.7);
+  cap(s,'Only when <em>the price is wrong.</em>',2.6);
+}
+/* S5 · 04 MODEL FILTERS */
+{ const s=scene(32.6,38.6,'white'); label(s,'04','MODEL FILTERS');
+  shot(s,'04_filters',[[0,0,1,1],[.22,.04,.78,.96]],1.3,4.0);
+  big(s,'4.5%','minimum EV to flag a bet','blue','left:1500px;top:640px',2.0);
+  cap(s,'Tune the engine <em>yourself.</em>',2.3);
+}
+/* S6 · 05 DISCOVER */
+{ const s=scene(38.2,44.0,'white'); label(s,'05','DISCOVER');
+  shot(s,'05_discover',[[0,0,1,1],[.24,.08,.76,.98]],1.3,4.2);
+  cap(s,'A community <em>around every match.</em>',2.2);
+}
+/* S7 · 06 BOT HISTORY */
+{ const s=scene(43.6,50.0,'white'); label(s,'06','BOT HISTORY');
+  shot(s,'06_history',[[0,0,1,1],[0,.08,.72,.8]],1.3,4.6);
+  big(s,'928','matches tracked','','left:1530px;top:690px',2.0);
+  cap(s,'Every pick logged. <em>Win or lose.</em>',2.4);
+}
+/* S8 · 07 LEAGUES */
+{ const s=scene(49.6,55.8,'white'); label(s,'07','LEAGUE TABLES');
+  shot(s,'07_standings',[[0,0,1,1],[.03,.16,.97,1]],1.3,4.4);
+  big(s,'Arsenal','top of the Premier League · 27 pts','','left:1450px;top:700px',2.0);
+  cap(s,'Live tables for <em>the top leagues.</em>',2.3);
+}
+/* S9 · 08 DEMO ARENA */
+{ const s=scene(55.4,61.4,'white'); label(s,'08','DEMO ARENA');
+  shot(s,'09_demo',[[0,0,1,1],[.1,.04,.64,.58]],1.3,4.2);
+  big(s,'2,000 DH','virtual start · no real money','','left:1440px;top:700px',2.1);
+  cap(s,'Practice with <em>virtual credits.</em>',2.3);
+}
+/* S10 · 09 PRO */
+{ const s=scene(61.0,67.0,'white'); label(s,'09','PRO ACCESS');
+  shot(s,'10_unlock',[[0,0,1,1],[.02,.16,.6,.74]],1.3,4.2);
+  big(s,'$30','no automatic renewal','blue','left:1540px;top:620px',2.0);
+  cap(s,'One plan. <em>Everything unlocked.</em>',2.3);
+}
+/* S11 · OUTRO */
+{ const s=scene(66.6,73.6,'black');
+  add(s,`<div style="display:flex;align-items:center;gap:30px"><div style="width:130px;height:130px;background:url(assets/logo.png) center/contain no-repeat"></div><div style="font-size:112px;font-weight:800;color:#fff;letter-spacing:-.04em">LuciBet</div></div>`,'','left:0;right:0;top:330px;display:flex;justify-content:center',{d:.05,u:1,y:0,s:.9,f:1});
+  add(s,'MATCH DAY EDGE','','left:0;right:0;top:500px;text-align:center;color:#5b9bff;font-size:28px;letter-spacing:.5em;font-weight:600',{d:.8,u:.9,y:16});
+  add(s,'Find the edge. <span style="color:#2fce8f">The decision is yours.</span>','hook','top:610px;font-size:54px',{d:1.5,u:.9,y:24,f:1});
+  add(s,'1uciferxyz.com','','left:0;right:0;top:760px;text-align:center;color:#fff;font-size:30px;font-weight:600',{d:2.3,u:.8,y:16});
+  add(s,'18+ · Statistical estimates, not guarantees. Play responsibly.','','left:0;right:0;bottom:60px;text-align:center;color:#6d6d80;font-size:20px',{d:2.7,u:.8,y:0});
+}
+
+/* ENGINE */
+const EZ={oc:t=>1-Math.pow(1-t,3),io:t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const FADE=.4; window.DURATION=73.6;
+function zoomRect(r){ // keep panel aspect: scale by the larger side, centre on the rect
+  const w=r[2]-r[0], h=r[3]-r[1], m=Math.max(w,h), cx=(r[0]+r[2])/2, cy=(r[1]+r[3])/2;
+  const x0=cl(cx-m/2,0,1-m), y0=cl(cy-m/2,0,1-m); return {s:1/m,x0,y0};
+}
+window.renderFrame=function(T){
+  for(const sc of scenes){
+    const on=T>=sc.t0&&T<sc.t1; sc.el.style.visibility=on?'visible':'hidden';
+    if(!on){sc.el.style.opacity=0;continue;}
+    const lp=T-sc.t0; sc.el.style.opacity=sc.t0===0?1:EZ.io(cl(lp/FADE));
+    sc.el.querySelectorAll('.a').forEach(el=>{
+      const a=el._a,e=EZ[a.e](cl((lp-a.d)/a.u));
+      const fl=a.f?Math.sin(lp*1.1)*5:0;
+      el.style.opacity=a.o+(1-a.o)*e;
+      el.style.transform=`translate3d(${a.x*(1-e)}px,${a.y*(1-e)+fl}px,0) scale(${a.s+(1-a.s)*e+(a.f?lp*.003:0)}) rotateY(${a.r*(1-e)+(a.f?Math.sin(lp*.6)*1.4:0)}deg) rotateX(${a.rx*(1-e)}deg)`;
+      if(el._strike){const k=EZ.oc(cl((T-el._strike.t0)/(el._strike.t1-el._strike.t0)));el.style.width=(el._strike.w*k)+'px';el.style.transform='none';el.style.opacity=1;}
+      if(el._z){ const z=el._z,k=EZ.io(cl((lp-z.d)/z.u)); const A=zoomRect(z.from),B=zoomRect(z.to);
+        const s=A.s+(B.s-A.s)*k, x0=A.x0+(B.x0-A.x0)*k, y0=A.y0+(B.y0-A.y0)*k;
+        el.firstChild.style.transform=`scale(${s}) translate(${-x0*100}%,${-y0*100}%)`; }
+    });
+    sc.el.querySelectorAll('.tk').forEach(t=>{const k=t._tk;const y=(((k.y-T*k.sp*2)%1220)+1220)%1220-60;t.style.transform=`translate(${k.x}px,${y}px)`;t.style.opacity=k.o;});
+  }
+};
+window.renderFrame(0);
+</script>
+</body>
+</html>
