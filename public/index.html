@@ -181,13 +181,13 @@ button,select,input{font:inherit;color:inherit}
 .stat-value{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.04em;line-height:1}
 .stat-label{font-size:12.5px;color:var(--ink-3);margin-top:8px}
 /* hero "Matches" panel with built-in search */
-.stat-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 24px;border-radius:28px;background:var(--grad);color:var(--on-brand);position:relative;overflow:hidden;box-shadow:var(--shadow)}
-.stat-hero::after{content:"";position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.14);filter:blur(10px);pointer-events:none}
+.stat-hero{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:16px;padding:22px 24px;border-radius:28px;background:var(--grad);color:var(--on-brand);position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.stat-hero::after{content:"";position:absolute;left:-60px;bottom:-80px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.14);filter:blur(10px);pointer-events:none;z-index:0}
 .stat-hero .stat-label{color:rgba(255,255,255,.82);margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12px}
 .stat-hero .stat-value{font-size:clamp(40px,9vw,60px);color:#fff}
-.stat-hero-main{position:relative;z-index:1;min-width:0}
-.stat-search{position:relative;z-index:1;flex:none;width:54px;height:54px;border-radius:18px;display:grid;place-items:center;cursor:pointer;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.26);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s,transform .2s}
-.stat-search:hover{background:rgba(255,255,255,.28)}
+.stat-hero-main{position:relative;z-index:1;min-width:0;flex:1 1 auto}
+.stat-search{position:relative;z-index:2;flex:0 0 54px;width:54px;height:54px;border-radius:18px;display:grid;place-items:center;cursor:pointer;color:#fff;background:rgba(255,255,255,.26);border:1px solid rgba(255,255,255,.38);box-shadow:0 6px 18px rgba(0,0,0,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s,transform .2s}
+.stat-search:hover{background:rgba(255,255,255,.36)}
 .stat-search:active{transform:scale(.94)}
 .stat-search svg{width:22px;height:22px}
 .stat-sub{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
