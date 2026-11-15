@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LuciBet — Match Day Edge · Promo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
+body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden}
+.scene{position:absolute;inset:0;opacity:0;visibility:hidden}
+.bg{position:absolute;inset:0}
+.bg.white{background:radial-gradient(ellipse at 50% 40%,#ffffff 0%,#f3f3f6 60%,#eaeaef 100%)}
+.bg.black{background:#000}
+.a{position:absolute;will-change:transform,opacity}
+
+/* section label */
+.label{left:110px;top:64px;font-size:21px;letter-spacing:.32em;font-weight:600;color:#1a1a22;display:flex;align-items:center;gap:20px}
+.label b{color:#2d7bff;font-weight:700}
+.label i{display:block;width:52px;height:1.5px;background:#9a9aa8}
+.label .tag{letter-spacing:.08em;font-size:14px;background:#2d7bff;color:#fff;padding:3px 9px;border-radius:6px}
+
+/* caption */
+.cap{left:0;right:0;bottom:62px;text-align:center;font-size:44px;font-weight:700;color:#14141c;letter-spacing:-.02em}
+.cap.dark{color:#fff}
+.cap em{font-style:normal;color:#2d7bff}
+
+/* stage for panel */
+.persp{position:absolute;inset:0;perspective:2400px}
+.panel{position:absolute;left:50%;top:150px;width:1300px;height:700px;margin-left:-650px;background:#0f0e1c;border:1px solid #26243f;border-radius:26px;overflow:hidden;
+  box-shadow:0 60px 120px -30px rgba(10,10,30,.45),0 24px 50px -20px rgba(10,10,30,.35);color:#F3F2FB;transform-origin:50% 50%}
+.ph{height:66px;display:flex;align-items:center;gap:14px;padding:0 26px;border-bottom:1px solid #22203a;background:#121124}
+.mark{width:36px;height:36px;border-radius:10px;background:#1f3f8f url(assets/logo.png) center/72% no-repeat;flex:none}
+.ph .nm{font-weight:700;font-size:18px}
+.ph .sub{font-size:13px;color:#8f8dab;margin-left:-4px}
+.live{display:flex;align-items:center;gap:7px;font-size:13px;color:#cfd0ea;background:#1b1a30;border:1px solid #2a2843;padding:5px 11px;border-radius:99px;margin-left:10px}
+.live:before{content:"";width:8px;height:8px;border-radius:50%;background:#2fce8f;box-shadow:0 0 0 4px rgba(47,206,143,.18)}
+.ph .sp{flex:1}
+.chip{font-size:13px;color:#cfd0ea;background:#1b1a30;border:1px solid #2a2843;padding:7px 13px;border-radius:10px}
+.chip.blue{background:#2d7bff;border-color:#2d7bff;color:#fff;font-weight:600}
+.pb{padding:24px 28px}
+.card{background:#16152a;border:1px solid #24223d;border-radius:16px}
+.muted{color:#8f8dab}
+.g{color:#2fce8f}.r{color:#fb6f84}.y{color:#f5b13d}.bl{color:#5b9bff}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:5px 10px;border-radius:8px}
+.badge.ev{background:rgba(47,206,143,.14);color:#2fce8f;border:1px solid rgba(47,206,143,.38)}
+.badge.n{background:#1f1e36;color:#aeacc9;border:1px solid #2a2843}
+.logo{width:34px;height:34px;object-fit:contain;flex:none}
+
+/* fixtures rows */
+.row{display:grid;grid-template-columns:90px 1fr 300px 150px;align-items:center;gap:18px;padding:15px 20px;border-bottom:1px solid #1f1e36}
+.row:last-child{border-bottom:0}
+.tm{display:flex;align-items:center;gap:12px;font-weight:600;font-size:17px}
+.vs{font-size:12px;color:#6f6d8d;margin:0 6px}
+.odds{display:flex;gap:8px}
+.odd{width:90px;text-align:center;background:#1c1b32;border:1px solid #29274a;border-radius:9px;padding:7px 0;font-size:15px;font-weight:600}
+.odd small{display:block;font-size:10px;color:#7d7b9c;font-weight:500}
+.odd.hot{border-color:#2fce8f;background:rgba(47,206,143,.1);color:#2fce8f}
+.kick{font-size:14px;color:#aeacc9}
+.kick b{display:block;color:#fff;font-size:16px}
+
+/* big number cards */
+.big{background:#fff;border-radius:22px;padding:22px 34px;text-align:center;box-shadow:0 30px 60px -20px rgba(20,20,40,.35);color:#0d0d14}
+.big b{display:block;font-size:76px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.big span{display:block;font-size:17px;color:#5f5f70;margin-top:8px;font-weight:500}
+.big.green b{color:#12a86b}
+
+/* hook tickers */
+.tk{position:absolute;font-weight:600;font-size:22px;color:#fff;white-space:nowrap}
+.hook{left:0;right:0;text-align:center;font-weight:800;color:#fff;font-size:96px;letter-spacing:-.035em;line-height:1.1}
+.strike{position:absolute;left:-2%;top:54%;height:7px;background:#fff;border-radius:4px}
+.pill{display:inline-flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:12px 20px;font-size:22px;font-weight:600;color:#14141c;box-shadow:0 10px 30px -10px rgba(0,0,0,.18)}
+.pill img{width:30px;height:30px;object-fit:contain}
+.pill b{color:#12a86b}
+
+/* grid heatmap */
+.hm{display:grid;grid-template-columns:44px repeat(6,1fr);gap:6px}
+.hm div{height:46px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:600}
+.hm .ax{color:#7d7b9c;background:none}
+.bar{height:12px;border-radius:99px;background:#24223d;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px}
+.ring{width:190px;height:190px;border-radius:50%;display:grid;place-items:center;position:relative}
+.ring .in{position:absolute;inset:18px;border-radius:50%;background:#16152a;display:grid;place-items:center;text-align:center}
+.ring b{font-size:48px;font-weight:800;letter-spacing:-.03em}
+.ring span{display:block;font-size:13px;color:#8f8dab;margin-top:-4px}
+.kv{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #22203a;font-size:16px}
+.kv:last-child{border-bottom:0}
+.tbl{width:100%;border-collapse:collapse;font-size:16px}
+.tbl th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#7d7b9c;text-align:left;padding:10px 14px;font-weight:600}
+.tbl td{padding:15px 14px;border-top:1px solid #22203a}
+.tbl td.c,.tbl th.c{text-align:center}
+.best{color:#2fce8f;font-weight:700;background:rgba(47,206,143,.1);border-radius:8px}
+.sw{display:flex;align-items:center;gap:10px;padding:13px 16px;border:1px solid #2a2843;border-radius:12px;font-size:15px;background:#1a1930}
+.sw i{width:18px;height:18px;border-radius:50%}
+.sw.on{border-color:#2d7bff;box-shadow:0 0 0 3px rgba(45,123,255,.35)}
+.tg{width:46px;height:26px;border-radius:99px;background:#2d7bff;position:relative}
+.tg:after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.tg.off{background:#33314f}.tg.off:after{right:auto;left:3px}
+.focus{position:absolute;border:3px solid #2d7bff;border-radius:14px;box-shadow:0 0 0 6px rgba(45,123,255,.18)}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const L = n => `assets/${n}.webp`;
+const stage = document.getElementById('stage');
+const scenes = [];
+function scene(t0, t1, bg){
+  const s = document.createElement('section'); s.className='scene';
+  s.innerHTML = `<div class="bg ${bg}"></div>`;
+  stage.appendChild(s); const o={el:s,t0,t1}; scenes.push(o); return s;
+}
+/* anim spec: d delay, u duration, x,y offsets, s start scale, r rotY start, rx rotX, o start opacity, e easing, f float */
+function add(parent, html, cls, style, spec){
+  const d = document.createElement('div'); d.className = 'a ' + (cls||''); d.style.cssText = style||''; d.innerHTML = html;
+  d._a = Object.assign({d:0,u:.8,x:0,y:40,s:1,r:0,rx:0,o:0,e:'oc',f:0,out:null}, spec||{});
+  parent.appendChild(d); return d;
+}
+const label = (s, n, name, tag) => add(s, `<b>${n}</b><i></i>${name}${tag?` <span class="tag">${tag}</span>`:''}`, 'label', '', {d:.15,u:.7,y:0,x:-30});
+const cap = (s, txt, d, dark) => add(s, txt, 'cap'+(dark?' dark':''), '', {d, u:.7, y:24});
+function panel(s, inner, spec, w, h, top){ h = h || inner.h;
+  const p = document.createElement('div'); p.className='persp'; s.appendChild(p);
+  const el = add(p, `<div class="ph"><div class="mark"></div><div class="nm">LuciBet</div><div class="sub">Pro Analytics</div><div class="live">Live</div><div class="sp"></div>${inner.head||''}</div><div class="pb">${inner.body}</div>`,
+    'panel', `width:${w||1300}px;height:${h||700}px;margin-left:-${(w||1300)/2}px;top:${top||Math.round(530-(h||700)/2)}px`, Object.assign({d:.25,u:1.1,y:90,s:.94,r:-14,rx:6,f:1}, spec||{}));
+  return el;
+}
+
+/* ═════════ S0 · HOOK (black) ═════════ */
+{
+  const s = scene(0, 8.2, 'black');
+  const words = ['LIVERPOOL 1.95','ARSENAL 2.40','NAPOLI 3.10','REAL MADRID 1.70','BAYERN 1.55','PSG 1.62','MILAN 2.85','CHELSEA 3.60','DORTMUND 4.20','JUVENTUS 2.25','TOTTENHAM 2.90','MAN CITY 1.48','ROMA 2.70','MAN UTD 2.55','OVER 2.5 1.88','BTTS 1.74','DRAW 3.40','AH -1 2.05'];
+  let seed = 7; const rnd = () => (seed = (seed*9301+49297)%233280)/233280;
+  for(let i=0;i<46;i++){
+    const t = document.createElement('div'); t.className='tk'; t.textContent=words[i%words.length];
+    t._tk = {x:rnd()*2100-90, y:rnd()*1180, sp:10+rnd()*22, o:.07+rnd()*.13, sz:16+rnd()*14};
+    t.style.fontSize = t._tk.sz+'px'; s.appendChild(t);
+  }
+  add(s, 'You backed the favourite.', 'hook', 'top:380px', {d:.5,u:.9,y:40});
+  const st = add(s, '', 'strike', 'top:446px;left:392px;width:0', {d:0,u:.01,y:0,o:1});
+  st._strike = {t0:3.0, t1:3.6, w:1140};
+  add(s, 'You missed <span style="color:#2fce8f">the edge.</span>', 'hook', 'top:520px', {d:2.0,u:.9,y:40});
+  add(s, 'Kick-off was the cheap part. The price was the mistake.', 'cap dark', 'bottom:120px;font-size:32px;font-weight:500;color:#9a9ab0', {d:4.2,u:.8,y:20});
+}
+
+/* ═════════ S1 · LOGO LINE (white) ═════════ */
+{
+  const s = scene(7.8, 13.7, 'white');
+  add(s, '<div class="mark" style="width:110px;height:110px;border-radius:28px;background-size:70%"></div>', '', 'left:905px;top:150px', {d:.3,u:.8,y:0,s:.6,f:1});
+  add(s, 'LuciBet finds the matches<br>worth backing, early.', 'hook', 'top:310px;color:#0d0d14;font-size:92px', {d:.7,u:.9,y:40,f:1});
+  const pills = [['arsenal','Arsenal','+7.3% EV'],['napoli','Napoli','+5.1% EV'],['psg','PSG','+4.4% EV']];
+  pills.forEach((p,i)=> add(s, `<div class="pill"><img src="${L(p[0])}">${p[1]} <b>${p[2]}</b></div>`, '', `left:${512+i*320}px;top:600px`, {d:1.6+i*.18,u:.7,y:30}));
+  cap(s, 'Football analytics on a <em>Poisson model</em> + <em>live market odds</em>.', 2.6);
+}
+
+/* ═════════ S2 · 01 FIXTURES ═════════ */
+{
+  const s = scene(13.3, 21.7, 'white');
+  label(s,'01','FIXTURES');
+  const fx = [
+    ['liverpool-fc','Liverpool','chelsea','Chelsea','Sat','17:30',['1.95','3.60','3.80'],0,'+6.1%'],
+    ['real-madrid','Real Madrid','napoli','Napoli','Sat','20:00',['1.70','4.00','4.60'],-1,''],
+    ['arsenal','Arsenal','tottenham','Tottenham','Sun','15:00',['2.40','3.40','2.90'],0,'+7.3%'],
+    ['bayern-munich','Bayern','borussia-dortmund','Dortmund','Sun','17:30',['1.55','4.50','5.20'],-1,''],
+    ['psg','PSG','milan','Milan','Sun','20:45',['1.62','4.10','5.00'],0,'+4.4%'],
+  ];
+  const rows = fx.map(f=>`<div class="row"><div class="kick"><b>${f[5]}</b>${f[4]}</div>
+    <div class="tm"><img class="logo" src="${L(f[0])}">${f[1]}<span class="vs">vs</span><img class="logo" src="${L(f[2])}">${f[3]}</div>
+    <div class="odds">${f[6].map((o,i)=>`<div class="odd ${i===f[7]?'hot':''}"><small>${['1','X','2'][i]}</small>${o}</div>`).join('')}</div>
+    <div>${f[8]?`<span class="badge ev">▲ ${f[8]} EV</span>`:'<span class="badge n">No edge</span>'}</div></div>`).join('');
+  panel(s, {h:640, head:'<div class="chip">All leagues</div><div class="chip blue">Today</div>',
+    body:`<div style="font-size:28px;font-weight:700;margin-bottom:4px">Today's Matches</div><div class="muted" style="margin-bottom:16px">Model price vs market price, every fixture.</div><div class="card">${rows}</div>`});
+  add(s, '<div class="big"><b data-n="38">0</b><span>matches modelled today</span></div>', '', 'left:120px;top:775px', {d:1.6,u:.8,y:50,s:.85});
+  add(s, '<div class="big green"><b data-n="3">0</b><span>with a real edge</span></div>', '', 'left:1555px;top:735px', {d:1.9,u:.8,y:50,s:.85});
+  cap(s, 'Every match. <em>Priced by the model.</em>', 2.6);
+}
+
+/* ═════════ S3 · 02 POISSON MODEL ═════════ */
+{
+  const s = scene(21.3, 29.7, 'white');
+  label(s,'02','POISSON MODEL');
+  const P = [[6,6,4,1,0,0],[10,11,6,2,1,0],[9,10,5,2,1,0],[5,6,3,1,0,0],[2,2,1,1,0,0],[1,1,0,0,0,0]];
+  let hm = '<div class="ax"></div>' + [0,1,2,3,4,5].map(i=>`<div class="ax">${i}</div>`).join('');
+  P.forEach((r,i)=>{ hm += `<div class="ax">${i}</div>` + r.map((v,j)=>{const a=Math.min(1,v/11); const top=(i===1&&j===1);
+    return `<div style="background:rgba(45,123,255,${.08+a*.75});${top?'outline:2px solid #2fce8f;':''}color:${a>.45?'#fff':'#9a98bb'}">${v}%</div>`}).join(''); });
+  panel(s, {h:660, head:'<div class="chip">Real Madrid vs Napoli</div><div class="chip blue">Model</div>', body:`
+    <div style="display:grid;grid-template-columns:1fr 470px;gap:24px">
+      <div class="card" style="padding:22px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px"><b style="font-size:18px">Scoreline probability</b><span class="muted" style="font-size:13px">rows: Real Madrid · cols: Napoli</span></div>
+        <div class="hm">${hm}</div></div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="card" style="padding:22px;display:flex;justify-content:space-around;text-align:center">
+          <div><img class="logo" style="width:54px;height:54px" src="${L('real-madrid')}"><div style="font-size:44px;font-weight:800;margin-top:6px">1.74</div><div class="muted" style="font-size:13px">expected goals</div></div>
+          <div style="align-self:center;color:#6f6d8d;font-weight:700">λ</div>
+          <div><img class="logo" style="width:54px;height:54px" src="${L('napoli')}"><div style="font-size:44px;font-weight:800;margin-top:6px">1.12</div><div class="muted" style="font-size:13px">expected goals</div></div>
+        </div>
+        <div class="card" style="padding:22px">
+          ${[['Home win',52,'#2d7bff'],['Draw',24,'#8f8dab'],['Away win',24,'#fb6f84']].map(x=>`<div style="display:flex;justify-content:space-between;font-size:15px;margin:4px 0 8px"><span>${x[0]}</span><b>${x[1]}%</b></div><div class="bar" style="margin-bottom:12px"><i data-w="${x[1]}" style="width:0;background:${x[2]}"></i></div>`).join('')}
+          <div class="kv"><span class="muted">Over 2.5</span><b>55%</b></div><div class="kv"><span class="muted">Both teams score</span><b>56%</b></div>
+        </div>
+      </div></div>`});
+  add(s, '<div class="big"><b>1–1</b><span>most likely score · 11%</span></div>', '', 'left:120px;top:720px', {d:1.8,u:.8,y:50,s:.85});
+  cap(s, 'A <em>Poisson engine</em>, not a hunch.', 2.6);
+}
+
+/* ═════════ S4 · 04 VALUE BETS ═════════ */
+{
+  const s = scene(29.3, 37.7, 'white');
+  label(s,'04','VALUE BETS');
+  panel(s, {h:540, head:'<div class="chip">Min EV +3%</div><div class="chip blue">Value</div>', body:`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card" style="padding:26px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px"><img class="logo" style="width:52px;height:52px" src="${L('arsenal')}"><div><div style="font-size:24px;font-weight:700">Arsenal vs Tottenham</div><div class="muted">Premier League · Sun 15:00</div></div></div>
+        <div class="muted" style="font-size:14px;letter-spacing:.06em;text-transform:uppercase">Pick</div>
+        <div style="font-size:34px;font-weight:800;margin:4px 0 22px">Arsenal to win</div>
+        <div class="kv"><span class="muted">Market odds</span><b style="font-size:20px">2.40</b></div>
+        <div class="kv"><span class="muted">Model fair odds</span><b style="font-size:20px">2.24</b></div>
+        <div class="kv"><span class="muted">Model probability</span><b style="font-size:20px">44.7%</b></div>
+        <div class="kv"><span class="muted">Market implied</span><b style="font-size:20px">41.7%</b></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="card" style="padding:26px;background:linear-gradient(140deg,#0f3a2a,#16152a 70%);border-color:rgba(47,206,143,.4)">
+          <div class="muted" style="font-size:14px;text-transform:uppercase;letter-spacing:.06em">Expected value</div>
+          <div class="g" style="font-size:96px;font-weight:800;letter-spacing:-.04em;line-height:1.05">+7.3%</div>
+          <div style="color:#bfe9d6">The price is longer than the risk.</div>
+        </div>
+        <div class="card" style="padding:22px 26px">
+          <div class="kv"><span class="muted">Confidence</span><span class="badge ev">High</span></div>
+          <div class="kv"><span class="muted">Suggested stake</span><b>2 units</b></div>
+          <div class="kv"><span class="muted">Status</span><span class="badge n">Locked at 2.40</span></div>
+        </div>
+      </div></div>`});
+  cap(s, 'Only when <em>the price is wrong.</em>', 2.4);
+}
+
+/* ═════════ S5 · 05 LIVE ODDS ═════════ */
+{
+  const s = scene(37.3, 44.2, 'white');
+  label(s,'05','LIVE ODDS');
+  const bk = [['Book A','2.30','3.45','3.00'],['Book B','2.36','3.40','2.95'],['Book C','2.40','3.35','2.88'],['Book D','2.32','3.50','2.92'],['Exchange','2.38','3.42','2.96']];
+  panel(s, {h:500, head:'<div class="chip">Arsenal vs Tottenham</div><div class="chip blue">Odds</div>', body:`
+    <div style="display:grid;grid-template-columns:1fr 400px;gap:24px">
+    <div class="card" style="padding:8px 10px"><table class="tbl"><tr><th>Bookmaker</th><th class="c">1</th><th class="c">X</th><th class="c">2</th></tr>
+    ${bk.map(b=>`<tr><td>${b[0]}</td>${[1,2,3].map(i=>`<td class="c ${b[0]==='Book C'&&i===1?'best':''}">${b[i]}</td>`).join('')}</tr>`).join('')}
+    <tr><td><b>Consensus</b></td><td class="c"><b>2.36</b></td><td class="c"><b>3.42</b></td><td class="c"><b>2.95</b></td></tr></table></div>
+    <div class="card" style="padding:22px"><b style="font-size:18px">Arsenal price, last 24h</b><div class="muted" style="font-size:13px;margin-bottom:10px">drifting out → value growing</div>
+      <svg width="350" height="250" viewBox="0 0 350 250"><defs><linearGradient id="gg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2fce8f" stop-opacity=".35"/><stop offset="1" stop-color="#2fce8f" stop-opacity="0"/></linearGradient></defs>
+      <path id="spa" d="M0 200 L40 190 L80 196 L120 170 L160 160 L200 150 L240 120 L280 104 L320 80 L350 70 L350 250 L0 250Z" fill="url(#gg)"/>
+      <path id="spl" d="M0 200 L40 190 L80 196 L120 170 L160 160 L200 150 L240 120 L280 104 L320 80 L350 70" fill="none" stroke="#2fce8f" stroke-width="4" stroke-linecap="round" stroke-dasharray="520" stroke-dashoffset="520"/></svg>
+      <div style="display:flex;justify-content:space-between;font-size:15px"><span class="muted">Open 2.18</span><b class="g">Now 2.40</b></div></div></div>`});
+  cap(s, 'Live market odds, <em>consensus-priced.</em>', 2.2);
+}
+
+/* ═════════ S6 · 06 TRACK RECORD ═════════ */
+{
+  const s = scene(43.8, 53.2, 'white');
+  label(s,'06','TRACK RECORD');
+  const dist = [['Won · EV +10%+',12,'#2fce8f'],['Won · EV +5–10%',36,'#2fce8f'],['Won · EV +3–5%',53,'#5b9bff'],['Lost',75,'#fb6f84'],['Void',6,'#8f8dab']];
+  panel(s, {h:540, head:'<div class="chip">Last 30 days</div><div class="chip blue">Performance</div>', body:`
+    <div style="display:grid;grid-template-columns:420px 1fr;gap:24px">
+      <div class="card" style="padding:26px;display:flex;flex-direction:column;align-items:center;gap:18px">
+        <div class="ring" id="ring" style="background:conic-gradient(#2fce8f 0deg,#24223d 0)"><div class="in"><div><b data-n="57" data-suf="%">0</b><span>hit rate</span></div></div></div>
+        <div style="width:100%"><div class="kv"><span class="muted">Picks settled</span><b>182</b></div><div class="kv"><span class="muted">ROI</span><b class="g">+14.2%</b></div><div class="kv"><span class="muted">Avg. odds</span><b>1.99</b></div></div>
+      </div>
+      <div class="card" style="padding:26px">
+        <b style="font-size:20px">Results by edge</b><div class="muted" style="font-size:14px;margin-bottom:20px">Every pick is logged before kick-off and settled after.</div>
+        ${dist.map(x=>`<div style="display:grid;grid-template-columns:200px 1fr 50px;align-items:center;gap:16px;margin:16px 0;font-size:16px"><span>${x[0]}</span><div class="bar" style="height:14px"><i data-w="${x[1]*1.2}" style="width:0;background:${x[2]}"></i></div><b style="text-align:right">${x[1]}</b></div>`).join('')}
+      </div></div>`});
+  add(s, `<div class="card" style="width:430px;padding:24px;background:linear-gradient(135deg,#123a7a,#0f0e1c 75%);border-color:#2d5bb5;color:#fff;box-shadow:0 40px 80px -20px rgba(10,20,60,.6)">
+      <div style="display:flex;align-items:center;gap:10px"><div class="mark" style="width:30px;height:30px"></div><b>LuciBet</b><span style="margin-left:auto;font-size:12px;color:#9fb6e8">Match Day Edge</span></div>
+      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 10px"><img class="logo" src="${L('arsenal')}"><b style="font-size:20px">Arsenal to win</b></div>
+      <div style="display:flex;gap:10px"><span style="background:#2fce8f;color:#06281b;font-weight:800;font-size:30px;padding:4px 14px;border-radius:8px">WON</span><span style="border:1px solid #2fce8f;color:#2fce8f;font-weight:800;font-size:30px;padding:4px 14px;border-radius:8px">+7.3% EV</span></div>
+      <div style="margin-top:14px;font-size:14px;color:#b9c6e6">Flagged at 2.40 · 2 days before kick-off</div></div>`, '', 'left:1440px;top:668px', {d:2.2,u:.9,y:60,s:.85,r:12,f:1});
+  cap(s, 'Every pick, <em>logged and settled.</em>', 2.8);
+}
+
+/* ═════════ S7 · 08 DEMO ARENA ═════════ */
+{
+  const s = scene(52.8, 60.2, 'white');
+  label(s,'08','DEMO ARENA');
+  panel(s, {h:500, head:'<div class="chip">Virtual credits</div><div class="chip blue">Arena</div>', body:`
+    <div style="display:grid;grid-template-columns:420px 1fr;gap:24px">
+      <div class="card" style="padding:26px">
+        <div class="muted" style="font-size:14px;text-transform:uppercase;letter-spacing:.06em">Balance</div>
+        <div style="font-size:64px;font-weight:800;letter-spacing:-.03em"><span data-n="2000" data-fmt="1">0</span> <span style="font-size:26px;color:#8f8dab">DH</span></div>
+        <div class="muted" style="margin-bottom:20px">Virtual · no deposits, no cash-out</div>
+        <div class="kv"><span class="muted">Open predictions</span><b>4</b></div><div class="kv"><span class="muted">Settled</span><b>27</b></div><div class="kv"><span class="muted">Best streak</span><b class="g">6 wins</b></div>
+      </div>
+      <div class="card" style="padding:26px">
+        <b style="font-size:20px">New prediction</b>
+        <div style="display:flex;align-items:center;gap:12px;margin:20px 0"><img class="logo" style="width:44px;height:44px" src="${L('liverpool-fc')}"><b style="font-size:22px">Liverpool vs Chelsea</b><span class="badge ev" style="margin-left:auto">▲ +6.1% EV</span></div>
+        <div class="odds" style="margin-bottom:22px"><div class="odd hot" style="width:150px"><small>Liverpool</small>1.95</div><div class="odd" style="width:150px"><small>Draw</small>3.60</div><div class="odd" style="width:150px"><small>Chelsea</small>3.80</div></div>
+        <div class="kv"><span class="muted">Stake</span><b>150 DH</b></div><div class="kv"><span class="muted">Potential return</span><b class="g">292.50 DH</b></div>
+        <div style="margin-top:20px;background:#2d7bff;border-radius:12px;padding:15px;text-align:center;font-weight:700;font-size:17px">Place virtual prediction</div>
+      </div></div>`});
+  cap(s, 'Test your reads. <em>Zero real money.</em>', 2.4);
+}
+
+/* ═════════ S8 · 12 YOUR LOOK ═════════ */
+{
+  const s = scene(59.8, 66.7, 'white');
+  label(s,'12','YOUR LOOK');
+  panel(s, {h:620, head:'<div class="chip blue">Save</div>', body:`
+    <div style="font-size:26px;font-weight:700;margin-bottom:4px">Settings</div><div class="muted" style="margin-bottom:20px">Theme, language and model filters, saved to your account.</div>
+    <div class="card" style="padding:22px;margin-bottom:18px"><b>Theme</b>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px" id="themes">
+        <div class="sw"><i style="background:#8b7bff"></i>Midnight</div><div class="sw on"><i style="background:#2d7bff"></i>Pro Blue</div><div class="sw"><i style="background:#f1f5f9"></i>Light</div><div class="sw"><i style="background:#12a150"></i>Fintech</div></div></div>
+    <div class="card" style="padding:22px"><b>Model filters</b>
+      ${[['Minimum edge','+3% EV',1],['Show only top leagues','12 leagues',1],['Include draw markets','',0],['Language','English · Français · العربية',1]].map(x=>`<div class="kv" style="align-items:center"><span>${x[0]}</span><span style="display:flex;align-items:center;gap:14px"><span class="muted">${x[1]}</span>${x[1].includes('·')?'':`<span class="tg ${x[2]?'':'off'}"></span>`}</span></div>`).join('')}
+    </div>`});
+  cap(s, 'Make it <em>yours.</em>', 2.2);
+}
+
+/* ═════════ S9 · OUTRO (black) ═════════ */
+{
+  const s = scene(66.3, 73.0, 'black');
+  add(s, `<div style="display:flex;align-items:center;gap:30px"><div style="width:130px;height:130px;background:url(assets/logo.png) center/contain no-repeat"></div><div style="font-size:112px;font-weight:800;color:#fff;letter-spacing:-.04em">LuciBet</div></div>`, '', 'left:0;right:0;top:330px;display:flex;justify-content:center', {d:.05,u:1,y:0,s:.9,f:1});
+  add(s, 'MATCH DAY EDGE', '', 'left:0;right:0;top:500px;text-align:center;color:#5b9bff;font-size:28px;letter-spacing:.5em;font-weight:600', {d:.9,u:.9,y:16});
+  add(s, 'Find the edge. <span style="color:#2fce8f">The decision is yours.</span>', 'hook', 'top:610px;font-size:54px', {d:1.6,u:.9,y:24,f:1});
+  add(s, '1uciferxyz.com', '', 'left:0;right:0;top:760px;text-align:center;color:#fff;font-size:30px;font-weight:600', {d:2.4,u:.8,y:16});
+  add(s, '18+ · Statistical estimates, not guarantees. Play responsibly.', '', 'left:0;right:0;bottom:60px;text-align:center;color:#6d6d80;font-size:20px', {d:2.8,u:.8,y:0});
+}
+
+/* ═════════ ENGINE ═════════ */
+const EZ = { oc:t=>1-Math.pow(1-t,3), oq:t=>1-Math.pow(1-t,5), io:t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2 };
+const cl = (x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const FADE = .4;
+window.DURATION = 73.0;
+window.renderFrame = function(T){
+  for(const sc of scenes){
+    const on = T >= sc.t0 && T < sc.t1;
+    sc.el.style.visibility = on ? 'visible':'hidden';
+    if(!on){ sc.el.style.opacity = 0; continue; }
+    const lp = T - sc.t0;
+    const fi = sc.t0 === 0 ? 1 : EZ.io(cl(lp/FADE));
+    sc.el.style.opacity = fi;  // incoming scene dissolves over the opaque outgoing one: no dip
+    const dur = sc.t1 - sc.t0;
+    sc.el.querySelectorAll('.a').forEach(el=>{
+      const a = el._a; const k = cl((lp - a.d)/a.u); const e = EZ[a.e](k);
+      // gentle exit drift in last 0.6s
+      const ex = cl((lp - (dur - .6))/.6);
+      const fl = a.f ? Math.sin((lp)*1.1)*6 : 0;
+      const dr = a.f ? -lp*3 : 0;
+      el.style.opacity = a.o + (1-a.o)*e;
+      el.style.transform = `translate3d(${a.x*(1-e)}px,${a.y*(1-e) + fl + dr*0 - ex*20}px,0) scale(${a.s+(1-a.s)*e + (a.f?lp*.004:0)}) rotateY(${a.r*(1-e) + (a.f? Math.sin(lp*.6)*1.5:0)}deg) rotateX(${a.rx*(1-e)}deg)`;
+      if(el._strike){ const sk = EZ.oc(cl((T - el._strike.t0)/(el._strike.t1-el._strike.t0))); el.style.width = (el._strike.w*sk)+'px'; el.style.transform='none'; el.style.opacity=1; }
+      el._k = e;
+    });
+    // count-ups / bars / ring / sparkline, tied to the host anim progress
+    sc.el.querySelectorAll('[data-n]').forEach(n=>{
+      const host = n.closest('.a'); const e = EZ.oc(cl(((lp - host._a.d - .2)/1.4)));
+      const v = Math.round(+n.dataset.n * e);
+      n.textContent = (n.dataset.fmt ? v.toLocaleString('en-US') : v) + (n.dataset.suf||'');
+    });
+    sc.el.querySelectorAll('[data-w]').forEach((b,i)=>{ const e = EZ.oc(cl((lp - 1.2 - i*.08)/1.1)); b.style.width = (+b.dataset.w*e)+'%'; });
+    const ring = sc.el.querySelector('#ring'); if(ring){ const e = EZ.oc(cl((lp-1.2)/1.4)); ring.style.background = `conic-gradient(#2fce8f ${360*.574*e}deg,#24223d 0)`; }
+    const spl = sc.el.querySelector('#spl'); if(spl){ const e = EZ.io(cl((lp-1.1)/1.6)); spl.setAttribute('stroke-dashoffset', 520*(1-e)); }
+    sc.el.querySelectorAll('.tk').forEach(t=>{ const k=t._tk; const y = (((k.y - T*k.sp*2) % 1220) + 1220) % 1220 - 60; t.style.transform=`translate(${k.x}px,${y}px)`; t.style.opacity=k.o; });
+  }
+};
+window.renderFrame(0);
+</script>
+</body>
+</html>
