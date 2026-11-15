@@ -11,6 +11,8 @@
    Radius: sm 12 (buttons, inputs, tags) · lg 20 (cards, sheets) · pill (chips, round buttons)
    Use these variables instead of pixel values so every screen stays on the same scale. */
 :root{--fs-xs:12px;--fs-sm:14px;--fs-md:16px;--fs-lg:20px;--fs-xl:24px;--fs-2xl:32px;--fs-3xl:48px;--r-sm:12px;--r-lg:20px;--r-pill:999px}
+/* Fixed brand colours that are not part of a theme */
+:root{--tg:#0F6F9E;--away:#F97316}
 
 :root, [data-theme="dark"]{
   color-scheme: dark;
@@ -143,7 +145,7 @@ button,select,input{font:inherit;color:inherit}
 .btn-main:active,.auth-btn:active{transform:scale(.97)}
 .btn-tg{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--r-pill);background:var(--card);color:var(--ink);border:1px solid var(--line-2);font-weight:600;font-size:var(--fs-md);padding:13px 22px;text-decoration:none}
 .btn-tg svg{color:#229ED9}
-.btn-tg.plan-tg{width:100%;background:#0F6F9E;color:#fff;border:0}
+.btn-tg.plan-tg{width:100%;background:var(--tg);color:#fff;border:0}
 .btn-tg.plan-tg svg{color:#fff}
 .feature-grid{order:5;grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .feature-card{display:flex;flex-direction:column;gap:14px;padding:26px}
@@ -215,9 +217,9 @@ button,select,input{font:inherit;color:inherit}
 .m-league{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)}
 .m-top-right{display:flex;align-items:center;gap:6px}
 .mh-quality{padding:3px 9px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:700;letter-spacing:.04em;background:var(--soft);color:var(--ink-3)}
-.mh-quality.high{background:var(--bad-dim);color:var(--bad)}
+.mh-quality.high{background:var(--good-dim);color:var(--good)}
 .mh-quality.medium{background:var(--warn-dim);color:var(--warn)}
-.mh-quality.low{background:var(--good-dim);color:var(--good)}
+.mh-quality.low{background:var(--bad-dim);color:var(--bad)}
 .bell-btn,.pin-btn{width:30px;height:30px;border-radius:50%;background:var(--soft);border:0;color:var(--ink-3);display:grid;place-items:center;cursor:pointer;padding:0;transition:.2s}
 .bell-btn svg,.pin-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .bell-btn.on,.pin-btn.on{background:var(--brand-dim);color:var(--brand)}
@@ -317,7 +319,7 @@ button,select,input{font:inherit;color:inherit}
 .nav-item{display:flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--ink-3);border-radius:var(--r-pill);padding:9px 16px;font-size:var(--fs-sm);font-weight:600;cursor:pointer;transition:background .25s,color .25s}
 .nav-item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .nav-item.active{background:var(--ink);color:var(--card)}
-.tg-fab{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;background:#0F6F9E;display:grid;place-items:center;z-index:55;box-shadow:0 12px 28px -10px rgba(34,158,217,.7)}
+.tg-fab{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;background:var(--tg);display:grid;place-items:center;z-index:55;box-shadow:0 12px 28px -10px rgba(34,158,217,.7)}
 .tg-fab svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-left:-2px}
 .tg-fab.tab-off{display:none}
 .modal-overlay{position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
@@ -1160,7 +1162,7 @@ body{background:transparent!important}
 .mi-lg{font-size:var(--fs-xs);color:var(--ink-3);margin:4px 0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mi-badge{display:inline-flex;align-items:center;gap:6px;border-radius:var(--r-pill);padding:5px 10px;font-size:var(--fs-xs);font-weight:800;margin-top:10px}
 .mi-badge.full{background:rgba(52,211,153,.14);color:var(--good)}
-.mi-badge.mostly{background:rgba(251,191,36,.14);color:#fbbf24}
+.mi-badge.mostly{background:var(--warn-dim);color:var(--warn)}
 .mi-badge.weakened,.mi-badge.rotated{background:rgba(248,113,113,.14);color:var(--bad)}
 .mi-badge.unknown{background:var(--soft);color:var(--ink-3)}
 .mi-sub{display:block;font-size:var(--fs-xs);color:var(--ink-3);margin-top:6px;line-height:1.4}
@@ -1170,7 +1172,7 @@ body{background:transparent!important}
 .mi-line{display:flex;justify-content:space-around;gap:2px;position:relative}
 .mi-pl{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;flex:1}
 .mi-pl i{width:24px;height:24px;border-radius:50%;background:#fff;color:#111;font-style:normal;font-size:var(--fs-xs);font-weight:800;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.4)}
-.mi-pl.new i{background:#fbbf24}
+.mi-pl.new i{background:var(--warn)}
 .mi-pl span{font-size:var(--fs-xs);color:#fff;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .mi-list{display:flex;flex-direction:column}
 .mi-li{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);padding:6px 0;border-bottom:1px solid var(--line)}
@@ -1180,11 +1182,11 @@ body{background:transparent!important}
 .mi-li .ps{font-size:var(--fs-xs);color:var(--ink-3);flex:none}
 .mi-tag{font-size:var(--fs-xs);font-weight:800;border-radius:var(--r-pill);padding:2px 8px;flex:none}
 .mi-tag.out{background:rgba(248,113,113,.15);color:var(--bad)}
-.mi-tag.doubt{background:rgba(251,191,36,.15);color:#fbbf24}
-.mi-tag.new{background:rgba(251,191,36,.15);color:#fbbf24}
+.mi-tag.doubt{background:var(--warn-dim);color:var(--warn)}
+.mi-tag.new{background:var(--warn-dim);color:var(--warn)}
 .mi-h2h-bar{display:flex;height:10px;border-radius:var(--r-pill);overflow:hidden;background:var(--soft);margin:10px 0 8px}
 .mi-h2h-bar i{display:block;height:100%}
-.mi-h2h-bar .h{background:var(--brand)}.mi-h2h-bar .d{background:var(--ink-3)}.mi-h2h-bar .a{background:#f97316}
+.mi-h2h-bar .h{background:var(--brand)}.mi-h2h-bar .d{background:var(--ink-3)}.mi-h2h-bar .a{background:var(--away)}
 .mi-h2h-n{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:6px}
 .mi-h2h-n b{display:block;font-size:var(--fs-xl);font-weight:800;letter-spacing:-.03em}
 .mi-h2h-n small{font-size:var(--fs-xs);color:var(--ink-3)}
@@ -1271,3 +1273,44 @@ body{background:transparent!important}
 .sso-apple svg{ margin-top:-2px; }
 .auth-divider{ display:flex; align-items:center; gap:10px; color:var(--ink-3); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.08em; margin:2px 0; }
 .auth-divider::before, .auth-divider::after{ content:""; flex:1; height:1px; background:var(--line, rgba(255,255,255,.12)); }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   6. POLISH — match card, bottom nav, Telegram button, sheets
+   Last section on purpose: it must win over the older sections above.
+   ═══════════════════════════════════════════════════════════════ */
+/* Match card header: a long league name is cut with "…" instead of pushing the buttons; buttons are 36px so a thumb hits them */
+.m-top{min-width:0}
+.m-league{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-top-right{flex:none}
+.bell-btn,.pin-btn{width:36px;height:36px}
+/* Match card rows: thin dividers, and the main 1X2 pick reads first */
+.kv{gap:0}
+.kv-row{padding:9px 0;border-top:1px solid var(--line)}
+.kv-row:first-child{border-top:0;padding-top:0}
+.kv-row:last-child{padding-bottom:0}
+.kv-row.main>span{color:var(--ink-2);font-weight:600}
+.kv-row.main b{font-size:var(--fs-md);font-weight:800;color:var(--ink)}
+.kv-row>span{flex:none;white-space:nowrap}
+.kv-row>div,.kv-row>b{text-align:end;min-width:0}
+
+/* Bottom nav on phones and tablets: every tab keeps its label (icon above text), so nobody has to guess an icon */
+@media (max-width:959px){
+  .bottom-nav .nav-item,.bottom-nav .nav-item.active{flex:1;flex-direction:column;gap:3px;padding:8px 6px;min-height:52px}
+  .bottom-nav .nav-item span,.bottom-nav .nav-item.active span{display:inline;font-size:var(--fs-xs);font-weight:600;line-height:1.1}
+}
+
+/* Telegram button: slides away while the page scrolls down (it used to sit on top of the numbers), comes back on scroll up */
+.tg-fab{transition:transform .25s ease,opacity .2s ease}
+.tg-fab.fab-away{transform:translateY(24px) scale(.9);opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.tg-fab{transition:none}.tg-fab.fab-away{transform:none}}
+
+/* Error box inside sheets: a plain panel, not a dashed placeholder */
+.fb-err{border:0;background:var(--soft);border-radius:var(--r-lg)}
+
+/* Team news on phones: a bottom sheet (full width, anchored to the bottom, grab handle) instead of a floating box */
+@media (max-width:560px){
+  #miModal.modal-overlay{align-items:flex-end;padding:0}
+  #miModal .mi-box{width:100%;max-height:88vh;border-radius:var(--r-lg) var(--r-lg) 0 0;border-bottom:0;padding:26px 16px calc(20px + env(safe-area-inset-bottom,0px));transform-origin:50% 100%}
+  #miModal .mi-box::before{content:"";position:absolute;top:8px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:var(--r-pill);background:var(--line-2);opacity:1}
+}

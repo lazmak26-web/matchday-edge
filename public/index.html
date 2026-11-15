@@ -131,7 +131,7 @@
       <section style="margin-top:24px; max-width:600px; margin-inline:auto;">
         <div class="section-head"><div><div class="section-label">Community</div><h2>Discover</h2></div></div>
         
-        <div id="adminPostForm" class="chart-card hidden" style="margin-bottom:20px;">
+        <div id="adminPostForm" class="chart-card hidden" style="margin-bottom:24px;">
           <h3 style="margin-bottom:12px; font-size:var(--fs-md);">Create a Post</h3>
           <textarea id="postText" class="auth-input" placeholder="What's happening?" style="height:80px; resize:none; margin-bottom:8px; font:inherit;"></textarea>
           <input type="file" id="postImage" class="auth-input" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" style="padding:10px; margin-bottom:8px;">
@@ -161,7 +161,7 @@
         <div class="section-head"><div class="section-label"><span data-i18n="bot_stats">Bot Stats</span></div><h2 data-i18n="perf_overview">Performance Overview</h2></div>
         <div class="perf-grid">
           <div class="perf-card hero">
-            <div class="perf-val" id="perf-winrate" style="color:#10B981;">0%</div>
+            <div class="perf-val" id="perf-winrate" style="color:var(--good);">0%</div>
             <div class="perf-lbl" data-i18n="win_rate_today">Today's Win Rate</div>
             <div class="perf-track"><div class="perf-fill" id="perf-bar"></div></div>
           </div>
@@ -340,7 +340,7 @@
       <h2 data-i18n="filters_title">Model Filters</h2>
       <button class="icon-btn" style="width:32px; height:32px; border-radius:50%;" onclick="closeFilterModal()">✕</button>
     </div>
-    <p data-i18n="filters_sub" style="margin-bottom:20px;">Adjust how the bot calculates Value Bets.</p>
+    <p data-i18n="filters_sub" style="margin-bottom:24px;">Adjust how the bot calculates Value Bets.</p>
 
     <div class="control-panel">
       <div>
@@ -364,9 +364,9 @@
       <div id="fpreview" class="control-hint" style="background:var(--soft); padding:12px 14px; border-radius:var(--r-sm); line-height:1.5;"></div>
 
       <div class="quality-legend">
-        <span class="ql-item"><span class="ql-dot" style="background:var(--bad)"></span><span data-i18n="q_high">High — direct xG + odds</span></span>
+        <span class="ql-item"><span class="ql-dot" style="background:var(--good)"></span><span data-i18n="q_high">High — direct xG + odds</span></span>
         <span class="ql-item"><span class="ql-dot" style="background:var(--warn)"></span><span data-i18n="q_med">Medium — forms-derived xG</span></span>
-        <span class="ql-item"><span class="ql-dot" style="background:var(--good)"></span><span data-i18n="q_low">Low — H2H estimate</span></span>
+        <span class="ql-item"><span class="ql-dot" style="background:var(--bad)"></span><span data-i18n="q_low">Low — H2H estimate</span></span>
         <span class="ql-item"><span class="ql-dot" style="background:var(--ink-3)"></span><span data-i18n="q_est">Est. — league average</span></span>
       </div>
     </div>
@@ -397,7 +397,7 @@
       <button class="icon-btn" style="width:32px; height:32px; border-radius:50%;" onclick="closeSettingsModal()">✕</button>
     </div>
 
-    <div class="control-panel" style="margin-top:20px;">
+    <div class="control-panel" style="margin-top:24px;">
       <div style="background: var(--soft); padding: 16px; border-radius: var(--r-lg);">
         <div style="margin-bottom: 12px;">
           <label class="control-label" data-i18n="lang_label">Language</label>
@@ -407,7 +407,7 @@
             <option value="ar">العربية</option>
           </select>
         </div>
-        <div style="margin-top:18px;">
+        <div style="margin-top:16px;">
           <label class="control-label" data-i18n="theme_label">Theme</label>
           <div id="themeGrid" class="theme-grid" role="radiogroup" aria-label="Theme"></div>
           <select id="themeSelect" class="settings-select" hidden style="display:none">
@@ -1638,7 +1638,7 @@ function miLineupCol(tm, lu) {
     <div class="mi-stat"><span>${esc(t.mi_formation || 'Formation')}</span><b>${esc(lu.formation || '—')}</b></div>
     ${lu.coach ? `<div class="mi-stat"><span>${esc(t.fb_coach || 'Coach')}</span><b>${esc(lu.coach)}</b></div>` : ''}
     ${ch}
-    <div style="margin-top:10px">${miPitch(lu, newIds)}</div>
+    <div style="margin-top:12px">${miPitch(lu, newIds)}</div>
     <div class="mi-list">${lu.xi.map(pl).join('')}</div>
     ${lu.subs && lu.subs.length ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:var(--fs-sm);font-weight:700;color:var(--ink-2)">${esc(t.mi_subs || 'Substitutes')} (${lu.subs.length})</summary><div class="mi-list">${lu.subs.map(pl).join('')}</div></details>` : ''}
   </div>`;
@@ -1659,10 +1659,10 @@ function miH2H(d) {
     return `<div class="mi-game"><span class="dt">${esc(g.date)}<br>${esc(g.league || '')}</span><span class="h${hw ? ' w' : ''}">${esc(g.home)}</span><span class="sc">${g.hs} - ${g.as}${g.pen ? ` <small>(${g.pen.h}-${g.pen.a}p)</small>` : ''}</span><span class="a${aw ? ' w' : ''}">${esc(g.away)}</span></div>`;
   }).join('');
   const known = h.homeWins != null && h.awayWins != null;
-  return `<div class="mi-col" style="margin-bottom:10px">
+  return `<div class="mi-col" style="margin-bottom:12px">
     <div class="mi-stat"><span>${esc(t.mi_h2h_total || 'Matches played')}</span><b>${h.total}</b></div>
     ${known ? `<div class="mi-h2h-bar"><i class="h" style="width:${pc(h.homeWins)}%"></i><i class="d" style="width:${pc(h.draws)}%"></i><i class="a" style="width:${pc(h.awayWins)}%"></i></div>
-    <div class="mi-h2h-n"><div><b style="color:var(--brand)">${h.homeWins}</b><small>${esc(d.home.name)} ${esc(t.mi_wins || 'wins')}</small></div><div><b>${h.draws ?? 0}</b><small>${esc(t.draw || 'Draw')}</small></div><div><b style="color:#f97316">${h.awayWins}</b><small>${esc(d.away.name)} ${esc(t.mi_wins || 'wins')}</small></div></div>` : ''}
+    <div class="mi-h2h-n"><div><b style="color:var(--brand)">${h.homeWins}</b><small>${esc(d.home.name)} ${esc(t.mi_wins || 'wins')}</small></div><div><b>${h.draws ?? 0}</b><small>${esc(t.draw || 'Draw')}</small></div><div><b style="color:var(--away)">${h.awayWins}</b><small>${esc(d.away.name)} ${esc(t.mi_wins || 'wins')}</small></div></div>` : ''}
     ${h.homeGoals != null ? `<div class="mi-stat" style="margin-top:8px"><span>${esc(t.mi_goals || 'Goals')} (${esc(d.home.name)} : ${esc(d.away.name)})</span><b>${h.homeGoals} : ${h.awayGoals}</b></div>` : ''}
   </div>${games ? `<div class="mi-col"><h4>${esc(t.mi_last_meet || 'Last meetings')}</h4>${games}</div>` : ''}`;
 }
@@ -2138,7 +2138,7 @@ function buildCard(r, t) {
       ${probHTML}
       <div class="kv">
         <div class="kv-row"><span>${t.scoreline}</span><div>${scoreHTML}</div></div>
-        <div class="kv-row"><span>${t.pick_1x2}</span><b>${v.main1x2 ? esc(v.main1x2.sel) + ' (' + pctS(v.main1x2.p) + ')' : NA}</b></div>
+        <div class="kv-row main"><span>${t.pick_1x2}</span><div>${v.main1x2 ? `<b>${esc(v.main1x2.sel)}</b><em>${pctS(v.main1x2.p)}</em>` : NA}</div></div>
         <div class="kv-row"><span>${t.over_under}</span><div>${v.mainOU ? `<b>${esc(v.mainOU.selection)}</b><em>${esc(v.mainOU.confidence)}</em>` : NA}</div></div>
         ${v.mainOU15 ? `<div class="kv-row"><span>${t.over_under} 1.5</span><div><b>${esc(v.mainOU15.selection)}</b><em>${v.mainOU15.est ? '~' : ''}${esc(v.mainOU15.confidence)}</em></div></div>` : ''}
       </div>
@@ -2638,7 +2638,7 @@ function renderWeekly() {
   const t = tNow(), range = agentRange, buckets = agentBuckets(range);
   const unit = range === '7d' ? (t.total_picks || 'picks') : (t.total_picks || 'picks');
   const W = buckets.reduce((a, d) => a + d.w, 0), L = buckets.reduce((a, d) => a + d.l, 0), tot = W + L, rate = tot ? Math.round(W / tot * 100) : 0;
-  $('weeklyTop').innerHTML = `<div class="perf-card hero"><div class="perf-val" style="color:#10B981">${rate}%</div><div class="perf-lbl">${t.win_rate}</div><div class="perf-track"><div class="perf-fill" style="width:${rate}%"></div></div></div>
+  $('weeklyTop').innerHTML = `<div class="perf-card hero"><div class="perf-val" style="color:var(--good)">${rate}%</div><div class="perf-lbl">${t.win_rate}</div><div class="perf-track"><div class="perf-fill" style="width:${rate}%"></div></div></div>
     <div class="perf-card"><div class="perf-val" style="color:var(--good)">${W}</div><div class="perf-lbl">${t.wins}</div></div>
     <div class="perf-card"><div class="perf-val" style="color:var(--bad)">${L}</div><div class="perf-lbl">${t.losses}</div></div>
     <div class="perf-card"><div class="perf-val" style="color:var(--ink-2)">${tot}</div><div class="perf-lbl">${t.total_picks}</div></div>`;
@@ -2664,7 +2664,7 @@ function renderUnlock() {
   $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p>
     <ul class="plan-feats">${[t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5].map(f => `<li>${esc(f)}</li>`).join('')}</ul>
     <a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${isPro() ? t.plan_renew : t.plan_get}</span></a>
-    ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:10px" onclick="openLicenseModal()">${t.lic_have}</button>`}
+    ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:12px" onclick="openLicenseModal()">${t.lic_have}</button>`}
     <p class="plan-note">${t.plan_note.replace('{email}', esc(p.username || ''))}</p></div>`;
 }
 
@@ -3026,6 +3026,18 @@ setInterval(async () => {
     await pollFeed();
   }
 }, 30000);
+
+// Telegram button: out of the way while reading down the list, back as soon as the page scrolls up or reaches the top.
+(function () {
+  const fab = document.getElementById('tgFab'); if (!fab) return;
+  let last = window.scrollY || 0;
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY || 0, d = y - last;
+    if (Math.abs(d) <= 6 && y >= 80) return;   // ignore jitter
+    fab.classList.toggle('fab-away', y >= 80 && d > 0);
+    last = y;
+  }, { passive: true });
+})();
 </script>
 
 <script defer src="motion.js"></script>
