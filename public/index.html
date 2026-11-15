@@ -176,10 +176,36 @@ button,select,input{font:inherit;color:inherit}
 .section-head h2{font-size:clamp(26px,4.4vw,44px);letter-spacing:-.035em;line-height:1.05;font-weight:700;color:var(--text-main)}
 .hide-btn,.filter-btn{border:1px solid var(--line);background:var(--card);color:var(--ink-2);border-radius:999px;padding:8px 16px;font-weight:600;font-size:13px;cursor:pointer}
 .filter-btn{width:42px;height:42px;padding:0;display:grid;place-items:center}
-.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.stat-strip{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 .stat-item{padding:20px;border-radius:24px}
 .stat-value{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.04em;line-height:1}
 .stat-label{font-size:12.5px;color:var(--ink-3);margin-top:8px}
+/* hero "Matches" panel with built-in search */
+.stat-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 24px;border-radius:28px;background:var(--grad);color:var(--on-brand);position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.stat-hero::after{content:"";position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.14);filter:blur(10px);pointer-events:none}
+.stat-hero .stat-label{color:rgba(255,255,255,.82);margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+.stat-hero .stat-value{font-size:clamp(40px,9vw,60px);color:#fff}
+.stat-hero-main{position:relative;z-index:1;min-width:0}
+.stat-search{position:relative;z-index:1;flex:none;width:54px;height:54px;border-radius:18px;display:grid;place-items:center;cursor:pointer;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.26);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s,transform .2s}
+.stat-search:hover{background:rgba(255,255,255,.28)}
+.stat-search:active{transform:scale(.94)}
+.stat-search svg{width:22px;height:22px}
+.stat-sub{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat-sub .stat-value{font-size:clamp(24px,5vw,32px)}
+#searchBtn{display:none!important}
+/* search bar (shown under the header when search opens) */
+.search-bar{display:flex;align-items:center;gap:10px;height:52px;padding:0 10px 0 18px;margin:12px 0 0;border-radius:26px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);opacity:0;transform:translateY(-8px);transition:opacity .2s,transform .2s}
+.search-bar.open{opacity:1;transform:none}
+.search-bar svg{flex:none;color:var(--ink-3)}
+.search-bar input{flex:1;min-width:0;height:100%;border:0;background:transparent;color:var(--ink);font:600 16px var(--font);outline:0}
+.search-bar input::placeholder{color:var(--ink-3);font-weight:500}
+.search-bar input::-webkit-search-cancel-button{display:none}
+.search-bar button{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:var(--soft);color:var(--ink-2);cursor:pointer;font-size:15px}
+/* segmented time-range control (Agent Stats) */
+.range-tabs{display:inline-flex;gap:4px;padding:5px;margin:4px 0 18px;border-radius:999px;background:var(--soft);border:1px solid var(--line)}
+.range-tab{border:0;background:transparent;color:var(--ink-3);border-radius:999px;padding:8px 16px;font:600 13px var(--font);cursor:pointer;transition:background .2s,color .2s}
+.range-tab.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+@media (max-width:420px){.range-tabs{display:flex;width:100%}.range-tab{flex:1}}
 .board-wrap,.history-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .match-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:16px}
 .pick{padding:18px;border-radius:24px;display:flex;flex-direction:column;gap:12px}
@@ -214,6 +240,9 @@ button,select,input{font:inherit;color:inherit}
 .t-name{font-size:14px;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
 .crest{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;font-weight:700;overflow:hidden;background:var(--soft);color:var(--ink-2)}
 .crest img{width:100%;height:100%;object-fit:contain;padding:7px;display:block}
+/* real club logos sit clean on the card — no tile behind them */
+.crest.has-logo{background:transparent;border:0;overflow:visible;filter:drop-shadow(0 2px 5px rgba(0,0,0,.18))}
+.crest.has-logo img{padding:2px}
 .m-mid{display:flex;flex-direction:column;align-items:center;gap:4px}
 .m-time,.m-live-score{font-size:20px;font-weight:700;letter-spacing:-.03em}
 .m-live-score{font-size:24px}
@@ -729,7 +758,12 @@ html.lenis, html.lenis body{ height:auto; }
 
     <div id="view-weekly" class="tab-view">
       <section style="margin-top:24px;">
-        <div class="section-head"><div><div class="section-label"><span data-i18n="nav_weekly">Weekly Stats</span></div><h2 data-i18n="weekly_h">Last 7 days</h2></div></div>
+        <div class="section-head"><div><div class="section-label"><span data-i18n="nav_weekly">Agent Stats</span></div><h2 data-i18n="agent_h">Agent performance</h2></div></div>
+        <div class="range-tabs" id="agentRange" role="tablist" aria-label="Time range">
+          <button type="button" class="range-tab active" data-range="7d" role="tab" aria-selected="true" data-i18n="range_7d">Last 7 days</button>
+          <button type="button" class="range-tab" data-range="30d" role="tab" aria-selected="false" data-i18n="range_month">Last month</button>
+          <button type="button" class="range-tab" data-range="12m" role="tab" aria-selected="false" data-i18n="range_12m">12 months</button>
+        </div>
         <div class="perf-grid" id="weeklyTop"></div>
         <p class="perf-note" data-i18n="perf_note">Results of our own model's past picks. Past performance does not guarantee future results.</p>
         <div class="history-grid" id="weeklyDays" style="margin-top:16px;"></div>
@@ -1031,7 +1065,7 @@ html.lenis, html.lenis body{ height:auto; }
   <button class="side-item" type="button" data-tab="standings" onclick="menuGo('standings')"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v18"/></svg><span data-i18n="nav_standings">Standings</span></button>
   <button class="side-item" type="button" data-tab="leagues" onclick="menuGo('leagues')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="nav_leagues">Leagues</span></button>
   <button class="side-item" type="button" data-tab="performance" onclick="menuGo('performance')"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
-  <button class="side-item" type="button" data-tab="weekly" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
+  <button class="side-item" type="button" data-tab="weekly" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Agent Stats</span></button>
   <button class="side-item" type="button" data-tab="unlock" onclick="menuGo('unlock')"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
   <button class="side-item" id="menuLicBtn" type="button" onclick="menuDo(openLicenseModal)"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L21 2M16 7l3 3M14 9l2 2"/></svg><span data-i18n="lic_menu">Activate Premium</span></button>
   <button class="side-item hidden" id="menuAdminBtn" type="button" data-tab="admin" onclick="menuGo('admin')"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><path d="M9 12l2 2 4-4"/></svg><span>Admin</span></button>
@@ -1147,7 +1181,8 @@ const translations = {
     q_high: "High — direct xG + odds", q_med: "Medium — forms-derived xG", q_low: "Low — H2H estimate", q_est: "Est. — league average",
     hide: "Hide", show: "Show",
     lp_today: "Today's Matches", lp_show: "Show predictions",
-    nav_unlock: "Unlock Access", nav_weekly: "Weekly Stats", nav_support: "Support", nav_settings: "Settings",
+    nav_unlock: "Unlock Access", nav_weekly: "Agent Stats", nav_support: "Support", nav_settings: "Settings",
+    search_team: "Search a team", agent_h: "Agent performance", range_7d: "Last 7 days", range_month: "Last month", range_12m: "12 months",
     plan_lbl: "Plan", signals_lbl: "Signals", since_lbl: "Since", logout_lbl: "Log out", copy: "Copy",
     weekly_h: "Last 7 days", unlock_h: "Get full access to the signals", free_board: "Value bets are available on the Pro plan.",
     pf_1: "Daily +EV value bets", pf_2: "Win probabilities for every match", pf_3: "Over/Under and scoreline predictions", pf_4: "Match-start notifications", pf_5: "Live scores",
@@ -1203,7 +1238,8 @@ const translations = {
     q_high: "Haute — xG direct + cotes", q_med: "Moyenne — xG dérivé des formes", q_low: "Basse — estimation H2H", q_est: "Est. — moyenne de la ligue",
     hide: "Cacher", show: "Afficher",
     lp_today: "Matchs du jour", lp_show: "Afficher les pronostics",
-    nav_unlock: "Débloquer l'accès", nav_weekly: "Stats hebdo", nav_support: "Support", nav_settings: "Paramètres",
+    nav_unlock: "Débloquer l'accès", nav_weekly: "Stats de l'agent", nav_support: "Support", nav_settings: "Paramètres",
+    search_team: "Rechercher une équipe", agent_h: "Performance de l'agent", range_7d: "7 derniers jours", range_month: "Dernier mois", range_12m: "12 mois",
     plan_lbl: "Offre", signals_lbl: "Signaux", since_lbl: "Depuis", logout_lbl: "Déconnexion", copy: "Copier",
     weekly_h: "7 derniers jours", unlock_h: "Accédez à tous les signaux", free_board: "Les value bets sont réservés à l'offre Pro.",
     pf_1: "Value bets +EV quotidiens", pf_2: "Probabilités de victoire pour chaque match", pf_3: "Pronostics Plus/Moins et score exact", pf_4: "Notifications de début de match", pf_5: "Scores en direct",
@@ -1259,7 +1295,8 @@ const translations = {
     q_high: "عالي — xG مباشر + أسعار", q_med: "متوسط — xG مشتق من الأشكال", q_low: "منخفض — تقدير المواجهات", q_est: "تقديري — متوسط الدوري",
     hide: "إخفاء", show: "إظهار",
     lp_today: "مباريات اليوم", lp_show: "إظهار التوقعات",
-    nav_unlock: "فتح الوصول", nav_weekly: "إحصائيات الأسبوع", nav_support: "الدعم", nav_settings: "الإعدادات",
+    nav_unlock: "فتح الوصول", nav_weekly: "إحصائيات الوكيل", nav_support: "الدعم", nav_settings: "الإعدادات",
+    search_team: "ابحث عن فريق", agent_h: "أداء الوكيل", range_7d: "آخر 7 أيام", range_month: "آخر شهر", range_12m: "12 شهر",
     plan_lbl: "الباقة", signals_lbl: "الإشارات", since_lbl: "منذ", logout_lbl: "تسجيل الخروج", copy: "نسخ",
     weekly_h: "آخر 7 أيام", unlock_h: "احصل على وصول كامل للإشارات", free_board: "رهانات القيمة متاحة في الباقة المدفوعة.",
     pf_1: "رهانات +EV يومية", pf_2: "احتمالات الفوز لكل مباراة", pf_3: "توقعات أكثر/أقل والنتيجة", pf_4: "إشعارات بداية المباراة", pf_5: "نتائج مباشرة",
@@ -1498,7 +1535,8 @@ document.getElementById('openFilterBtn').onclick = openFilterModal;
     if (had) renderSignals();
   }
   window.__closeSearch = close;
-  btn.addEventListener('click', () => (bar.hidden || !bar.classList.contains('open')) ? open() : close());
+  window.__openSearch = open;
+  if (btn) btn.addEventListener('click', () => (bar.hidden || !bar.classList.contains('open')) ? open() : close());
   cls.addEventListener('click', close);
   inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(apply, 120); });
   inp.addEventListener('keydown', e => { if (e.key === 'Escape') close(); if (e.key === 'Enter') inp.blur(); });
@@ -2460,10 +2498,20 @@ function renderSignals() {
   const best = bets.length ? Math.max(...bets.map(r => r.v.bet.ev)) : null;
 
   $('stats').innerHTML = `
-    <div class="stat-item"><div class="stat-value">${shown.length}</div><div class="stat-label">${t.matches}</div></div>
-    <div class="stat-item"><div class="stat-value">${withOdds}</div><div class="stat-label">${t.with_odds}</div></div>
-    <div class="stat-item"><div class="stat-value">${bets.length}</div><div class="stat-label">${t.value_bets}</div></div>
-    <div class="stat-item"><div class="stat-value">${best!=null?sgn(best):'—'}</div><div class="stat-label">${t.best_ev_short}</div></div>
+    <div class="stat-hero">
+      <div class="stat-hero-main">
+        <div class="stat-label">${t.matches}</div>
+        <div class="stat-value">${shown.length}</div>
+      </div>
+      <button class="stat-search" type="button" title="${esc(t.search_team||'Search a team')}" aria-label="${esc(t.search_team||'Search a team')}" onclick="window.__openSearch&&window.__openSearch()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </button>
+    </div>
+    <div class="stat-sub">
+      <div class="stat-item"><div class="stat-value">${withOdds}</div><div class="stat-label">${t.with_odds}</div></div>
+      <div class="stat-item"><div class="stat-value">${bets.length}</div><div class="stat-label">${t.value_bets}</div></div>
+      <div class="stat-item"><div class="stat-value">${best!=null?sgn(best):'—'}</div><div class="stat-label">${t.best_ev_short}</div></div>
+    </div>
   `;
 
 
@@ -2984,24 +3032,66 @@ function renderFreeSignals() {
   else { $('cards').innerHTML = ''; loadPublicFixtures('app'); }
 }
 
-function renderWeekly() {
-  const t = tNow(), totals = getDailyTotals(), now = new Date(), days = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
-    const key = localDateStr(d), tt = totals[key] || { wins: 0, losses: 0 };
-    days.push({ key, label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), w: tt.wins, l: tt.losses });
+let agentRange = '7d';
+function agentBuckets(range) {
+  const totals = getDailyTotals(), now = new Date();
+  const utcDay = off => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + off));
+  const dayTot = k => totals[k] || { wins: 0, losses: 0 };
+  const out = [];
+  if (range === '7d') {
+    for (let i = 0; i < 7; i++) {
+      const d = utcDay(-i), tt = dayTot(localDateStr(d));
+      out.push({ label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), w: tt.wins, l: tt.losses });
+    }
+  } else if (range === '30d') {
+    // last ~5 weeks, one card per 7-day block
+    for (let wk = 0; wk < 5; wk++) {
+      let w = 0, l = 0, start = null, end = null;
+      for (let j = 0; j < 7; j++) {
+        const d = utcDay(-(wk * 7 + j)), tt = dayTot(localDateStr(d));
+        w += tt.wins; l += tt.losses;
+        if (j === 0) end = d; if (j === 6) start = d;
+      }
+      const f = x => x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      out.push({ label: `${f(start)} – ${f(end)}`, w, l });
+    }
+  } else { // 12m — one card per month
+    for (let m = 0; m < 12; m++) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - m, 1));
+      const y = d.getUTCFullYear(), mo = d.getUTCMonth();
+      let w = 0, l = 0;
+      for (const k in totals) {
+        const dt = new Date(k + 'T00:00:00Z');
+        if (!isNaN(dt) && dt.getUTCFullYear() === y && dt.getUTCMonth() === mo) { w += totals[k].wins; l += totals[k].losses; }
+      }
+      out.push({ label: d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }), w, l });
+    }
   }
-  const W = days.reduce((a, d) => a + d.w, 0), L = days.reduce((a, d) => a + d.l, 0), tot = W + L, rate = tot ? Math.round(W / tot * 100) : 0;
+  return out;
+}
+function renderWeekly() {
+  const t = tNow(), range = agentRange, buckets = agentBuckets(range);
+  const unit = range === '7d' ? (t.total_picks || 'picks') : (t.total_picks || 'picks');
+  const W = buckets.reduce((a, d) => a + d.w, 0), L = buckets.reduce((a, d) => a + d.l, 0), tot = W + L, rate = tot ? Math.round(W / tot * 100) : 0;
   $('weeklyTop').innerHTML = `<div class="perf-card hero"><div class="perf-val" style="color:#10B981">${rate}%</div><div class="perf-lbl">${t.win_rate}</div><div class="perf-track"><div class="perf-fill" style="width:${rate}%"></div></div></div>
     <div class="perf-card"><div class="perf-val" style="color:var(--good)">${W}</div><div class="perf-lbl">${t.wins}</div></div>
     <div class="perf-card"><div class="perf-val" style="color:var(--bad)">${L}</div><div class="perf-lbl">${t.losses}</div></div>
     <div class="perf-card"><div class="perf-val" style="color:var(--ink-2)">${tot}</div><div class="perf-lbl">${t.total_picks}</div></div>`;
-  $('weeklyDays').innerHTML = days.map(d => {
+  $('weeklyDays').innerHTML = buckets.map(d => {
     const n = d.w + d.l, pc = n ? Math.round(d.w / n * 100) : 0;
-    return `<div class="hc-card"><div class="hc-header"><span>${esc(d.label)}</span><span>${n} ${t.total_picks}</span></div>
+    return `<div class="hc-card"><div class="hc-header"><span>${esc(d.label)}</span><span>${n} ${unit}</span></div>
       <div class="hc-footer"><span><strong>${d.w}</strong> ${t.wins} · <strong>${d.l}</strong> ${t.losses}</span>${n ? `<span class="${pc >= 50 ? 'badge-win' : 'badge-loss'}">${pc}%</span>` : '<span>—</span>'}</div></div>`;
   }).join('');
 }
+(function () {
+  const wrap = document.getElementById('agentRange'); if (!wrap) return;
+  wrap.addEventListener('click', e => {
+    const b = e.target.closest('.range-tab'); if (!b) return;
+    agentRange = b.dataset.range;
+    wrap.querySelectorAll('.range-tab').forEach(x => { const on = x === b; x.classList.toggle('active', on); x.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    renderWeekly();
+  });
+})();
 
 function renderUnlock() {
   const t = tNow(), p = authState.profile || {};
