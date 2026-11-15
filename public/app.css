@@ -1494,3 +1494,10 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .match .kv-row b{font-weight:700}
 .match.is-locked .m-top,.match.is-locked .m-teams{filter:blur(7px);opacity:.7;pointer-events:none;user-select:none;-webkit-user-select:none}
 .vb{border-radius:0}
+/* Card header: compact controls so the league name keeps its room (at most two lines) */
+.m-top{gap:8px}
+.m-league{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.m-top-right{gap:5px}
+.mh-quality{padding:3px 9px;letter-spacing:.04em}
+.m-top-right .pin-btn,.m-top-right .bell-btn{width:30px;height:30px}
+.m-top-right .pin-btn svg,.m-top-right .bell-btn svg{width:15px;height:15px}
