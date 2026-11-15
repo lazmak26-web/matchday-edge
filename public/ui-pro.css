@@ -1,0 +1,184 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ui-pro.css — Advanced UI layer for LuciBet
+   Loaded AFTER app.css + demo-arena.css, so it refines (never replaces) the
+   existing midnight design system. Built entirely on the app's own CSS
+   variables so every theme (midnight/dark/light/fintech) stays coherent.
+
+   Design language: 21st.dev / shadcn — animated gradient borders, shimmer
+   CTAs, spotlight "magic" cards, aurora gradient text, layered elevation.
+   Every motion effect degrades gracefully under prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Elevation scale + refined depth tokens (dark/midnight/default only) ── */
+:root,
+[data-theme="midnight"],
+[data-theme="dark"]{
+  --e-1: 0 1px 0 0 rgba(255,255,255,.04) inset, 0 1px 2px rgba(0,0,0,.4);
+  --e-2: 0 1px 0 0 rgba(255,255,255,.05) inset, 0 8px 24px -12px rgba(0,0,0,.65);
+  --e-3: 0 1px 0 0 rgba(255,255,255,.06) inset, 0 24px 60px -20px rgba(0,0,0,.72);
+  --ring-brand: 0 0 0 1px color-mix(in srgb, var(--brand) 42%, transparent),
+                0 12px 40px -14px color-mix(in srgb, var(--brand) 55%, transparent);
+  --hairline: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 42%);
+  --grad: linear-gradient(135deg, #6E5BFF 0%, #8B5CF6 48%, #A78BFA 100%);
+}
+[data-theme="light"],[data-theme="fintech"]{
+  --e-1: 0 1px 2px rgba(15,23,42,.06);
+  --e-2: 0 10px 28px -16px rgba(15,23,42,.22);
+  --e-3: 0 24px 60px -20px rgba(15,23,42,.26);
+  --ring-brand: 0 0 0 1px color-mix(in srgb, var(--brand) 30%, transparent),
+                0 12px 36px -16px color-mix(in srgb, var(--brand) 40%, transparent);
+  --hairline: linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,0) 42%);
+}
+
+/* ── 2. Card surfaces: subtle gradient fill + top hairline + layered shadow ── */
+.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item{
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--card) 100%, transparent),
+      color-mix(in srgb, var(--card) 86%, var(--bg))) ;
+  box-shadow: var(--e-2);
+  transition: transform .28s cubic-bezier(.22,.61,.36,1),
+              box-shadow .28s cubic-bezier(.22,.61,.36,1),
+              border-color .28s ease;
+  will-change: transform;
+}
+/* crisp top hairline highlight for a lifted, glassy edge */
+.feature-card::after,.chart-card::after,.perf-card::after,.plan-card::after,
+.pick::after,.hc-card::after{
+  content:"";position:absolute;inset:0 0 auto 0;height:40%;
+  background:var(--hairline);pointer-events:none;border-radius:inherit;
+  mix-blend-mode:screen;opacity:.8;
+}
+
+/* lift + brand ring on hover (pointer devices only) */
+@media (hover:hover){
+  .feature-card:hover,.pick:hover,.perf-card:hover,.hc-card:hover,.plan-card:hover{
+    transform: translateY(-4px);
+    box-shadow: var(--e-3), var(--ring-brand);
+    border-color: color-mix(in srgb, var(--brand) 38%, var(--line));
+  }
+  .match:hover{
+    transform: translateY(-3px);
+    box-shadow: var(--e-3), var(--ring-brand);
+    border-color: color-mix(in srgb, var(--brand) 32%, var(--line));
+  }
+}
+
+/* ── 3. Spotlight "magic" card — larger, dual-tone, follows cursor (ui-pro.js) ── */
+.feature-card::before,.chart-card::before,.match::before,
+.perf-card::before,.plan-card::before,.pick::before,.hc-card::before{
+  background: radial-gradient(520px circle at var(--mx,50%) var(--my,50%),
+              color-mix(in srgb, var(--brand) 26%, transparent),
+              color-mix(in srgb, var(--info) 12%, transparent) 42%,
+              transparent 72%);
+}
+
+/* ── 4. Shimmer gradient-border primary CTA (21st-style) ── */
+.btn-main,.auth-btn{
+  position:relative;isolation:isolate;overflow:hidden;
+  background:var(--grad);
+  box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--brand) 60%, transparent),
+              0 1px 0 0 rgba(255,255,255,.18) inset;
+  transition: transform .2s cubic-bezier(.22,.61,.36,1), box-shadow .25s ease, filter .2s;
+}
+/* animated conic gradient ring sitting just inside the button edge */
+.btn-main::before,.auth-btn::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.4px;z-index:-1;
+  background:conic-gradient(from var(--ang,0deg),
+     transparent 0deg, rgba(255,255,255,.9) 40deg, transparent 120deg,
+     transparent 240deg, rgba(167,139,250,.9) 300deg, transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:ui-spin 4s linear infinite;opacity:.9;
+}
+/* diagonal sheen that sweeps across on hover */
+.btn-main::after,.auth-btn::after{
+  content:"";position:absolute;top:0;left:-130%;width:60%;height:100%;z-index:1;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);
+  transform:skewX(-18deg);transition:none;pointer-events:none;
+}
+@media (hover:hover){
+  .btn-main:hover,.auth-btn:hover{
+    transform:translateY(-2px);filter:none;
+    box-shadow:0 16px 42px -12px color-mix(in srgb, var(--brand) 72%, transparent),
+               0 1px 0 0 rgba(255,255,255,.22) inset;
+  }
+  .btn-main:hover::after,.auth-btn:hover::after{animation:ui-sheen .85s ease forwards}
+}
+.btn-main:active,.auth-btn:active{transform:translateY(0) scale(.98)}
+
+/* secondary / telegram button: refined hover lift + ring */
+.btn-tg{transition:transform .2s cubic-bezier(.22,.61,.36,1),border-color .2s,box-shadow .25s;box-shadow:var(--e-1)}
+@media (hover:hover){
+  .btn-tg:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--brand) 40%,var(--line-2));box-shadow:var(--e-2)}
+}
+
+@keyframes ui-spin{to{--ang:360deg}}
+@keyframes ui-sheen{to{left:140%}}
+/* register the custom property so the conic ring can animate smoothly */
+@property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
+
+/* ── 5. Hero: solid text (safe contrast) + soft brand glow ──
+   NOTE: motion.js splits the title into inline .w word-spans after load, so a
+   background-clip:text gradient on the parent would leave the words invisible.
+   We keep the inherited solid --text-main and add a tasteful glow instead. */
+.hero-title{
+  text-shadow:0 1px 36px color-mix(in srgb, var(--brand) 24%, transparent),
+              0 1px 2px rgba(0,0,0,.25);
+}
+
+/* hero badge: glassy + shimmer sweep + soft brand glow */
+.hero-badge{
+  position:relative;overflow:hidden;
+  background:color-mix(in srgb,var(--card) 82%,transparent);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:var(--e-1),0 0 0 1px color-mix(in srgb,var(--brand) 18%,transparent);
+}
+.hero-badge::after{
+  content:"";position:absolute;top:0;left:-120%;width:55%;height:100%;
+  background:linear-gradient(100deg,transparent,color-mix(in srgb,var(--brand) 55%,transparent),transparent);
+  transform:skewX(-18deg);animation:ui-badge-sweep 4.5s ease-in-out infinite;pointer-events:none;
+}
+@keyframes ui-badge-sweep{0%,60%{left:-120%}100%{left:160%}}
+
+/* ── 6. Stat-hero gradient panel: slow light sweep for depth ── */
+.stat-hero{box-shadow:var(--e-3)}
+.stat-hero::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.14) 48%,transparent 66%);
+  background-size:220% 100%;animation:ui-panel-sweep 7s linear infinite;
+}
+@keyframes ui-panel-sweep{to{background-position:-220% 0}}
+
+/* ── 7. Pills / live status: a touch more presence ── */
+.pill{letter-spacing:.01em;box-shadow:inset 0 0 0 1px color-mix(in srgb,currentColor 14%,transparent)}
+.live-status.is-live{box-shadow:0 0 18px -4px color-mix(in srgb,var(--good) 60%,transparent)}
+
+/* feature icon: gradient tile + inner ring */
+.feature-icon{
+  background:linear-gradient(145deg,color-mix(in srgb,var(--brand) 26%,transparent),var(--brand-dim));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brand) 30%,transparent);
+  color:var(--brand-2);
+}
+
+/* ── 8. Scroll reveal (progressive — ui-pro.js adds .is-in) ── */
+.ui-reveal{opacity:0;transform:translateY(18px)}
+.ui-reveal.is-in{opacity:1;transform:none;transition:opacity .6s ease,transform .6s cubic-bezier(.22,.61,.36,1)}
+
+/* stronger, on-brand focus ring for keyboard users */
+:focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:4px}
+
+/* ── 9. Reduced-motion: freeze every decorative animation, keep states ── */
+@media (prefers-reduced-motion: reduce){
+  .btn-main::before,.auth-btn::before{animation:none;opacity:.6}
+  .btn-main::after,.auth-btn::after,
+  .hero-badge::after,.stat-hero::before{display:none}
+  .hero-title{animation:none;background-position:0 50%}
+  .feature-card,.pick,.perf-card,.hc-card,.plan-card,.match,
+  .btn-main,.auth-btn,.btn-tg{transition:none}
+  .ui-reveal{opacity:1;transform:none}
+  @media (hover:hover){
+    .feature-card:hover,.pick:hover,.perf-card:hover,.hc-card:hover,
+    .plan-card:hover,.match:hover,.btn-main:hover,.auth-btn:hover,.btn-tg:hover{transform:none}
+  }
+}
