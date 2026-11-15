@@ -1,25 +1,35 @@
-# LuciBet — Match Day Edge · promo video
+# LuciBet — Match Day Edge · promo videos
 
-**Use this one:** `LuciBet-MatchDayEdge-promo-REAL.mp4` — 73.6 s, 1920×1080, 30 fps, H.264 + AAC (−16 LUFS).
-Every panel is a real screenshot of the live site (15 Nov 2026, Pro account), with personal info blurred.
-Music: ElevenLabs Music v2.5 via Higgsfield (instrumental, starts at 6.4 s of the track).
+## Main video: `LuciBet-MatchDayEdge-LIVE-TOUR.mp4`
+3m17s · 1920×1080 · 30 fps · H.264 + AAC (−16.7 LUFS)
 
-Sections: hook → logo line → 01 Signals → 02 Match model → 03 Value bets → 04 Model filters →
-05 Discover → 06 Bot history → 07 League tables → 08 Demo arena → 09 Pro access → outro.
+A live walkthrough of the real site (15 Nov 2026, Pro account): Playwright drives the dashboard
+(cursor, clicks, search, sliders, tabs, language switch) and the edit is built in Higgsfield.
 
-Numbers shown are taken from the site as captured: 93 matches, +8.57% best EV (Cádiz @ 5.39),
-92.1% Over 1.5 probability, 4.5% min EV filter, 928 matches tracked, Arsenal 27 pts, 2,000 DH demo start, $30 Pro.
-No win-rate or profit claims: the site's "93% win rate" counts a match as won when any one of its
-three picks wins, so it is left out on purpose.
+| Part | Made with |
+|---|---|
+| Live footage of the site | Playwright + Chrome screencast (`source-live-tour/tour.js`, `overlay.js`) |
+| Voice-over (12 lines, voice "Romy") | Higgsfield · seed_audio |
+| Music (3m20s instrumental) | Higgsfield · ElevenLabs Music v2.5 |
+| Titles, section labels, subtitles, zooms, intro/outro | Higgsfield · Higgsedit (`source-live-tour/gen.py` → `edit.jsx`) |
+| Voice/music mix with ducking | ffmpeg in the Higgsfield sandbox (`source-live-tour/mix.py`) |
 
-`source-demo/` is the first, mock-data version. Do not publish its output: its track-record numbers are not real.
+Sections: 01 Signals · 02 Match model · 03 Value bets · 04 Model filters · 05 Bot history ·
+06 Discover · 07 League tables · 08 Demo arena · 09 Settings · 10 Pro access.
 
-## Re-render
-```bash
-cd promo-video/source-real
-node render.js video_silent.mp4
-ffmpeg -i video_silent.mp4 -ss 6.4 -i music.mp3 -map 0:v -map 1:a -c:v copy \
-  -af "afade=t=in:d=0.6,apad,loudnorm=I=-16:TP=-1.5:LRA=11" -t 73.6 \
-  -c:a aac -b:a 192k -movflags +faststart ../LuciBet-MatchDayEdge-promo-REAL.mp4
-```
-Each `scene(t0, t1, ...)` block in `promo.html` is one section; `shot(..., [fromRect, toRect], ...)` sets the camera zoom.
+The tour is read-only on the account: no posts, no Share, no predictions. Filters, pins, theme and
+language live only in the recording browser. Email and username are blurred automatically.
+
+### Re-record
+1. Log in on the site, put the session token in `.tok` next to the `source-live-tour` folder.
+2. `node source-live-tour/tour.js` → frames + `index.json` + `marks.json`, then `python3 assemble.py`
+   and `ffmpeg -f concat -safe 0 -i list.txt -vf fps=30,scale=1920:1080 -c:v libx264 -crf 17 tour_raw.mp4`.
+3. Update the section times `M` in `gen.py` from `marks.json`, then run `gen.py` + `higgsedit build edit.jsx`
+   + `higgsedit render proj` in the Higgsfield sandbox, then `mix.py` and mux.
+
+## Other versions
+- `LuciBet-MatchDayEdge-promo-REAL.mp4` — 73 s motion-graphics cut from real screenshots (`source-real/`).
+- `source-demo/` — first mock-data version. Do not publish its output: its track-record numbers are not real.
+
+No win-rate or profit claims are made: the site's "93% win rate" counts a match as won when any one of
+its three picks wins, so it is left out on purpose.
