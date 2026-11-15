@@ -2182,7 +2182,9 @@ function fbSeason(se) {
   const a = se.start.slice(0, 4), b = se.end ? se.end.slice(0, 4) : '';
   return b && b !== a ? `${a}/${b.slice(2)}` : a;
 }
-const fbForm = f => f && f.length ? `<span class="fb-form" aria-label="${esc(f.join(' '))}">${f.map(x => `<i class="${x}"></i>`).join('')}</span>` : '<span class="fb-form"></span>';
+// Form arrives as an array (['W','D',...] from league tables) or as a string ('WDLWW' from the fixture feed): accept both, keep only W/D/L.
+const fbFormArr = f => (Array.isArray(f) ? f : typeof f === 'string' ? f.toUpperCase().split('') : []).map(x => String(x).toUpperCase()).filter(x => x === 'W' || x === 'D' || x === 'L').slice(-5);
+const fbForm = f => { const a = fbFormArr(f); return a.length ? `<span class="fb-form" aria-label="${a.join(' ')}">${a.map(x => `<i class="${x}"></i>`).join('')}</span>` : '<span class="fb-form"></span>'; };
 
 /* Standings tab */
 async function renderStandings() {
@@ -2445,7 +2447,12 @@ async function miLoadInto(id, el, uid) {
   if (c && Date.now() - c.ts < MI_TTL) { el.innerHTML = miRender(c.data, uid); return; }   // re-renders of the list do not flash
   el.innerHTML = fbSkel(5);
   try { const d = await miFetch(id); if (el.isConnected) el.innerHTML = miRender(d, uid); }
-  catch (e) { if (el.isConnected) el.innerHTML = fbErr(e.message, `miRetry('${esc(id)}','${uid}')`); }
+  catch (e) {
+    // A code fault (TypeError...) is logged for us and shown as a plain sentence; only messages written for people (login, Pro plan, network) are shown as they are.
+    const bug = e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError;
+    if (bug) console.error('match info render failed', id, e);
+    if (el.isConnected) el.innerHTML = fbErr(bug ? (tNow().mi_fail || 'Team news could not be displayed for this match.') : e.message, `miRetry('${esc(id)}','${uid}')`);
+  }
 }
 window.miRetry = function (id, uid) { delete MI.cache[id]; const el = document.getElementById(uid); if (el) miLoadInto(id, el, uid); };
 window.miOpen = function (id) {
