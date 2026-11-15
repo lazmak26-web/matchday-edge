@@ -48,16 +48,14 @@ body:has(#view-signals.active) .app-header:not(.scrolled){border-radius:0}   /* 
 .app-header .live-status .dot{background:var(--hero-accent)}
 .tab-view:not(#view-signals),#landingPage{padding-top:18px}
 
-#stats{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 calc(50% - 50vw) 24px;
-  padding:6px calc(50vw - 50%) 36px;background:var(--hero);border-radius:0 0 40px 40px;box-shadow:none}
-#stats .stat-item{background:var(--hero-tile);border:0;box-shadow:none;color:var(--hero-on);padding:12px;border-radius:18px}
-#stats .stat-value{color:var(--hero-on);font-size:22px}
-#stats .stat-item:nth-child(4) .stat-value{color:var(--hero-accent)}
-#stats .stat-item [class*="label"],#stats .stat-item small,#stats .stat-item span:not(.stat-value){color:var(--hero-on-2)}
-#stats .stat-item:first-child{grid-column:1/-1;background:none;text-align:center;padding:6px 0 8px;display:flex;flex-direction:column;align-items:center;gap:2px}
-#stats .stat-item:first-child .stat-value{font-size:46px;order:2;line-height:1.1}
-#stats .stat-item:first-child .stat-label{order:1;font-size:13px}
+/* The stats area is laid out by the .stat-strip / .stat-hero / .stat-sub rules in
+   index.html (flex column: gradient hero card on top, 3 sub-tiles below). The old
+   #stats grid panel that used to live here fought that structure with ID specificity
+   (forcing a 2-column grid so the search button and sub-tiles overlapped the hero), so
+   it has been removed. Only theme-tile colours for the sub-tiles are kept below. */
+#stats .stat-sub .stat-item{background:var(--hero-tile);border:0;box-shadow:none;color:var(--hero-on)}
+#stats .stat-sub .stat-value{color:var(--hero-on)}
+#stats .stat-sub .stat-item .stat-label{color:var(--hero-on-2)}
 
 /* the LIVE pill is replaced in the header by the search button (the pill stays in the DOM so its logic keeps working) */
 .app-header .live-status{display:none!important}
