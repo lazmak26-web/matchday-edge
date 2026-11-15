@@ -2130,9 +2130,15 @@ function syncStatsFromCards() {
 
 // ── Match card parts, shared by the Pro card, the free/locked card and the landing page ──
 const mxLive = fx => fx.status === 'started' || fx.status === 'inplay';
-// League name on the left; data-quality pill and action buttons on the right.
+// Card header: league name (small caps) on the left; data quality (three bars + the word) and the action buttons on the right.
+const MX_Q = { high: 3, medium: 2, low: 1 };
+function mxQuality(fx) {
+  const q = fx.dataQuality || 'very-low', n = MX_Q[q] || 0, t = tNow();
+  const label = n === 3 ? (t.q_s_high || 'High') : n === 2 ? (t.q_s_med || 'Medium') : n === 1 ? (t.q_s_low || 'Low') : (t.q_s_est || 'Est.');
+  return `<span class="mx-q q${n}" title="${esc((t.q_title || 'Data quality') + ': ' + label)}"><span class="mx-q-bars" aria-hidden="true"><i></i><i></i><i></i></span>${esc(label)}</span>`;
+}
 function mxTop(fx, extra) {
-  return `<div class="m-top"><div class="m-league">${esc(leagueDisp(fx))}</div>${extra ? `<div class="m-top-right">${extra}</div>` : ''}</div>`;
+  return `<div class="mx-top"><div class="mx-comp">${esc(leagueDisp(fx))}</div>${extra || ''}</div>`;
 }
 // Teams side by side (crest above the name) with the score or kickoff time in the middle.
 function mxTeams(fx, started) {
@@ -2185,7 +2191,7 @@ function buildCard(r, t) {
         <div class="vb-body"><span class="vb-sel">${esc(bv.selection ?? '—')}</span><span class="vb-price">${Number.isFinite(bvOdds) ? bvOdds.toFixed(2) : '—'}</span></div>
         <div class="vb-meta"><span>${t.kelly}: ${esc(bv.quarter_kelly ?? '—')}</span><span class="pill ${riskClass(bv.risk_level)}">${esc(bv.risk_level ?? '—')}</span></div>
       </div>` : '';
-  const actions = `<span class="mh-quality ${esc(fx.dataQuality || 'very-low')}">${esc(fx.dataQuality || 'very-low')}</span>${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${infoHTML(fx.id)}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}`;
+  const actions = `${mxQuality(fx)}<div class="mx-actions">${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${infoHTML(fx.id)}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}</div>`;
 
   return `<article data-fx="${esc(fx.id)}" data-odds="${fx.odds && fx.odds.length ? 1 : 0}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
       ${mxTop(fx, actions)}
