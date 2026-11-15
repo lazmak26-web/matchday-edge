@@ -753,6 +753,25 @@ html.lenis, html.lenis body{ height:auto; }
       </section>
     </div>
 
+    <div id="view-upcoming" class="tab-view">
+      <section style="margin-top:24px;">
+        <div class="section-head"><div><div class="section-label"><span data-i18n="mc_label">Upcoming matches</span></div><h2 data-i18n="nav_mc">Match Center</h2></div></div>
+        <p class="fb-src" style="margin:-8px 2px 14px" data-i18n="mc_sub">Line-ups, injuries, head-to-head and league position for every upcoming match. Tap a match.</p>
+        <div class="mc-tools">
+          <div class="lg-chips" id="mcDays" role="tablist" style="margin:0">
+            <button type="button" role="tab" class="lg-chip on" data-day="all" onclick="mcDay('all')" data-i18n="all_leagues">All</button>
+            <button type="button" role="tab" class="lg-chip" data-day="today" onclick="mcDay('today')" data-i18n="mc_today">Today</button>
+            <button type="button" role="tab" class="lg-chip" data-day="tomorrow" onclick="mcDay('tomorrow')" data-i18n="mc_tomorrow">Tomorrow</button>
+          </div>
+          <div class="hist-search" role="search">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+            <input id="mcSearch" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search a team or league…" data-i18n-ph="mc_search_ph" aria-label="Search upcoming matches">
+          </div>
+        </div>
+        <div id="mcBody" aria-live="polite"></div>
+      </section>
+    </div>
+
     <div id="view-admin" class="tab-view">
       <section style="margin-top:24px;">
         <div class="section-head"><div><div class="section-label">Admin</div><h2>Users</h2></div>
@@ -856,6 +875,90 @@ html.lenis, html.lenis body{ height:auto; }
 .fb-lg-stats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--ink-3)}
 .fb-lg-stats b{color:var(--ink-2)}
 .fb-lg-lead{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);padding-top:10px;border-top:1px solid var(--line)}
+/* ── Match info (card button, modal, Match Center tab) ── */
+.info-btn svg{fill:none!important}
+.mi-box{width:min(100%,720px);padding:22px 20px 20px;border-radius:28px}
+.mi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:40px}
+.mi-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin:14px 0 6px;text-align:center}
+.mi-team{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.mi-team b{font-size:15px;line-height:1.2;overflow-wrap:anywhere}
+.mi-team .crest{width:46px;height:46px}
+.mi-vs{font-size:13px;color:var(--ink-3);font-weight:700;display:flex;flex-direction:column;gap:2px}
+.mi-vs b{font-size:20px;color:var(--ink)}
+.mi-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font-size:12.5px;color:var(--ink-3);margin-bottom:12px}
+.mi-tabs{display:flex;gap:4px;background:var(--soft);border-radius:999px;padding:4px;margin:4px 0 14px;overflow-x:auto;scrollbar-width:none}
+.mi-tabs::-webkit-scrollbar{display:none}
+.mi-tab{flex:1;border:0;background:transparent;color:var(--ink-3);font:inherit;font-size:13px;font-weight:700;padding:8px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.mi-tab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.mi-pane{display:none}.mi-pane.on{display:block}
+.mi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mi-col{border:1px solid var(--line);border-radius:18px;padding:14px;min-width:0}
+.mi-col h4{font-size:13px;font-weight:800;margin:0 0 10px;display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-stat{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line);color:var(--ink-3)}
+.mi-stat:last-child{border-bottom:0}
+.mi-stat b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.mi-rank{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.mi-rank small{font-size:13px;color:var(--ink-3);font-weight:600;margin-left:4px}
+.mi-lg{font-size:12px;color:var(--ink-3);margin:4px 0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:800;margin-top:10px}
+.mi-badge.full{background:rgba(52,211,153,.14);color:var(--good)}
+.mi-badge.mostly{background:rgba(251,191,36,.14);color:#fbbf24}
+.mi-badge.weakened,.mi-badge.rotated{background:rgba(248,113,113,.14);color:var(--bad)}
+.mi-badge.unknown{background:var(--soft);color:var(--ink-3)}
+.mi-sub{display:block;font-size:12px;color:var(--ink-3);margin-top:6px;line-height:1.4}
+.mi-note{padding:18px;text-align:center;color:var(--ink-3);font-size:14px;border:1px dashed var(--line-2);border-radius:16px}
+.mi-pitch{position:relative;background:linear-gradient(180deg,#14532d,#166534);border-radius:14px;padding:10px 4px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.mi-pitch::before{content:"";position:absolute;left:8px;right:8px;top:50%;border-top:1px solid rgba(255,255,255,.18)}
+.mi-line{display:flex;justify-content:space-around;gap:2px;position:relative}
+.mi-pl{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;flex:1}
+.mi-pl i{width:24px;height:24px;border-radius:50%;background:#fff;color:#111;font-style:normal;font-size:11px;font-weight:800;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.mi-pl.new i{background:#fbbf24}
+.mi-pl span{font-size:10.5px;color:#fff;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.mi-list{display:flex;flex-direction:column}
+.mi-li{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+.mi-li:last-child{border-bottom:0}
+.mi-li .num{width:22px;color:var(--ink-3);font-variant-numeric:tabular-nums;text-align:right;flex:none}
+.mi-li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-li .ps{font-size:11px;color:var(--ink-3);flex:none}
+.mi-tag{font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;flex:none}
+.mi-tag.out{background:rgba(248,113,113,.15);color:var(--bad)}
+.mi-tag.doubt{background:rgba(251,191,36,.15);color:#fbbf24}
+.mi-tag.new{background:rgba(251,191,36,.15);color:#fbbf24}
+.mi-h2h-bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--soft);margin:10px 0 8px}
+.mi-h2h-bar i{display:block;height:100%}
+.mi-h2h-bar .h{background:var(--brand)}.mi-h2h-bar .d{background:var(--ink-3)}.mi-h2h-bar .a{background:#f97316}
+.mi-h2h-n{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:6px}
+.mi-h2h-n b{display:block;font-size:24px;font-weight:800;letter-spacing:-.03em}
+.mi-h2h-n small{font-size:12px;color:var(--ink-3)}
+.mi-game{display:grid;grid-template-columns:72px 1fr auto 1fr;align-items:center;gap:8px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--line)}
+.mi-game:last-child{border-bottom:0}
+.mi-game .dt{font-size:11.5px;color:var(--ink-3)}
+.mi-game .h{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-game .a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-game .sc{font-weight:800;font-variant-numeric:tabular-nums;background:var(--soft);border-radius:8px;padding:3px 8px}
+.mi-game .w{font-weight:800}
+.mi-src{font-size:11.5px;color:var(--ink-3);margin-top:12px;text-align:center}
+@media (max-width:560px){.mi-grid{grid-template-columns:1fr}.mi-box{padding:18px 14px}.mi-game{grid-template-columns:58px 1fr auto 1fr}}
+/* Match Center tab */
+.mc-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.mc-tools .hist-search{flex:1;min-width:200px;margin:0}
+.mc-day{margin:18px 0 8px;font-size:13px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em}
+.mc-item{border:1px solid var(--line);border-radius:18px;background:var(--card);margin-bottom:8px;overflow:hidden}
+.mc-item.open{border-color:var(--brand)}
+.mc-row{display:grid;grid-template-columns:54px 1fr auto 1fr 22px;align-items:center;gap:10px;width:100%;padding:12px 14px;background:none;border:0;font:inherit;color:var(--ink);cursor:pointer;text-align:left}
+.mc-row .tm{display:flex;align-items:center;gap:8px;min-width:0;font-weight:600;font-size:14px}
+.mc-row .tm.h{justify-content:flex-end;text-align:right}
+.mc-row .tm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-row .crest{width:26px!important;height:26px!important;min-width:26px;font-size:10px!important}
+.mc-row .tm .crest img{width:100%;height:100%}
+.mc-time{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.mc-time.live{color:var(--bad)}
+.mc-vs{font-size:12px;color:var(--ink-3);font-weight:700}
+.mc-chev{width:18px;height:18px;stroke:var(--ink-3);fill:none;stroke-width:2;transition:transform .2s}
+.mc-item.open .mc-chev{transform:rotate(180deg)}
+.mc-lg{grid-column:2/5;font-size:11.5px;color:var(--ink-3);text-align:center;margin-top:-6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-body{padding:0 14px 14px}
+@media (max-width:560px){.mc-row{grid-template-columns:44px 1fr auto 1fr 18px;gap:6px;padding:10px}.mc-row .tm{font-size:13px}.mc-row .tm .crest{display:none}}
 .fb-lg-lead b{color:var(--ink)}
 .fb-back{margin-bottom:14px}
 .fb-hero{display:flex;align-items:center;gap:16px;margin-bottom:16px}
@@ -989,6 +1092,14 @@ html.lenis, html.lenis body{ height:auto; }
   </div>
 </div>
 
+<div id="miModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Match info">
+  <div class="modal-box mi-box">
+    <button class="icon-btn fb-x" type="button" onclick="miClose()" aria-label="Close">✕</button>
+    <div class="mi-head"><div class="section-label" style="margin:0"><span data-i18n="mi_title">Team news</span></div></div>
+    <div id="miBody"></div>
+  </div>
+</div>
+
 <div id="settingsModal" class="modal-overlay hidden">
   <div class="modal-box" style="max-width: 420px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -1029,6 +1140,7 @@ html.lenis, html.lenis body{ height:auto; }
   <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" onclick="closeMenu()">✕</button></div>
   <button class="side-item da-side" type="button" data-tab="demo" onclick="menuGo('demo')"><span class="si-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg></span><span class="si-t"><b>Demo Arena</b><small>Virtual Sports Predictions</small></span></button>
   <button class="side-item" type="button" data-tab="standings" onclick="menuGo('standings')"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v18"/></svg><span data-i18n="nav_standings">Standings</span></button>
+  <button class="side-item" type="button" data-tab="upcoming" onclick="menuGo('upcoming')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h3M8 18h6"/></svg><span data-i18n="nav_mc">Match Center</span></button>
   <button class="side-item" type="button" data-tab="leagues" onclick="menuGo('leagues')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="nav_leagues">Leagues</span></button>
   <button class="side-item" type="button" data-tab="performance" onclick="menuGo('performance')"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
   <button class="side-item" type="button" data-tab="weekly" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Weekly Stats</span></button>
@@ -1273,6 +1385,9 @@ const translations = {
 Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email", apple_btn: "Continue with Apple", consent_age: "I am 18 or older", legal_a: "By continuing, you accept the", login_sub: "Enter your email and we'll send you a login code.", consent_req: "Please confirm you are 18 or older.", other_comp: "Football", all_leagues: "All", updated: "Updated", matches_n: "matches", filter_league: "Filter by league", nav_standings: "Standings", nav_leagues: "Leagues", fb_label: "Football", fb_st_h: "League tables", fb_lg_h: "Current leagues", fb_matchday: "Matchday", fb_season: "Season", fb_teams: "teams", fb_teams_t: "Teams", fb_leader: "Leader", fb_view_table: "View full table", fb_top5: "Top of the table", fb_scorers: "Top scorers", fb_goals: "goals", fb_assists: "ast", fb_all_leagues: "All leagues", fb_open_info: "Open for table and top scorers", fb_squad: "Squad", fb_founded: "Founded", fb_venue: "Stadium", fb_coach: "Coach", fb_colors: "Colours", fb_website: "Official website", fb_comps: "Competitions", fb_pos: "Position", fb_points: "Points", fb_form: "Form", fb_retry: "Try again", fb_slow: "Still loading. Please try again in a minute.", fb_no_table: "No table for this competition yet.", fb_no_scorers: "No scorers yet.", fb_tap_team: "Tap a team for its details.", fb_source: "Data: football-data.org", fb_gk: "Goalkeepers", fb_df: "Defenders", fb_mf: "Midfielders", fb_fw: "Forwards", fb_other: "Other", th_team: "Team", th_p: "P", th_p_long: "played", th_w: "W", th_d: "D", th_l: "L", th_gfga: "Goals", th_gd: "GD", th_pts: "Pts" });
 Object.assign(translations.fr, { or_email: "ou avec l'email", apple_btn: "Continuer avec Apple", consent_age: "J'ai 18 ans ou plus", legal_a: "En continuant, vous acceptez les", login_sub: "Entrez votre email, nous vous enverrons un code de connexion.", consent_req: "Confirmez que vous avez 18 ans ou plus.", other_comp: "Football", all_leagues: "Tout", updated: "Mis à jour", matches_n: "matchs", filter_league: "Filtrer par compétition", nav_standings: "Classements", nav_leagues: "Compétitions", fb_label: "Football", fb_st_h: "Classements", fb_lg_h: "Compétitions en cours", fb_matchday: "Journée", fb_season: "Saison", fb_teams: "équipes", fb_teams_t: "Équipes", fb_leader: "Leader", fb_view_table: "Voir le classement", fb_top5: "Haut du classement", fb_scorers: "Meilleurs buteurs", fb_goals: "buts", fb_assists: "pd", fb_all_leagues: "Toutes les compétitions", fb_open_info: "Ouvrir pour le classement et les buteurs", fb_squad: "Effectif", fb_founded: "Fondé en", fb_venue: "Stade", fb_coach: "Entraîneur", fb_colors: "Couleurs", fb_website: "Site officiel", fb_comps: "Compétitions", fb_pos: "Position", fb_points: "Points", fb_form: "Forme", fb_retry: "Réessayer", fb_slow: "Chargement en cours. Réessayez dans une minute.", fb_no_table: "Pas encore de classement pour cette compétition.", fb_no_scorers: "Pas encore de buteurs.", fb_tap_team: "Touchez une équipe pour voir sa fiche.", fb_source: "Données : football-data.org", fb_gk: "Gardiens", fb_df: "Défenseurs", fb_mf: "Milieux", fb_fw: "Attaquants", fb_other: "Autres", th_team: "Équipe", th_p: "J", th_p_long: "joués", th_w: "G", th_d: "N", th_l: "P", th_gfga: "Buts", th_gd: "Diff", th_pts: "Pts" });
 Object.assign(translations.ar, { or_email: "أو بالبريد الإلكتروني", apple_btn: "المتابعة مع Apple", consent_age: "عمري 18 سنة أو أكثر", legal_a: "بالمتابعة، أنت توافق على", login_sub: "أدخل بريدك الإلكتروني وسنرسل لك رمز الدخول.", consent_req: "يرجى تأكيد أن عمرك 18 سنة أو أكثر.", other_comp: "كرة القدم", all_leagues: "الكل", updated: "آخر تحديث", matches_n: "مباراة", filter_league: "تصفية حسب البطولة", nav_standings: "الترتيب", nav_leagues: "البطولات", fb_label: "كرة القدم", fb_st_h: "جداول الترتيب", fb_lg_h: "البطولات الحالية", fb_matchday: "الجولة", fb_season: "الموسم", fb_teams: "فريق", fb_teams_t: "الفرق", fb_leader: "المتصدر", fb_view_table: "عرض الترتيب كاملاً", fb_top5: "صدارة الترتيب", fb_scorers: "الهدافون", fb_goals: "أهداف", fb_assists: "تمريرات", fb_all_leagues: "كل البطولات", fb_open_info: "افتح لعرض الترتيب والهدافين", fb_squad: "التشكيلة", fb_founded: "سنة التأسيس", fb_venue: "الملعب", fb_coach: "المدرب", fb_colors: "الألوان", fb_website: "الموقع الرسمي", fb_comps: "المسابقات", fb_pos: "المركز", fb_points: "النقاط", fb_form: "آخر النتائج", fb_retry: "إعادة المحاولة", fb_slow: "ما زال التحميل جارياً. حاول بعد دقيقة.", fb_no_table: "لا يوجد ترتيب لهذه المسابقة بعد.", fb_no_scorers: "لا يوجد هدافون بعد.", fb_tap_team: "اضغط على فريق لعرض تفاصيله.", fb_source: "المصدر: football-data.org", fb_gk: "حراس المرمى", fb_df: "المدافعون", fb_mf: "لاعبو الوسط", fb_fw: "المهاجمون", fb_other: "آخرون", th_team: "الفريق", th_p: "لعب", th_p_long: "مباراة", th_w: "ف", th_d: "ت", th_l: "خ", th_gfga: "الأهداف", th_gd: "الفارق", th_pts: "نقاط" });
+Object.assign(translations.en, { nav_mc: "Match Center", mc_label: "Upcoming matches", mc_sub: "Line-ups, injuries, head-to-head and league position for every upcoming match. Tap a match.", mc_today: "Today", mc_tomorrow: "Tomorrow", mc_search_ph: "Search a team or league…", mc_pro_p: "Unlock Pro to see line-ups, injuries and head-to-head for every match.", mi_title: "Team news", mi_btn: "Line-ups & team news", mi_login: "Please log in again.", mi_pro: "Match info is part of the Pro plan.", mi_t_overview: "Overview", mi_t_lineups: "Line-ups", mi_t_absences: "Injuries", mi_t_h2h: "Head-to-head", mi_s_full: "Full strength", mi_s_mostly: "Almost full strength", mi_s_weak: "Weakened", mi_s_rot: "Rotated XI", mi_s_unknown: "No team news yet", mi_out_n: "out", mi_doubt_n: "doubtful", mi_changes_n: "changes vs last match", mi_no_table: "No league table for this team.", mi_record: "W-D-L", mi_lu_none: "No line-up for this team.", mi_lu_soon: "Line-ups are announced about 1 hour before kick-off ({time}).", mi_lu_na: "No line-up data for this match.", mi_new: "NEW", mi_same_xi: "Same XI as the last match", mi_formation: "Formation", mi_subs: "Substitutes", mi_abs_unknown: "No team news available.", mi_abs_none: "No reported injuries or suspensions.", mi_out: "OUT", mi_doubt: "DOUBT", mi_h2h_none: "These teams have not met recently.", mi_h2h_total: "Matches played", mi_wins: "wins", mi_goals: "Goals", mi_last_meet: "Last meetings", mi_src: "Data: API-Football", mi_src_basic: "Line-ups and injuries are not available for this match." });
+Object.assign(translations.fr, { nav_mc: "Centre des matchs", mc_label: "Matchs à venir", mc_sub: "Compositions, blessés, confrontations et classement pour chaque match à venir. Touchez un match.", mc_today: "Aujourd'hui", mc_tomorrow: "Demain", mc_search_ph: "Chercher une équipe ou une compétition…", mc_pro_p: "Passez Pro pour voir compositions, blessés et confrontations de chaque match.", mi_title: "Infos équipes", mi_btn: "Compositions et infos équipes", mi_login: "Reconnectez-vous.", mi_pro: "Les infos de match font partie du plan Pro.", mi_t_overview: "Aperçu", mi_t_lineups: "Compositions", mi_t_absences: "Blessés", mi_t_h2h: "Confrontations", mi_s_full: "Au complet", mi_s_mostly: "Presque au complet", mi_s_weak: "Affaiblie", mi_s_rot: "Équipe remaniée", mi_s_unknown: "Pas encore d'infos", mi_out_n: "absent(s)", mi_doubt_n: "incertain(s)", mi_changes_n: "changements vs dernier match", mi_no_table: "Pas de classement pour cette équipe.", mi_record: "G-N-P", mi_lu_none: "Pas de composition pour cette équipe.", mi_lu_soon: "Les compositions sont annoncées environ 1 h avant le coup d'envoi ({time}).", mi_lu_na: "Pas de composition pour ce match.", mi_new: "NOUV.", mi_same_xi: "Même onze que le dernier match", mi_formation: "Schéma", mi_subs: "Remplaçants", mi_abs_unknown: "Pas d'infos disponibles.", mi_abs_none: "Aucun blessé ni suspendu signalé.", mi_out: "ABSENT", mi_doubt: "INCERTAIN", mi_h2h_none: "Ces équipes ne se sont pas affrontées récemment.", mi_h2h_total: "Matchs joués", mi_wins: "victoires", mi_goals: "Buts", mi_last_meet: "Dernières confrontations", mi_src: "Données : API-Football", mi_src_basic: "Compositions et blessés indisponibles pour ce match." });
+Object.assign(translations.ar, { nav_mc: "مركز المباريات", mc_label: "المباريات القادمة", mc_sub: "التشكيلات والإصابات والمواجهات المباشرة والترتيب لكل مباراة قادمة. اضغط على مباراة.", mc_today: "اليوم", mc_tomorrow: "غداً", mc_search_ph: "ابحث عن فريق أو بطولة…", mc_pro_p: "فعّل Pro لرؤية التشكيلات والإصابات والمواجهات لكل مباراة.", mi_title: "أخبار الفريقين", mi_btn: "التشكيلة وأخبار الفريقين", mi_login: "يرجى تسجيل الدخول من جديد.", mi_pro: "معلومات المباراة متاحة في خطة Pro.", mi_t_overview: "نظرة عامة", mi_t_lineups: "التشكيلة", mi_t_absences: "الإصابات", mi_t_h2h: "المواجهات", mi_s_full: "التشكيلة كاملة", mi_s_mostly: "شبه كاملة", mi_s_weak: "منقوصة", mi_s_rot: "تشكيلة مُدوَّرة", mi_s_unknown: "لا أخبار بعد", mi_out_n: "غائب", mi_doubt_n: "مشكوك فيه", mi_changes_n: "تغييرات مقارنة بالمباراة السابقة", mi_no_table: "لا يوجد ترتيب لهذا الفريق.", mi_record: "ف-ت-خ", mi_lu_none: "لا توجد تشكيلة لهذا الفريق.", mi_lu_soon: "تُعلن التشكيلات قبل ساعة تقريباً من البداية ({time}).", mi_lu_na: "لا توجد تشكيلة لهذه المباراة.", mi_new: "جديد", mi_same_xi: "نفس تشكيلة المباراة السابقة", mi_formation: "الخطة", mi_subs: "البدلاء", mi_abs_unknown: "لا توجد أخبار متاحة.", mi_abs_none: "لا إصابات ولا إيقافات معلنة.", mi_out: "غائب", mi_doubt: "شك", mi_h2h_none: "لم يلتقِ الفريقان مؤخراً.", mi_h2h_total: "عدد المباريات", mi_wins: "فوز", mi_goals: "الأهداف", mi_last_meet: "آخر المواجهات", mi_src: "المصدر: API-Football", mi_src_basic: "التشكيلات والإصابات غير متاحة لهذه المباراة." });
 Object.assign(translations.en, { globe_kicker: "Live now", globe_title: "Around the world", globe_online: "online", globe_note: "Approximate city-level locations of people on the site right now." });
 Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
 Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partout dans le monde", globe_online: "en ligne", globe_note: "Localisation approximative (niveau ville) des personnes présentes sur le site en ce moment." });
@@ -2169,6 +2284,191 @@ function fbCloseTeam() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fbCloseTeam(); });
 
+/* ── Match info: line-ups, absences, head-to-head, league position (/api/match/:id/info) ── */
+const MI = { cache: {}, open: null, from: null, mcOpen: null, mcDay: 'all', mcQ: '' };
+const MI_TTL = 2 * 60 * 1000;
+function infoHTML(id) {
+  return `<button class="pin-btn info-btn" type="button" data-info="${esc(id)}" onclick="miOpen(this.dataset.info)" title="${esc(tNow().mi_btn || 'Line-ups & team news')}" aria-label="${esc(tNow().mi_btn || 'Line-ups & team news')}">
+    <svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
+  </button>`;
+}
+async function miFetch(id, force) {
+  const c = MI.cache[id];
+  if (!force && c && Date.now() - c.ts < MI_TTL) return c.data;
+  const r = await fetch('/api/match/' + encodeURIComponent(id) + '/info', { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + (authState.token || '') } });
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new Error(tNow().mi_login || 'Please log in again.');
+  if (r.status === 403) throw new Error(tNow().mi_pro || 'Match info is part of the Pro plan.');
+  if (!r.ok) throw new Error(d.error || 'Could not load the match info.');
+  MI.cache[id] = { ts: Date.now(), data: d };
+  return d;
+}
+const miFx = id => { const r = (st.results || []).find(x => x && x.fx && String(x.fx.id) === String(id)); return r ? r.fx : null; };
+const miOrd = n => { const l = localStorage.getItem('mde:lang') || 'en'; if (l !== 'en') return String(n); const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+function miStrengthBadge(sg) {
+  const t = tNow();
+  if (!sg) return `<span class="mi-badge unknown">${esc(t.mi_s_unknown || 'No team news yet')}</span>`;
+  const label = { full: t.mi_s_full || 'Full strength', mostly: t.mi_s_mostly || 'Almost full strength', weakened: t.mi_s_weak || 'Weakened', rotated: t.mi_s_rot || 'Rotated XI', unknown: t.mi_s_unknown || 'No team news yet' }[sg.level] || sg.level;
+  const parts = [];
+  if (sg.out) parts.push(`${sg.out} ${t.mi_out_n || 'out'}`);
+  if (sg.doubt) parts.push(`${sg.doubt} ${t.mi_doubt_n || 'doubtful'}`);
+  if (sg.changes != null) parts.push(`${sg.changes} ${t.mi_changes_n || 'changes vs last match'}`);
+  return `<span class="mi-badge ${esc(sg.level)}">${esc(label)}</span>${parts.length ? `<span class="mi-sub">${esc(parts.join(' · '))}</span>` : ''}`;
+}
+function miTeamCol(tm) {
+  const t = tNow(), s = tm.standing;
+  const form = (s && s.form && s.form.length ? s.form : tm.form) || [];
+  const rank = s ? `<div class="mi-rank">${esc(miOrd(s.rank))}<small>/ ${s.size || '?'}</small></div><div class="mi-lg">${esc([s.league, s.group].filter(Boolean).join(' · '))}</div>` : `<div class="mi-lg">${esc(t.mi_no_table || 'No league table for this team.')}</div>`;
+  const row = (k, v) => v == null || v === '' ? '' : `<div class="mi-stat"><span>${esc(k)}</span><b>${v}</b></div>`;
+  return `<div class="mi-col"><h4>${crestHTML(tm)}<span>${esc(tm.name)}</span></h4>${rank}
+    ${s ? row(t.fb_points || 'Points', esc(s.pts)) + row(t.mi_record || 'W-D-L', `${s.w ?? '-'}-${s.d ?? '-'}-${s.l ?? '-'} <small style="color:var(--ink-3)">(${s.p ?? '-'})</small>`) + row(t.th_gfga || 'Goals', `${s.gf ?? '-'}:${s.ga ?? '-'}`) : ''}
+    ${form.length ? row(t.fb_form || 'Form', fbForm(form)) : ''}
+    ${miStrengthBadge(tm.strength)}</div>`;
+}
+function miPitch(lu, newIds) {
+  const rows = new Map();
+  lu.xi.forEach((p, i) => { const r = p.grid ? +p.grid.split(':')[0] : (i === 0 ? 1 : 2 + Math.floor((i - 1) / 4)); (rows.get(r) || rows.set(r, []).get(r)).push(p); });
+  const lines = [...rows.entries()].sort((a, b) => b[0] - a[0]).map(([, ps]) => ps.sort((a, b) => (a.grid ? +a.grid.split(':')[1] : 0) - (b.grid ? +b.grid.split(':')[1] : 0)));
+  const last = n => String(n || '').split(' ').slice(-1)[0];
+  return `<div class="mi-pitch">${lines.map(ps => `<div class="mi-line">${ps.map(p => `<div class="mi-pl${newIds.has(p.name) ? ' new' : ''}" title="${esc(p.name)}"><i>${p.number ?? ''}</i><span>${esc(last(p.name))}</span></div>`).join('')}</div>`).join('')}</div>`;
+}
+function miLineupCol(tm, lu) {
+  const t = tNow();
+  if (!lu) return `<div class="mi-col"><h4>${crestHTML(tm)}<span>${esc(tm.name)}</span></h4><div class="mi-note">${esc(t.mi_lu_none || 'No line-up for this team.')}</div></div>`;
+  const newIds = new Set((tm.changes && tm.changes.in) || []);
+  const pl = p => `<div class="mi-li"><span class="num">${p.number ?? ''}</span><span class="nm">${esc(p.name)}</span>${newIds.has(p.name) ? `<span class="mi-tag new">${esc(t.mi_new || 'NEW')}</span>` : ''}<span class="ps">${esc(p.pos || '')}</span></div>`;
+  const ch = tm.changes ? `<span class="mi-sub">${tm.changes.count === 0 ? esc(t.mi_same_xi || 'Same XI as the last match') : `${tm.changes.count} ${esc(t.mi_changes_n || 'changes vs last match')}`}${tm.prev ? ` (${esc(tm.prev.vs || '')}, ${esc(tm.prev.date)})` : ''}</span>` : '';
+  return `<div class="mi-col"><h4>${crestHTML(tm)}<span>${esc(tm.name)}</span></h4>
+    <div class="mi-stat"><span>${esc(t.mi_formation || 'Formation')}</span><b>${esc(lu.formation || '—')}</b></div>
+    ${lu.coach ? `<div class="mi-stat"><span>${esc(t.fb_coach || 'Coach')}</span><b>${esc(lu.coach)}</b></div>` : ''}
+    ${ch}
+    <div style="margin-top:10px">${miPitch(lu, newIds)}</div>
+    <div class="mi-list">${lu.xi.map(pl).join('')}</div>
+    ${lu.subs && lu.subs.length ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--ink-2)">${esc(t.mi_subs || 'Substitutes')} (${lu.subs.length})</summary><div class="mi-list">${lu.subs.map(pl).join('')}</div></details>` : ''}
+  </div>`;
+}
+function miAbsCol(tm, list) {
+  const t = tNow();
+  const body = list == null ? `<div class="mi-note">${esc(t.mi_abs_unknown || 'No team news available.')}</div>`
+    : !list.length ? `<div class="mi-note">✅ ${esc(t.mi_abs_none || 'No reported injuries or suspensions.')}</div>`
+    : `<div class="mi-list">${list.map(a => `<div class="mi-li"><span class="nm">${esc(a.name)}<small style="display:block;color:var(--ink-3);font-size:11.5px">${esc(a.reason || '')}</small></span><span class="mi-tag ${a.type}">${esc(a.type === 'out' ? (t.mi_out || 'OUT') : (t.mi_doubt || 'DOUBT'))}</span></div>`).join('')}</div>`;
+  return `<div class="mi-col"><h4>${crestHTML(tm)}<span>${esc(tm.name)}</span></h4>${body}</div>`;
+}
+function miH2H(d) {
+  const t = tNow(), h = d.h2h;
+  if (!h || !h.total) return `<div class="mi-note">${esc(t.mi_h2h_none || 'These teams have not met recently.')}</div>`;
+  const pc = x => (x || 0) / h.total * 100;
+  const games = (h.last || []).map(g => {
+    const hw = g.hs > g.as, aw = g.as > g.hs;
+    return `<div class="mi-game"><span class="dt">${esc(g.date)}<br>${esc(g.league || '')}</span><span class="h${hw ? ' w' : ''}">${esc(g.home)}</span><span class="sc">${g.hs} - ${g.as}${g.pen ? ` <small>(${g.pen.h}-${g.pen.a}p)</small>` : ''}</span><span class="a${aw ? ' w' : ''}">${esc(g.away)}</span></div>`;
+  }).join('');
+  const known = h.homeWins != null && h.awayWins != null;
+  return `<div class="mi-col" style="margin-bottom:10px">
+    <div class="mi-stat"><span>${esc(t.mi_h2h_total || 'Matches played')}</span><b>${h.total}</b></div>
+    ${known ? `<div class="mi-h2h-bar"><i class="h" style="width:${pc(h.homeWins)}%"></i><i class="d" style="width:${pc(h.draws)}%"></i><i class="a" style="width:${pc(h.awayWins)}%"></i></div>
+    <div class="mi-h2h-n"><div><b style="color:var(--brand)">${h.homeWins}</b><small>${esc(d.home.name)} ${esc(t.mi_wins || 'wins')}</small></div><div><b>${h.draws ?? 0}</b><small>${esc(t.draw || 'Draw')}</small></div><div><b style="color:#f97316">${h.awayWins}</b><small>${esc(d.away.name)} ${esc(t.mi_wins || 'wins')}</small></div></div>` : ''}
+    ${h.homeGoals != null ? `<div class="mi-stat" style="margin-top:8px"><span>${esc(t.mi_goals || 'Goals')} (${esc(d.home.name)} : ${esc(d.away.name)})</span><b>${h.homeGoals} : ${h.awayGoals}</b></div>` : ''}
+  </div>${games ? `<div class="mi-col"><h4>${esc(t.mi_last_meet || 'Last meetings')}</h4>${games}</div>` : ''}`;
+}
+function miRender(d, uid) {
+  const t = tNow();
+  const fx = miFx(d.id);
+  const ko = new Date(d.kickoff), koTxt = isNaN(ko) ? '' : ko.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const meta = [d.league && [d.league.name, d.league.round].filter(Boolean).join(' · '), koTxt, d.venue && '🏟 ' + d.venue, d.referee && '🧑‍⚖️ ' + d.referee].filter(Boolean);
+  const lu = d.lineups || {};
+  const luPane = lu.status === 'confirmed'
+    ? `<div class="mi-grid">${miLineupCol(d.home, lu.home)}${miLineupCol(d.away, lu.away)}</div>`
+    : `<div class="mi-note">${lu.status === 'not_yet'
+        ? esc((t.mi_lu_soon || 'Line-ups are announced about 1 hour before kick-off ({time}).').replace('{time}', lu.expectedFrom ? new Date(lu.expectedFrom).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''))
+        : esc(t.mi_lu_na || 'No line-up data for this match.')}</div>`;
+  const ab = d.absences;
+  const tabs = [['ov', t.mi_t_overview || 'Overview'], ['lu', t.mi_t_lineups || 'Line-ups'], ['ab', t.mi_t_absences || 'Injuries'], ['h2h', t.mi_t_h2h || 'Head-to-head']];
+  const score = fx && (fx.status === 'started' || fx.status === 'finished') ? `<b>${esc(scoreTxt(fx))}</b>` : `<b>VS</b>`;
+  return `
+    <div class="mi-teams"><div class="mi-team">${crestHTML(d.home)}<b>${esc(d.home.name)}</b></div><div class="mi-vs">${score}</div><div class="mi-team">${crestHTML(d.away)}<b>${esc(d.away.name)}</b></div></div>
+    <div class="mi-meta">${meta.map(m => `<span>${esc(m)}</span>`).join('')}</div>
+    <div class="mi-tabs" role="tablist">${tabs.map(([k, l], i) => `<button type="button" role="tab" class="mi-tab${i === 0 ? ' on' : ''}" data-mi="${k}" onclick="miTab(this,'${uid}')">${esc(l)}</button>`).join('')}</div>
+    <div class="mi-pane on" data-pane="ov"><div class="mi-grid">${miTeamCol(d.home)}${miTeamCol(d.away)}</div></div>
+    <div class="mi-pane" data-pane="lu">${luPane}</div>
+    <div class="mi-pane" data-pane="ab"><div class="mi-grid">${miAbsCol(d.home, ab ? ab.home : null)}${miAbsCol(d.away, ab ? ab.away : null)}</div></div>
+    <div class="mi-pane" data-pane="h2h">${miH2H(d)}</div>
+    <p class="mi-src">${esc(d.source === 'api-football' ? (t.mi_src || 'Data: API-Football') : (t.mi_src_basic || 'Line-ups and injuries are not available for this match.'))}</p>`;
+}
+window.miTab = function (btn, uid) {
+  const root = document.getElementById(uid); if (!root) return;
+  root.querySelectorAll('.mi-tab').forEach(b => b.classList.toggle('on', b === btn));
+  root.querySelectorAll('.mi-pane').forEach(p => p.classList.toggle('on', p.dataset.pane === btn.dataset.mi));
+};
+async function miLoadInto(id, el, uid) {
+  const c = MI.cache[id];
+  if (c && Date.now() - c.ts < MI_TTL) { el.innerHTML = miRender(c.data, uid); return; }   // re-renders of the list do not flash
+  el.innerHTML = fbSkel(5);
+  try { const d = await miFetch(id); if (el.isConnected) el.innerHTML = miRender(d, uid); }
+  catch (e) { if (el.isConnected) el.innerHTML = fbErr(e.message, `miRetry('${esc(id)}','${uid}')`); }
+}
+window.miRetry = function (id, uid) { delete MI.cache[id]; const el = document.getElementById(uid); if (el) miLoadInto(id, el, uid); };
+window.miOpen = function (id) {
+  const m = $('miModal'), body = $('miBody'); if (!m || !body) return;
+  MI.from = document.activeElement; MI.open = id;
+  m.classList.remove('hidden');
+  miLoadInto(id, body, 'miBody');
+  setTimeout(() => { const x = m.querySelector('.fb-x'); if (x) x.focus(); }, 30);
+};
+window.miClose = function () {
+  const m = $('miModal'); if (!m || m.classList.contains('hidden')) return;
+  m.classList.add('hidden'); MI.open = null;
+  if (MI.from && MI.from.focus) { try { MI.from.focus(); } catch (e) {} }
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') miClose(); });
+document.addEventListener('click', e => { const m = $('miModal'); if (m && e.target === m) miClose(); });
+
+/* Match Center tab: every upcoming / live match, expand one for its line-ups, injuries, head-to-head and table */
+function mcDayKey(fx) { const d = fxDateTime(fx); return isNaN(d) ? fx.date : localDateStr(d); }
+function renderUpcoming() {
+  const t = tNow(), body = $('mcBody'); if (!body) return;
+  if (!isPro()) { body.innerHTML = `<div class="empty-state"><strong>${esc(t.mi_pro || 'Match info is part of the Pro plan.')}</strong><p>${esc(t.mc_pro_p || 'Unlock Pro to see line-ups, injuries and head-to-head for every match.')}</p><button type="button" class="empty-cta" onclick="switchTab('unlock')">${esc(t.nav_unlock || 'Unlock Access')}</button></div>`; return; }
+  const today = localDateStr(new Date()), tmr = localDateStr(new Date(Date.now() + 864e5));
+  const q = normQ(MI.mcQ);
+  const seen = new Set();
+  const list = (st.results || []).map(r => r && r.fx).filter(fx => {
+    if (!fx || seen.has(String(fx.id))) return false; seen.add(String(fx.id));
+    if (fx.status !== 'notstarted' && fx.status !== 'started') return false;
+    const k = mcDayKey(fx);
+    if (MI.mcDay === 'today' && k !== today) return false;
+    if (MI.mcDay === 'tomorrow' && k !== tmr) return false;
+    if (q) { const hay = normQ(fx.home.name + ' ' + fx.away.name + ' ' + (fx.league || '')); if (!q.split(' ').every(w => hay.includes(w))) return false; }
+    return true;
+  }).sort((a, b) => (Number(b.status === 'started') - Number(a.status === 'started')) || (fxDateTime(a) - fxDateTime(b)));
+  document.querySelectorAll('#mcDays .lg-chip').forEach(c => { const on = c.dataset.day === MI.mcDay; c.classList.toggle('on', on); c.setAttribute('aria-selected', on); });
+  if (!list.length) { body.innerHTML = `<div class="empty-state"><strong>${esc(q ? (t.hist_no_match || 'No matches found') : (t.no_upcoming || 'No upcoming matches.'))}</strong></div>`; return; }
+  let html = '', day = null;
+  for (const fx of list) {
+    const live = fx.status === 'started', k = live ? 'live' : mcDayKey(fx);
+    if (k !== day) { day = k; html += `<div class="mc-day">${live ? '🔴 LIVE' : esc(k === today ? (t.mc_today || 'Today') : k === tmr ? (t.mc_tomorrow || 'Tomorrow') : fxDateLabel(fx))}</div>`; }
+    const id = String(fx.id), open = MI.mcOpen === id, uid = 'mcb_' + id.replace(/[^a-z0-9_]/gi, '');
+    html += `<div class="mc-item${open ? ' open' : ''}" data-id="${esc(id)}">
+      <button type="button" class="mc-row" aria-expanded="${open}" onclick="mcToggle('${esc(id)}')">
+        <span class="mc-time${live ? ' live' : ''}">${live ? esc(scoreTxt(fx)) : esc(fxLocalTime(fx))}</span>
+        <span class="tm h"><span>${esc(teamDisp(fx.home, fx))}</span>${crestHTML(fx.home)}</span>
+        <span class="mc-vs">${live ? 'LIVE' : 'VS'}</span>
+        <span class="tm">${crestHTML(fx.away)}<span>${esc(teamDisp(fx.away, fx))}</span></span>
+        <svg class="mc-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        <span class="mc-lg">${esc(leagueDisp(fx))}</span>
+      </button>
+      ${open ? `<div class="mc-body" id="${uid}"></div>` : ''}
+    </div>`;
+  }
+  body.innerHTML = html;
+  if (MI.mcOpen) { const id = MI.mcOpen, uid = 'mcb_' + id.replace(/[^a-z0-9_]/gi, ''), el = document.getElementById(uid); if (el) miLoadInto(id, el, uid); }
+}
+window.mcToggle = function (id) { MI.mcOpen = MI.mcOpen === id ? null : id; renderUpcoming(); const el = document.querySelector(`.mc-item[data-id="${CSS.escape(id)}"]`); if (el && MI.mcOpen) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+window.mcDay = function (d) { MI.mcDay = d; renderUpcoming(); };
+(function () {
+  const inp = document.getElementById('mcSearch'); if (!inp) return;
+  let tm = 0;
+  inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { MI.mcQ = inp.value.trim(); renderUpcoming(); }, 150); });
+})();
+
 window.switchTab = function(tab) {
   window.__tabNext = tab;
   if (window.__tabRaf) return;
@@ -2195,6 +2495,7 @@ function __doSwitch(tab) {
   if (tab === 'discover') setTimeout(() => { if (view.classList.contains('active')) loadDiscover(); }, 90);
   if (tab === 'standings') setTimeout(() => { if (view.classList.contains('active')) renderStandings(); }, 60);
   if (tab === 'leagues') setTimeout(() => { if (view.classList.contains('active')) renderLeagues(); }, 60);
+  if (tab === 'upcoming') setTimeout(() => { if (view.classList.contains('active')) renderUpcoming(); }, 60);
   if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
 }
 
@@ -2479,6 +2780,7 @@ function renderSignals() {
   syncStatsFromCards();
   // The count-up animation (fx.js) runs ~0.9 s after a render: re-check once it is over so nothing can leave a stale number on screen.
   clearTimeout(window.__statSync); window.__statSync = setTimeout(syncStatsFromCards, 1200);
+  const mcv = document.getElementById('view-upcoming'); if (mcv && mcv.classList.contains('active')) renderUpcoming();
 }
 // The cards on screen are the truth: the first three dashboard numbers are read back from them, so "Matches" can never differ from what the person counts.
 function syncStatsFromCards() {
@@ -2512,7 +2814,7 @@ function buildCard(r, t) {
         <div class="m-league">${esc(leagueDisp(fx))}</div>
         <div class="m-top-right">
           <span class="mh-quality ${fx.dataQuality || 'very-low'}">${(fx.dataQuality || 'EST').toUpperCase()}</span>
-          ${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}
+          ${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${infoHTML(fx.id)}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}
         </div>
       </div>
       <div class="m-teams">

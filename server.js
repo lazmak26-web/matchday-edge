@@ -2062,6 +2062,43 @@ app.get('/api/football/team/:id', apiLimiter, async (req, res) => {
   fbSend(res, await fbTeam(id), 'Team information');
 });
 
+/* Match info (line-ups, absences, head-to-head, league position) for one fixture of the current feed. The fixture is looked
+   up server-side by id, so a caller can only spend the API-Football budget on matches the site really lists. */
+const matchInfo = require('./matchinfo');
+const matchInfoFile = () => path.join(path.dirname(HISTORY_FILE), 'matchinfo-cache.json');
+const matchInfoSaver = makeSaver('Match info cache', () => writeAtomic(matchInfoFile(), JSON.stringify(matchInfo.dump())), 60 * 1000);
+try { if (fs.existsSync(matchInfoFile())) console.log(`📋 Loaded match info cache: ${matchInfo.load(JSON.parse(fs.readFileSync(matchInfoFile(), 'utf8')))} entries`); }
+catch (e) { console.error('Match info cache load error:', e.message); }
+// football-data.org table row (already cached for the Standings tab) in the panel's shape: used when API-Football has none.
+function fdStanding(team) {
+  if (!team || !team.name) return null;
+  for (const [k, v] of infoCache) {
+    if (!k.startsWith('table:') || !v.data) continue;
+    for (const g of v.data.groups || []) {
+      const r = g.rows.find(x => x.team && ((team.id && x.team.id === team.id) || teamsMatchAny(team.name, x.team.name)));
+      if (r) return { rank: r.pos, pts: r.pts, p: r.p, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, gd: r.gd, form: r.form || [], size: g.rows.length, league: v.data.name, group: g.name || null };
+    }
+  }
+  return null;
+}
+const matchInfoLimiter = makeLimiter({ windowMs: 60 * 1000, max: 30, message: 'Too many requests. Slow down.' });
+app.get('/api/match/:id/info', matchInfoLimiter, authMiddleware, requirePro, async (req, res) => {
+  const id = String(req.params.id || '');
+  if (!/^[a-z0-9_]{1,40}$/i.test(id)) return res.status(400).json({ error: 'Invalid match.' });
+  try {
+    const list = fixturesCache.data || lastFixtures || await getFixtures();
+    const fx = (list || []).find(f => String(f.id) === id);
+    if (!fx) return res.status(404).json({ error: 'Match not found. It may have been removed from the feed.' });
+    const info = await matchInfo.getMatchInfo(fx, { match: teamsMatchAny, fallback: { standings: { home: fdStanding(fx.home), away: fdStanding(fx.away) } } });
+    matchInfoSaver.soon();
+    res.setHeader('Cache-Control', 'private, max-age=60');
+    res.json(info);
+  } catch (e) {
+    console.error('Match info error:', e.message);
+    res.status(500).json({ error: 'Match info is unavailable right now.' });
+  }
+});
+
 // Public, cacheable: lets the static frontend learn which social logins are on (and their client ids) without templating index.html.
 app.get('/api/public/config', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=300');
@@ -2240,7 +2277,7 @@ function shutdown(signal, code = 0) {
   shuttingDown = true;
   console.log(`${signal}: saving data before exit`);
   // Each saver is read inside try/catch: one that is not created yet (early signal) or that throws must not block the exit.
-  for (const getSaver of [() => userSaver, () => sessionSaver, () => licenseSaver, () => snapshotSaver, () => discoverSaver, () => demoSaver, () => footballSaver]) {
+  for (const getSaver of [() => userSaver, () => sessionSaver, () => licenseSaver, () => snapshotSaver, () => discoverSaver, () => demoSaver, () => footballSaver, () => matchInfoSaver]) {
     try { const sv = getSaver(); if (sv) sv.now(); } catch (e) { console.error('Shutdown save error:', e && e.message); }
   }
   server.close(() => process.exit(code));
