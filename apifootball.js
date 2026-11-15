@@ -87,30 +87,100 @@ function toFixtures(rows, opts = {}) {
   return out.slice(0, max).map(x => { delete x._prio; return x; });
 }
 
+// Calls reserved for the match-info panel (lineups, injuries, head-to-head, tables): the fixtures refresh stops this many
+// calls before the daily cap so a person opening a match is never starved by the background refresh.
+const INFO_RESERVE = Math.max(0, Math.min(MAX_DAY - 1, parseInt(process.env.APIFOOTBALL_INFO_RESERVE, 10) || 30));
+
+// One quota-aware GET for every API-Football call (fixtures refresh and match info share the same daily budget).
+// kind 'fixtures' leaves INFO_RESERVE calls for 'info'. Throws 'quota' when the budget is spent.
+async function get(pathQs, kind = 'info') {
+  if (!KEY) throw new Error('API-Football is not configured');
+  roll();
+  const cap = kind === 'fixtures' ? MAX_DAY - INFO_RESERVE : MAX_DAY;
+  if (usage.n >= cap || (usage.remaining !== null && usage.remaining <= 2)) throw new Error('quota');
+  usage.n++;
+  const r = await fetch(BASE + pathQs, { headers: { 'x-apisports-key': KEY, Accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
+  const rem = parseInt(r.headers.get('x-ratelimit-requests-remaining'), 10); if (Number.isFinite(rem)) usage.remaining = rem;
+  if (!r.ok) throw new Error('API-Football HTTP ' + r.status);
+  const data = await r.json();
+  const errs = data && data.errors && (Array.isArray(data.errors) ? data.errors : Object.values(data.errors));
+  if (errs && errs.length) throw new Error('API-Football: ' + String(errs[0]).slice(0, 120));
+  return data;
+}
+
+/* Day index: EVERY fixture of a day (friendlies and lower leagues included, unlike toFixtures) with the ids the
+   match-info calls need. Today's index is filled for free by the fixtures refresh; another day costs one call. */
+const DAY_TTL = 6 * 60 * 60 * 1000;
+const dayIndex = new Map();                      // 'YYYY-MM-DD' -> { ts, rows }
+const dayInFlight = new Map();
+function compactRows(rows) {
+  const out = [];
+  for (const r of Array.isArray(rows) ? rows : []) {
+    const f = r && r.fixture, lg = (r && r.league) || {}, t = r && r.teams;
+    if (!f || f.id == null || !t || !t.home || !t.away || !t.home.name || !t.away.name) continue;
+    const ts = Date.parse(f.date); if (!Number.isFinite(ts)) continue;
+    out.push({
+      fid: f.id, ts, short: String((f.status && f.status.short) || ''),
+      venue: f.venue && f.venue.name ? String(f.venue.name).slice(0, 80) : null,
+      referee: f.referee ? String(f.referee).slice(0, 60) : null,
+      league: { id: lg.id ?? null, season: lg.season ?? null, name: String(lg.name || '').slice(0, 80), country: String(lg.country || '').slice(0, 40), round: lg.round ? String(lg.round).slice(0, 60) : null },
+      home: { id: t.home.id ?? null, name: String(t.home.name).slice(0, 60), logo: typeof t.home.logo === 'string' && /^https:\/\//.test(t.home.logo) ? t.home.logo : null },
+      away: { id: t.away.id ?? null, name: String(t.away.name).slice(0, 60), logo: typeof t.away.logo === 'string' && /^https:\/\//.test(t.away.logo) ? t.away.logo : null }
+    });
+  }
+  return out;
+}
+function putDay(day, rows) {
+  dayIndex.set(day, { ts: Date.now(), rows: compactRows(rows) });
+  for (const k of [...dayIndex.keys()].sort().slice(0, Math.max(0, dayIndex.size - 10))) dayIndex.delete(k);   // keep 10 days
+}
+async function dayRows(day) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return [];
+  const c = dayIndex.get(day);
+  if (c && Date.now() - c.ts < DAY_TTL) return c.rows;
+  if (day === today()) { await fetchToday(); const t = dayIndex.get(day); if (t) return t.rows; }
+  if (dayInFlight.has(day)) return dayInFlight.get(day);
+  const p = (async () => {
+    try { const d = await get(`/fixtures?date=${day}`); putDay(day, d.response); return dayIndex.get(day).rows; }
+    catch (e) { usage.lastError = e.message; return c ? c.rows : []; }
+    finally { dayInFlight.delete(day); }
+  })();
+  dayInFlight.set(day, p);
+  return p;
+}
+// Find the API-Football fixture of a match known by team names + kick-off. match(a, b) = team-name matcher.
+// A row whose kick-off is within 3 h and BOTH names match wins; else one exact name + kick-off within 20 min.
+function pickFixture(rows, home, away, koMs, match) {
+  const near = (r, ms) => !Number.isFinite(koMs) || Math.abs(r.ts - koMs) <= ms;
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  return rows.find(r => near(r, 3 * 3600e3) && match(home, r.home.name) && match(away, r.away.name))
+    || rows.find(r => near(r, 20 * 60e3) && (norm(home) === norm(r.home.name) || norm(away) === norm(r.away.name)))
+    || null;
+}
+async function findFixture({ afId, home, away, kickoffIso }, match) {
+  const koMs = Date.parse(kickoffIso);
+  const day = Number.isFinite(koMs) ? new Date(koMs).toISOString().slice(0, 10) : today();
+  const rows = await dayRows(day);
+  if (afId != null) { const r = rows.find(x => String(x.fid) === String(afId)); if (r) return r; }
+  return pickFixture(rows, home, away, koMs, match);
+}
+
 async function fetchToday() {
   if (!KEY) return [];
   const day = today();
   if (cache.day === day && Date.now() - cache.ts < TTL) return cache.list;
   const stale = cache.day === day ? cache.list : [];
   if (Date.now() < cache.errUntil) return stale;
-  roll();
-  if (usage.n >= MAX_DAY || (usage.remaining !== null && usage.remaining <= 2)) return stale;
   if (inFlight) return inFlight;
   inFlight = (async () => {
     try {
-      usage.n++;
-      const r = await fetch(`${BASE}/fixtures?date=${day}`, { headers: { 'x-apisports-key': KEY, Accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
-      const rem = parseInt(r.headers.get('x-ratelimit-requests-remaining'), 10); if (Number.isFinite(rem)) usage.remaining = rem;
-      if (!r.ok) throw new Error('API-Football HTTP ' + r.status);
-      const data = await r.json();
-      const errs = data && data.errors && (Array.isArray(data.errors) ? data.errors : Object.values(data.errors));
-      if (errs && errs.length) throw new Error('API-Football: ' + String(errs[0]).slice(0, 120));
+      const data = await get(`/fixtures?date=${day}`, 'fixtures');
+      putDay(day, data.response);
       cache.list = toFixtures(data.response); cache.day = day; cache.ts = Date.now(); usage.lastError = null;
       console.log(`🌍 API-Football: ${cache.list.length} matches added from ${(data.response || []).length} today (request ${usage.n}/${MAX_DAY}${usage.remaining !== null ? ', ' + usage.remaining + ' left' : ''})`);
       return cache.list;
     } catch (e) {
-      usage.lastError = e.message;
-      console.error('API-Football error:', e.message);
+      if (e.message !== 'quota') { usage.lastError = e.message; console.error('API-Football error:', e.message); }
       cache.errUntil = Date.now() + 10 * 60 * 1000;   // back off: never burn the daily quota retrying a failing call
       return stale;
     } finally { inFlight = null; }
@@ -118,6 +188,6 @@ async function fetchToday() {
   return inFlight;
 }
 
-const status = () => ({ enabled: !!KEY, requestsToday: usage.n, maxPerDay: MAX_DAY, remaining: usage.remaining, matches: cache.list.length, lastError: usage.lastError });
+const status = () => ({ enabled: !!KEY, requestsToday: usage.n, maxPerDay: MAX_DAY, infoReserve: INFO_RESERVE, remaining: usage.remaining, matches: cache.list.length, lastError: usage.lastError });
 
-module.exports = { fetchToday, toFixtures, mapStatus, status };
+module.exports = { fetchToday, toFixtures, mapStatus, status, get, dayRows, findFixture, pickFixture, compactRows, enabled: () => !!KEY };
