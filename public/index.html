@@ -2130,30 +2130,25 @@ function syncStatsFromCards() {
 
 // ── Match card parts, shared by the Pro card, the free/locked card and the landing page ──
 const mxLive = fx => fx.status === 'started' || fx.status === 'inplay';
-const MX_Q = { high: 3, medium: 2, low: 1 };
-function mxQuality(fx) {
-  const q = fx.dataQuality || 'very-low', n = MX_Q[q] || 0, t = tNow();
-  const label = n === 3 ? (t.q_s_high || 'High') : n === 2 ? (t.q_s_med || 'Medium') : n === 1 ? (t.q_s_low || 'Low') : (t.q_s_est || 'Est.');
-  return `<span class="mx-q q${n}" title="${esc((t.q_title || 'Data quality') + ': ' + label)}"><span class="mx-q-bars" aria-hidden="true"><i></i><i></i><i></i></span>${esc(label)}</span>`;
-}
+// League name on the left; data-quality pill and action buttons on the right.
 function mxTop(fx, extra) {
-  return `<div class="mx-top"><div class="mx-comp">${esc(leagueDisp(fx))}</div>${extra || ''}</div>`;
+  return `<div class="m-top"><div class="m-league">${esc(leagueDisp(fx))}</div>${extra ? `<div class="m-top-right">${extra}</div>` : ''}</div>`;
 }
-// Teams side by side with the score (or kickoff time) in the middle.
+// Teams side by side (crest above the name) with the score or kickoff time in the middle.
 function mxTeams(fx, started) {
   const mid = started
-    ? `<span class="m-live-score">${scoreTxt(fx)}</span><span class="mx-state ${fx.status === 'finished' ? 'ft' : 'live'}">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
+    ? `<span class="m-live-score">${scoreTxt(fx)}</span><span class="m-live-tag">${fx.status === 'finished' ? 'FT' : 'LIVE'}</span><span class="m-date">${esc(fxDateLabel(fx))}</span>`
     : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`;
-  return `<div class="mx-duel"><div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(teamDisp(fx.home, fx))}</div></div><div class="m-mid">${mid}</div><div class="team away">${crestHTML(fx.away)}<div class="t-name">${esc(teamDisp(fx.away, fx))}</div></div></div>`;
+  return `<div class="m-teams"><div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(teamDisp(fx.home, fx))}</div></div><div class="m-mid">${mid}</div><div class="team away">${crestHTML(fx.away)}<div class="t-name">${esc(teamDisp(fx.away, fx))}</div></div></div>`;
 }
-// Home / draw / away: a bar cut in three, one colour per outcome, above the three tiles. Each tile carries a dot in its bar colour.
+// Home / draw / away: a bar cut in three (one colour per outcome, in the same left-to-right order as the tiles) above the three tiles.
 function mxProb(p, t) {
-  const tile = (k, label, val, top) => `<div class="tile ${k}${top ? ' top' : ''}"><i><span class="mx-dot" aria-hidden="true"></span>${label}</i><b>${p ? pct1(val) : '—'}</b></div>`;
-  if (!p) return `<div class="mx-prob"><div class="mx-bar is-empty"></div><div class="tiles">${tile('h', t.home, 0)}${tile('d', t.draw, 0)}${tile('a', t.away, 0)}</div></div>`;
+  const tile = (label, val, top) => `<div class="tile${top ? ' top' : ''}"><i>${label}</i><b>${p ? pct1(val) : '—'}</b></div>`;
+  if (!p) return `<div class="mx-prob"><div class="mx-bar is-empty"></div><div class="tiles">${tile(t.home, 0)}${tile(t.draw, 0)}${tile(t.away, 0)}</div></div>`;
   const mx = Math.max(p.h, p.d, p.a), w = x => (x * 100).toFixed(1);
   return `<div class="mx-prob" role="group" aria-label="${esc(t.home)} ${pct1(p.h)}, ${esc(t.draw)} ${pct1(p.d)}, ${esc(t.away)} ${pct1(p.a)}">
         <div class="mx-bar" aria-hidden="true"><i class="h" style="width:${w(p.h)}%"></i><i class="d" style="width:${w(p.d)}%"></i><i class="a" style="width:${w(p.a)}%"></i></div>
-        <div class="tiles">${tile('h', t.home, p.h, p.h === mx)}${tile('d', t.draw, p.d, p.d === mx && p.h !== mx)}${tile('a', t.away, p.a, p.a === mx && p.h !== mx && p.d !== mx)}</div>
+        <div class="tiles">${tile(t.home, p.h, p.h === mx)}${tile(t.draw, p.d, p.d === mx && p.h !== mx)}${tile(t.away, p.a, p.a === mx && p.h !== mx && p.d !== mx)}</div>
       </div>`;
 }
 // The "Analysis" block shown in Team news (Overview): what explains the pick. Returns '' when the match has no prediction.
@@ -2163,7 +2158,6 @@ function mxAnalysis(r, t) {
   if (v.source && v.source !== 'N/A') rows.push(kvr(t.an_basis || 'Based on', esc(v.source.charAt(0).toUpperCase() + v.source.slice(1))));
   const alts = (json && json.scoreline_prediction && json.scoreline_prediction.alternatives) || [];
   if (alts.length) rows.push(kvr(t.an_alt || 'Other likely scores', alts.slice(0, 3).map(x => `<b>${esc(x)}</b>`).join('<i class="mx-sep">·</i>')));
-  if (v.mainOU15) rows.push(kvr(`${t.over_under} 1.5`, `<b>${esc(v.mainOU15.selection)}</b><em>${v.mainOU15.est ? '~' : ''}${esc(v.mainOU15.confidence)}</em>`));
   const xg = T => (typeof T.xgFor === 'number' && typeof T.xgAgainst === 'number') ? `${T.xgFor.toFixed(2)} / ${T.xgAgainst.toFixed(2)}` : null;
   const xh = xg(H), xa = xg(A);
   if (xh || xa) rows.push(kvr(t.an_xg || 'xG for / against', `<span class="mx-pair"><b>${xh || '—'}</b><i class="mx-sep">vs</i><b>${xa || '—'}</b></span>`));
@@ -2191,16 +2185,17 @@ function buildCard(r, t) {
         <div class="vb-body"><span class="vb-sel">${esc(bv.selection ?? '—')}</span><span class="vb-price">${Number.isFinite(bvOdds) ? bvOdds.toFixed(2) : '—'}</span></div>
         <div class="vb-meta"><span>${t.kelly}: ${esc(bv.quarter_kelly ?? '—')}</span><span class="pill ${riskClass(bv.risk_level)}">${esc(bv.risk_level ?? '—')}</span></div>
       </div>` : '';
-  const actions = `<div class="mx-actions">${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${infoHTML(fx.id)}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}</div>`;
+  const actions = `<span class="mh-quality ${esc(fx.dataQuality || 'very-low')}">${esc(fx.dataQuality || 'very-low')}</span>${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${infoHTML(fx.id)}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}`;
 
-  return `<article data-fx="${esc(fx.id)}" data-odds="${fx.odds && fx.odds.length ? 1 : 0}" class="match mx ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
-      ${mxTop(fx, mxQuality(fx) + actions)}
+  return `<article data-fx="${esc(fx.id)}" data-odds="${fx.odds && fx.odds.length ? 1 : 0}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
+      ${mxTop(fx, actions)}
       ${mxTeams(fx, v.started)}
       ${mxProb(v.p, t)}
       <div class="kv">
-        <div class="kv-row main"><span>${t.pick_1x2}</span><div>${v.main1x2 ? `<b>${esc(v.main1x2.sel)}</b><em>${pctS(v.main1x2.p)}</em>` : NA}</div></div>
-        <div class="kv-row"><span>${t.over_under}</span><div>${v.mainOU ? `<b>${esc(v.mainOU.selection)}</b><em>${esc(v.mainOU.confidence)}</em>` : NA}</div></div>
         <div class="kv-row"><span>${t.scoreline}</span><div>${scoreHTML}</div></div>
+        <div class="kv-row"><span>${t.pick_1x2}</span><b>${v.main1x2 ? esc(v.main1x2.sel) + ' (' + pctS(v.main1x2.p) + ')' : NA}</b></div>
+        <div class="kv-row"><span>${t.over_under}</span><div>${v.mainOU ? `<b>${esc(v.mainOU.selection)}</b><em>${esc(v.mainOU.confidence)}</em>` : NA}</div></div>
+        ${v.mainOU15 ? `<div class="kv-row"><span>${t.over_under} 1.5</span><div><b>${esc(v.mainOU15.selection)}</b><em>${v.mainOU15.est ? '~' : ''}${esc(v.mainOU15.confidence)}</em></div></div>` : ''}
       </div>
       ${valueHTML}
     </article>`;
@@ -2772,7 +2767,7 @@ function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
   const shown = lgBar(elId, list, () => renderLanding(list, elId, unlockCall));
   el.innerHTML = shown.map(fx => {
     const live = mxLive(fx);
-    return `<article class="match mx ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
+    return `<article class="match ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
       ${mxTop(fx)}
       ${mxTeams(fx, live)}
       <div class="lp-lock" onclick="${unlockCall}" role="button" tabindex="0" aria-label="${esc(t.lp_show)}">

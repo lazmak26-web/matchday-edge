@@ -1238,8 +1238,7 @@ body{background:transparent!important}
 .kv-row{padding:9px 0;border-top:1px solid var(--line)}
 .kv-row:first-child{border-top:0;padding-top:0}
 .kv-row:last-child{padding-bottom:0}
-.kv-row.main>span{color:var(--ink-2);font-weight:600}
-.kv-row.main b{font-size:var(--fs-md);font-weight:800;color:var(--ink)}
+
 .kv-row>span{flex:none;white-space:nowrap}
 .kv-row>div,.kv-row>b{text-align:end;min-width:0}
 
@@ -1357,37 +1356,12 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .match.is-value,.match.is-live-card,.match.is-pinned,.match.is-selected{box-shadow:none}
 .match.is-value{border-color:var(--good-line)}
 .match.is-pinned{border-color:var(--line-2)}
-.mx-top{display:flex;align-items:center;gap:var(--s-3);min-height:28px}
-.mx-comp{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+
 /* Data quality: three bars, filled 0–3, with the word next to them */
-.mx-q{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:600;color:var(--ink-2)}
-.mx-q-bars{display:inline-flex;align-items:flex-end;gap:2px;height:11px}
-.mx-q-bars i{width:3px;border-radius:1px;background:var(--line-2)}
-.mx-q-bars i:nth-child(1){height:5px}.mx-q-bars i:nth-child(2){height:8px}.mx-q-bars i:nth-child(3){height:11px}
-.mx-q.q3 .mx-q-bars i{background:var(--good)}
-.mx-q.q2 .mx-q-bars i:nth-child(-n+2){background:var(--warn)}
-.mx-q.q1 .mx-q-bars i:nth-child(1){background:var(--bad)}
-.mx-actions{flex:none;display:flex;margin-inline-end:-8px}
-.mx-actions .pin-btn,.mx-actions .bell-btn{width:36px;height:36px;border-radius:var(--r-sm);background:transparent;border:0;color:var(--ink-3);box-shadow:none}
-.mx-actions .pin-btn:hover,.mx-actions .bell-btn:hover{background:var(--soft);color:var(--ink)}
-.mx-actions .pin-btn.on,.mx-actions .bell-btn.on{background:transparent;color:var(--brand)}
+
 /* Teams side by side, score or kickoff in the middle */
-.mx-duel{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:start;gap:var(--s-2)}
-.mx-duel .team{gap:10px}
-.mx-duel .crest{width:52px;height:52px;border-radius:var(--r-sm)}
-.mx-duel .crest.has-logo{filter:none}
-.mx-duel .t-name{font-size:var(--fs-sm);font-weight:600;line-height:1.25;color:var(--ink)}
-.m-mid{display:flex;flex-direction:column;align-items:center;gap:5px;align-self:center;min-width:84px}
-.m-mid .m-live-score{font-size:var(--fs-xl);font-weight:700;letter-spacing:.02em;line-height:1;color:var(--ink)}
-.m-mid .m-time{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.02em;line-height:1;color:var(--ink)}
-.m-mid .m-date{font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap}
-.m-mid .m-vs{font-size:var(--fs-xs);font-weight:700;letter-spacing:.1em;color:var(--ink-3)}
-.mx-state{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;letter-spacing:.08em;color:var(--ink-3)}
-.mx-state.live{color:var(--ink)}
-.mx-state.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--bad);animation:mxLive 1.6s ease-in-out infinite}
-@keyframes mxLive{50%{opacity:.25}}
+
 /* Probabilities: a bar in three colours (home blue, draw amber, away violet) over the three tiles; each tile has a dot in its bar colour */
-:root{--p-home:var(--brand);--p-draw:var(--warn);--p-away:#9B8CFF}
 .mx-prob{display:flex;flex-direction:column;gap:10px}
 .mx-bar{display:flex;gap:2px;height:8px}
 .mx-bar i{display:block;min-width:3px;border-radius:2px}
@@ -1395,23 +1369,11 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .mx-bar i.d{background:var(--p-draw)}
 .mx-bar i.a{background:var(--p-away);border-radius:2px 4px 4px 2px}
 .mx-bar.is-empty{background:var(--line);border-radius:4px}
-.match .tiles{gap:var(--s-2)}
-.match .tile{background:var(--soft);border:1px solid transparent;border-radius:var(--r-sm);padding:10px 6px;box-shadow:none}
-.match .tile i{display:flex;align-items:center;justify-content:center;gap:6px;font-size:var(--fs-xs);color:var(--ink-3);opacity:1}
-.match .tile b{display:block;margin-top:3px;font-size:var(--fs-md);font-weight:700;letter-spacing:-.02em;color:var(--ink-2)}
-.mx-dot{width:8px;height:8px;border-radius:2px;flex:none}
-.tile.h .mx-dot{background:var(--p-home)}.tile.d .mx-dot{background:var(--p-draw)}.tile.a .mx-dot{background:var(--p-away)}
+
 /* The most likely outcome: outlined in its own colour, number at full strength */
-.match .tile.top{background:var(--soft);color:inherit}
-.match .tile.top b{color:var(--ink)}
-.match .tile.top i{color:var(--ink-2)}
-.match .tile.h.top{border-color:var(--p-home)}.match .tile.d.top{border-color:var(--p-draw)}.match .tile.a.top{border-color:var(--p-away)}
+
 /* Picks */
-.match .kv{border-top:1px solid var(--line);padding-top:12px;font-size:var(--fs-sm)}
-.match .kv-row{padding:7px 0;border-top:0}
-.match .kv-row:first-child{padding-top:0}.match .kv-row:last-child{padding-bottom:0}
-.match .kv-row.main b{font-size:var(--fs-md);font-weight:700}
-.match .kv-row b{font-weight:600}
+
 .kv-row em{font-weight:500}
 /* Value bet: a ruled note inside the card, not a card in a card */
 .vb{background:transparent;border:0;border-inline-start:2px solid var(--good);border-radius:0;padding:2px 0 2px var(--s-3);box-shadow:none}
@@ -1436,7 +1398,7 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .mx-price b{font-size:var(--fs-md);font-weight:700;text-align:end}
 .mx-price small{grid-column:1/-1;font-size:var(--fs-xs);color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Locked (free plan) cards keep the paywall blur on the new parts */
-.match.is-locked .mx-top,.match.is-locked .mx-duel{filter:blur(7px);opacity:.7;pointer-events:none;user-select:none;-webkit-user-select:none}
+
 .lp-lock .mx-prob{filter:blur(7px);opacity:.75;pointer-events:none;user-select:none;-webkit-user-select:none}
 .lp-unlock{border-radius:var(--r-sm);box-shadow:none}
 .lp-lock:hover .lp-unlock{transform:translate(-50%,-50%)}
@@ -1474,7 +1436,7 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .tg-fab:hover{transform:none;filter:brightness(1.08)}
 .tg-fab::before{display:none}
 
-@media (prefers-reduced-motion:reduce){.mx-state.live::before,.mx-skel{animation:none}}
+@media (prefers-reduced-motion:reduce){.mx-skel{animation:none}}
 /* Form: W / D / L as lettered squares (was colour-only dots) */
 .fb-form{gap:3px}
 .fb-form i{width:16px;height:16px;border-radius:4px;display:inline-grid;place-items:center;font-style:normal;font-size:var(--fs-xs);font-weight:700;line-height:1;color:var(--bg);background:var(--line-2)}
@@ -1491,3 +1453,44 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
   .sx-fig:first-child{padding-inline-start:0;border-inline-start:0}
 }
 .mx-price .mx-k{font-size:var(--fs-xs);font-weight:700;color:var(--ink-3)}
+
+
+/* ── Match card: the classic LuciBet card ──
+   Large rounded card, league name with the data-quality pill and round action buttons, crests above the team names with the
+   score or kickoff between them, three Home / Draw / Away tiles (the most likely one filled blue), then the picks.
+   A bar above the tiles shows the same three probabilities, one colour per outcome, in the same order as the tiles. */
+:root{--p-home:var(--brand);--p-draw:var(--warn);--p-away:#9B8CFF;--r-card:30px;--r-tile:22px}
+.match{padding:20px;gap:16px;border-radius:var(--r-card)}
+.match.is-live-card{border-color:transparent;box-shadow:0 0 0 1.5px #7FC1FF,0 0 34px -12px rgba(41,152,255,.55)}
+.match.is-value{border-color:transparent;box-shadow:0 0 0 1.5px var(--good-line)}
+.match.is-pinned{border-color:transparent;box-shadow:0 0 0 1.5px var(--brand)}
+.m-top{display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative}
+.m-league{min-width:0;font-size:var(--fs-sm);font-weight:600;line-height:1.35;color:var(--ink-2)}
+.m-top-right{display:flex;align-items:center;gap:6px;flex:none}
+.mh-quality{padding:5px 11px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--soft);color:var(--ink-3)}
+.mh-quality.high{background:var(--good-dim);color:var(--good)}
+.mh-quality.medium{background:var(--warn-dim);color:var(--warn)}
+.mh-quality.low{background:var(--bad-dim);color:var(--bad)}
+.m-top-right .pin-btn,.m-top-right .bell-btn{width:36px;height:36px;border-radius:50%;background:var(--soft);border:0;color:var(--ink-3)}
+.m-top-right .pin-btn.on,.m-top-right .bell-btn.on{background:var(--brand-dim);color:var(--brand)}
+.m-teams{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:start;gap:8px;position:relative}
+.m-teams .team{gap:10px}
+.m-teams .t-name{font-size:var(--fs-md);font-weight:600;line-height:1.2}
+.m-mid{display:flex;flex-direction:column;align-items:center;gap:6px;align-self:center}
+.m-time,.m-live-score{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.m-live-score{letter-spacing:.02em}
+.m-live-tag{padding:3px 11px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:700;letter-spacing:.04em;background:#BBDDFF;color:#12305A}
+.m-date{font-size:var(--fs-xs);font-weight:600;color:var(--ink-3);white-space:nowrap}
+.m-vs{font-size:var(--fs-xs);font-weight:600;color:var(--ink-3)}
+.match .tiles{gap:8px}
+.match .tile{padding:13px 6px;border-radius:var(--r-tile);background:var(--soft);border:1px solid var(--line);box-shadow:none}
+.match .tile i{display:block;font-style:normal;font-size:var(--fs-sm);color:var(--ink-3);opacity:1}
+.match .tile b{display:block;margin-top:2px;font-size:var(--fs-lg);font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.match .tile.top{border-color:transparent;background:linear-gradient(180deg,#7DB9FF,#3A8CF6);box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}
+.match .tile.top i{color:#16324F}
+.match .tile.top b{color:#0A1626}
+.match .kv{gap:10px;font-size:var(--fs-sm);border:0;padding:0}
+.match .kv-row{padding:0;border:0}
+.match .kv-row b{font-weight:700}
+.match.is-locked .m-top,.match.is-locked .m-teams{filter:blur(7px);opacity:.7;pointer-events:none;user-select:none;-webkit-user-select:none}
+.vb{border-radius:0}
