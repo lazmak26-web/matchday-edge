@@ -1459,7 +1459,8 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
    Large rounded card, league name with the data-quality pill and round action buttons, crests above the team names with the
    score or kickoff between them, three Home / Draw / Away tiles (the most likely one filled blue), then the picks.
    A bar above the tiles shows the same three probabilities, one colour per outcome, in the same order as the tiles. */
-:root{--p-home:var(--brand);--p-draw:var(--warn);--p-away:#9B8CFF;--r-card:30px;--r-tile:22px}
+/* Probability bar: home win green, draw orange, away win red (read from the home side: win / draw / loss) */
+:root{--p-home:var(--good);--p-draw:#F5953B;--p-away:var(--bad);--p-violet:#9B8CFF;--r-card:30px;--r-tile:22px}
 .match{padding:20px;gap:16px;border-radius:var(--r-card)}
 .match.is-live-card{border-color:transparent;box-shadow:0 0 0 1.5px #7FC1FF,0 0 34px -12px rgba(41,152,255,.55)}
 .match.is-value{border-color:transparent;box-shadow:0 0 0 1.5px var(--good-line)}
@@ -1612,7 +1613,7 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .db-tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:var(--fs-xs);font-weight:700;line-height:1.3;background:var(--soft);color:var(--ink-2);font-variant-numeric:tabular-nums}
 .db-tag.good{background:var(--good-dim);color:var(--good)}.db-tag.bad{background:var(--bad-dim);color:var(--bad)}.db-tag.warn{background:var(--warn-dim);color:var(--warn)}
 .db-tag.plan-pro{background:var(--brand-dim);color:var(--brand)}
-.db-tag.plan-lifetime{background:color-mix(in srgb,var(--p-away) 18%,transparent);color:var(--p-away)}
+.db-tag.plan-lifetime{background:color-mix(in srgb,var(--p-violet) 18%,transparent);color:var(--p-violet)}
 .db-tag.plan-expired{background:var(--warn-dim);color:var(--warn)}
 .db-search{height:36px;width:min(220px,100%);padding:0 12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--soft);color:var(--ink);font:inherit;font-size:var(--fs-sm)}
 .db-search:focus{outline:2px solid var(--brand);outline-offset:0;border-color:transparent}
@@ -1624,9 +1625,6 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .db-li-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .db-li-main b{font-size:var(--fs-sm);font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .db-li-main small{font-size:var(--fs-xs);color:var(--ink-3)}
-/* Pick tracking totals inside the admin dashboard */
-#adminTracking .perf-grid{margin:0}
-#adminTracking .perf-card{border-radius:var(--r-lg)}
 
 /* ── Header notifications ── */
 .notif-wrap{position:relative}
@@ -1662,9 +1660,3 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .db-card .adm-table:has(#adminRows) td{white-space:normal}
 .db-card .adm-table:has(#adminRows) thead th{position:sticky;top:0;z-index:1;background:var(--card)}
 @media (min-width:960px){.db-chart{grid-template-rows:280px auto}}
-/* Pick tracking totals: same card language as the KPIs above */
-#adminTracking .perf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:var(--s-3)}
-#adminTracking .perf-card,#adminTracking .perf-card.hero{grid-column:auto;margin:0;padding:var(--s-4);background:var(--card);border:1px solid var(--line);box-shadow:none}
-#adminTracking .perf-card.hero::before,#adminTracking .perf-card.hero::after{display:none}
-#adminTracking .perf-val{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
-#adminTracking .perf-lbl{margin-top:6px;font-size:var(--fs-xs);color:var(--ink-3)}

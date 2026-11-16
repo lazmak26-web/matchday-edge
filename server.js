@@ -2552,53 +2552,6 @@ const demoArena = require('./demo-arena').create({
 });
 demoSaver = demoArena.saver;
 
-/* ═══════════════════════════════════════════════════════════
-   ADMIN-ONLY TRACKING: real win/loss of the frozen pre-match picks (1X2 and Over/Under 2.5).
-   Uses only picks frozen BEFORE kickoff and final scores of finished matches. Nothing is invented; flat 1-unit stake when a real price exists.
-   ═══════════════════════════════════════════════════════════ */
-function trackingReport() {
-  const fin = dedupeFixtures([...snapshotStore.values()].filter(f => f && f.status === 'finished' && Number.isInteger(f.homeScore) && Number.isInteger(f.awayScore) && f.pick));
-  const priceOf = (f, key) => {
-    const books = (Array.isArray(f.openOdds) && f.openOdds.length ? f.openOdds : f.odds) || [];
-    const v = books.map(b => b && b[key]).filter(x => x > 1);
-    return v.length ? Math.max(...v) : null;
-  };
-  const empty = () => ({ n: 0, win: 0, loss: 0, units: 0, priced: 0 });
-  const oddsCore = require('./engine/odds'), clvs = [];
-  const tot = { x12: empty(), ou: empty(), bets: empty() }, days = new Map(), list = [];
-  const add = (t, won, odds) => { t.n++; won ? t.win++ : t.loss++; if (odds) { t.priced++; t.units += won ? odds - 1 : -1; } };
-  for (const f of fin) {
-    const goals = f.homeScore + f.awayScore, res = f.homeScore > f.awayScore ? 'home' : f.homeScore === f.awayScore ? 'draw' : 'away';
-    const row = { id: f.id, date: f.date, kickoff: f.kickoff, league: f.league, match: `${f.home.name} vs ${f.away.name}`, score: `${f.homeScore}-${f.awayScore}` };
-    const d = days.get(f.date) || { date: f.date, x12: empty(), ou: empty() }; days.set(f.date, d); d.bets = d.bets || empty();
-    if (f.pick.bet) {
-      const b = f.pick.bet, o = b.firstOdds || b.odds, won = b.key === res, c = oddsCore.consensus(f.odds || []), fp = c && c.fair[{ home: 'h', draw: 'd', away: 'a' }[b.key]];
-      const clv = o > 1 && fp > 0 ? o * fp - 1 : null;
-      add(tot.bets, won, o); add(d.bets, won, o); if (clv != null) clvs.push(clv);
-      row.bet = { pick: b.key, odds: o, ev: b.ev, won, clv: clv == null ? null : +clv.toFixed(4), book: b.book };
-    }
-    if (f.pick.key) { const won = f.pick.key === res, o = priceOf(f, f.pick.key); add(tot.x12, won, o); add(d.x12, won, o); row.x12 = { pick: f.pick.key, p: f.pick.p, won, odds: o }; }
-    if (f.pick.ou === 'over' || f.pick.ou === 'under') {
-      const won = f.pick.ou === 'over' ? goals > 2.5 : goals < 2.5, o = priceOf(f, f.pick.ou === 'over' ? 'over25' : 'under25');
-      add(tot.ou, won, o); add(d.ou, won, o); row.ou = { pick: f.pick.ou, p: f.pick.ouP == null ? null : f.pick.ouP, won, odds: o, goals };
-    }
-    if (f.pick.ou15 === 'over' || f.pick.ou15 === 'under') {   // O/U 1.5: model-only (no 1.5 price in the feed), so hit rate only
-      row.ou15 = { pick: f.pick.ou15, p: f.pick.ou15P == null ? null : f.pick.ou15P, won: f.pick.ou15 === 'over' ? goals > 1.5 : goals < 1.5, goals };
-    }
-    list.push(row);
-  }
-  const fmt = t => ({ n: t.n, win: t.win, loss: t.loss, winRate: t.n ? +(t.win / t.n).toFixed(4) : null, priced: t.priced, units: +t.units.toFixed(2), roi: t.priced ? +(t.units / t.priced).toFixed(4) : null });
-  return {
-    totals: { bets: Object.assign(fmt(tot.bets), { clvN: clvs.length, clv: clvs.length ? +(clvs.reduce((a, b) => a + b, 0) / clvs.length).toFixed(4) : null }), x12: fmt(tot.x12), ou: fmt(tot.ou) },
-    days: [...days.values()].sort((a, b) => b.date.localeCompare(a.date)).map(d => ({ date: d.date, bets: fmt(d.bets || empty()), x12: fmt(d.x12), ou: fmt(d.ou) })),
-    matches: list.sort((a, b) => (b.date + (b.kickoff || '')).localeCompare(a.date + (a.kickoff || ''))).slice(0, 60),
-    note: 'BETS = the value bets the engine flagged before kickoff (price when first flagged); CLV = that price x closing fair probability - 1, positive means the market moved your way. Flat 1-unit stake at the best price seen before kickoff; ROI only over picks that had a real price. Over/Under line 2.5.'
-  };
-}
-app.get('/api/admin/tracking', dataLimiter, authMiddleware, requireAdmin, async (req, res) => {
-  try { await refreshHistoryResults().catch(() => {}); res.json(trackingReport()); }
-  catch (e) { res.status(500).json({ error: 'Server error' }); }
-});
 
 // Error handler LAST among the routes: Express only sends errors to handlers registered after the route that threw (Discover/uploads used to answer with an HTML 500).
 app.use((err, req, res, next) => {
