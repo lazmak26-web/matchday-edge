@@ -986,7 +986,7 @@ body:has(#view-signals.active) .app-header:not(.scrolled){border-radius:0}   /* 
 .app-header .icon-btn:hover{background:rgba(255,255,255,.2);color:var(--hero-on)}
 .app-header .live-status{background:var(--hero-tile);border:0;color:var(--hero-accent)}
 .app-header .live-status .dot{background:var(--hero-accent)}
-.tab-view:not(#view-signals),#landingPage{padding-top:18px}
+#landingPage{padding-top:18px}
 
 /* The stats area is laid out by the .stat-strip / .stat-hero / .stat-sub rules in
    index.html (flex column: gradient hero card on top, 3 sub-tiles below). The old
@@ -1682,3 +1682,8 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .ss-clear[hidden]{display:none}
 .ss-clear svg{width:16px;height:16px}
 body.is-free #inlineSearch{display:none}
+
+/* Every page starts right under the header, like Signals: no extra space above the first block */
+.tab-view{padding-top:0}
+.tab-view>:first-child{margin-top:0}
+.tab-view>:first-child>.section-head:first-child,.tab-view>.section-head:first-child{margin-top:0}
