@@ -42,7 +42,7 @@
 <div class="wrap">
   <header class="app-header">
     <div class="brand">
-      <button class="icon-btn hidden" id="menuBtn" type="button" aria-label="Menu" onclick="openMenu()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <button class="icon-btn hidden" id="menuBtn" type="button" aria-label="Menu" data-act="openMenu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="brand-mark">
         <img src="logo.png" alt="LuciBet logo" width="34" height="34" decoding="async" fetchpriority="high">
       </div>
@@ -106,7 +106,7 @@
       <div class="cta-box">
         <div class="cta-title" data-i18n="get_started">Get Started Now</div>
         <div class="cta-desc adapt-ink" data-i18n="cta_desc">Enter your email to get a login code and open today's value bets.</div>
-        <button class="btn-main" onclick="openAuthModal()" data-i18n="login_dash">Login to Dashboard</button>
+        <button class="btn-main" data-act="openAuthModal" data-i18n="login_dash">Login to Dashboard</button>
       </div>
     </div>
 
@@ -147,7 +147,7 @@
           <h3 style="margin-bottom:12px; font-size:var(--fs-md);">Create a Post</h3>
           <textarea id="postText" class="auth-input" placeholder="What's happening?" style="height:80px; resize:none; margin-bottom:8px; font:inherit;"></textarea>
           <input type="file" id="postImage" class="auth-input" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" style="padding:10px; margin-bottom:8px;">
-          <button class="btn-main" onclick="submitPost()" style="width:100%; padding:10px; font-size:var(--fs-sm);">Post</button>
+          <button class="btn-main" data-act="submitPost" style="width:100%; padding:10px; font-size:var(--fs-sm);">Post</button>
         </div>
 
         <div id="discoverFeed" class="board-wrap" style="display:flex; flex-direction:column; gap:16px;">
@@ -235,9 +235,9 @@
         <p class="fb-src" style="margin:-8px 2px 14px" data-i18n="mc_sub">Line-ups, injuries, head-to-head and league position for every upcoming match. Tap a match.</p>
         <div class="mc-tools">
           <div class="lg-chips" id="mcDays" role="tablist" style="margin:0">
-            <button type="button" role="tab" class="lg-chip on" data-day="all" onclick="mcDay('all')" data-i18n="all_leagues">All</button>
-            <button type="button" role="tab" class="lg-chip" data-day="today" onclick="mcDay('today')" data-i18n="mc_today">Today</button>
-            <button type="button" role="tab" class="lg-chip" data-day="tomorrow" onclick="mcDay('tomorrow')" data-i18n="mc_tomorrow">Tomorrow</button>
+            <button type="button" role="tab" class="lg-chip on" data-day="all" data-act="mcDay" data-i18n="all_leagues">All</button>
+            <button type="button" role="tab" class="lg-chip" data-day="today" data-act="mcDay" data-i18n="mc_today">Today</button>
+            <button type="button" role="tab" class="lg-chip" data-day="tomorrow" data-act="mcDay" data-i18n="mc_tomorrow">Tomorrow</button>
           </div>
           <div class="hist-search" role="search">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
@@ -251,7 +251,7 @@
     <div id="view-admin" class="tab-view">
       <section class="db" style="margin-top:24px;">
         <div class="section-head"><div><div class="section-label">Admin</div><h2>Dashboard</h2></div>
-          <button class="hide-btn" type="button" onclick="loadAdmin()">Refresh</button></div>
+          <button class="hide-btn" type="button" data-act="loadAdmin">Refresh</button></div>
         <div class="db-kpis" id="admKpis"></div>
         <div class="db-row">
           <div class="db-card db-wide">
@@ -317,14 +317,14 @@
     <label class="consent" id="consentWrap"><input type="checkbox" id="gConsent"><span data-i18n="consent_age">I am 18 or older</span></label>
     <button class="auth-btn" id="loginSubmitBtn" data-i18n="login_btn">Login</button>
     <p class="auth-legal"><span data-i18n="legal_a">By continuing, you accept the</span> <a href="/terms" target="_blank" rel="noopener" data-i18n="terms_link">Terms of Service</a> <span data-i18n="consent_and">and</span> <a href="/privacy" target="_blank" rel="noopener" data-i18n="privacy_link">Privacy Policy</a>.</p>
-    <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" onclick="closeAuthModal()" data-i18n="cancel">Cancel</button>
+    <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" data-act="closeAuthModal" data-i18n="cancel">Cancel</button>
     <div class="auth-error" id="authError"></div>
     </div>
     <div id="otpStep" class="hidden">
       <input type="text" class="auth-input otp-input" id="otpCode" aria-label="Verification code" placeholder="······" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-      <button class="auth-btn" id="otpBtn" type="button" onclick="verifyOtp()" data-i18n="otp_btn">Verify</button>
-      <button class="auth-btn auth-secondary" id="otpResend" type="button" onclick="resendOtp()" disabled></button>
-      <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" onclick="resetAuthSteps()" data-i18n="otp_back">Back</button>
+      <button class="auth-btn" id="otpBtn" type="button" data-act="verifyOtp" data-i18n="otp_btn">Verify</button>
+      <button class="auth-btn auth-secondary" id="otpResend" type="button" data-act="resendOtp" disabled></button>
+      <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" data-act="resetAuthSteps" data-i18n="otp_back">Back</button>
       <div class="auth-error" id="otpError"></div>
     </div>
   </div>
@@ -334,7 +334,7 @@
   <div class="modal-box" style="max-width: 420px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <h2 data-i18n="filters_title">Model Filters</h2>
-      <button class="icon-btn" style="width:36px; height:36px;" onclick="closeFilterModal()">✕</button>
+      <button class="icon-btn" style="width:36px; height:36px;" data-act="closeFilterModal">✕</button>
     </div>
     <p data-i18n="filters_sub" style="margin-bottom:24px;">Adjust how the bot calculates Value Bets.</p>
 
@@ -367,20 +367,20 @@
       </div>
     </div>
 
-    <button class="auth-btn" style="margin-top:24px;" onclick="closeFilterModal()" data-i18n="done">Done</button>
+    <button class="auth-btn" style="margin-top:24px;" data-act="closeFilterModal" data-i18n="done">Done</button>
   </div>
 </div>
 
 <div id="fbTeamModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="fbTeamName">
   <div class="modal-box fb-team-box">
-    <button class="icon-btn fb-x" type="button" onclick="fbCloseTeam()" aria-label="Close">✕</button>
+    <button class="icon-btn fb-x" type="button" data-act="fbCloseTeam" aria-label="Close">✕</button>
     <div id="fbTeamBody"></div>
   </div>
 </div>
 
 <div id="miModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Match info">
   <div class="modal-box mi-box">
-    <button class="icon-btn fb-x" type="button" onclick="miClose()" aria-label="Close">✕</button>
+    <button class="icon-btn fb-x" type="button" data-act="miClose" aria-label="Close">✕</button>
     <div class="mi-head"><div class="section-label" style="margin:0"><span data-i18n="mi_title">Team news</span></div></div>
     <div id="miBody"></div>
   </div>
@@ -390,7 +390,7 @@
   <div class="modal-box" style="max-width: 420px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <h2 data-i18n="settings_title">Settings</h2>
-      <button class="icon-btn" style="width:36px; height:36px;" onclick="closeSettingsModal()">✕</button>
+      <button class="icon-btn" style="width:36px; height:36px;" data-act="closeSettingsModal">✕</button>
     </div>
 
     <div class="control-panel" style="margin-top:24px;">
@@ -417,23 +417,23 @@
     </div>
 
 
-    <button class="auth-btn" style="margin-top:24px;" onclick="closeSettingsModal()" data-i18n="done">Done</button>
+    <button class="auth-btn" style="margin-top:24px;" data-act="closeSettingsModal" data-i18n="done">Done</button>
   </div>
 </div>
 
-<div id="menuOverlay" class="side-overlay hidden" onclick="closeMenu()"></div>
+<div id="menuOverlay" class="side-overlay hidden" data-act="closeMenu"></div>
 <aside id="sideMenu" data-lenis-prevent class="side-menu" aria-hidden="true" inert>
-  <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" onclick="closeMenu()">✕</button></div>
-  <button class="side-item da-side" type="button" data-tab="demo" onclick="menuGo('demo')"><span class="si-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg></span><span class="si-t"><b>Demo Arena</b><small>Virtual Sports Predictions</small></span></button>
-  <button class="side-item" type="button" data-tab="standings" onclick="menuGo('standings')"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v18"/></svg><span data-i18n="nav_standings">Standings</span></button>
-  <button class="side-item" type="button" data-tab="upcoming" onclick="menuGo('upcoming')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h3M8 18h6"/></svg><span data-i18n="nav_mc">Match Center</span></button>
-  <button class="side-item" type="button" data-tab="leagues" onclick="menuGo('leagues')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="nav_leagues">Leagues</span></button>
-  <button class="side-item" type="button" data-tab="performance" onclick="menuGo('performance')"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
-  <button class="side-item" type="button" data-tab="weekly" onclick="menuGo('weekly')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Agent Stats</span></button>
-  <button class="side-item" type="button" data-tab="unlock" onclick="menuGo('unlock')"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
-  <button class="side-item" id="menuLicBtn" type="button" onclick="menuDo(openLicenseModal)"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L21 2M16 7l3 3M14 9l2 2"/></svg><span data-i18n="lic_menu">Activate Premium</span></button>
-  <button class="side-item hidden" id="menuAdminBtn" type="button" data-tab="admin" onclick="menuGo('admin')"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><path d="M9 12l2 2 4-4"/></svg><span>Admin</span></button>
-  <button class="side-item" id="menuSetBtn" type="button" onclick="menuDo(openSettingsModal)"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span data-i18n="nav_settings">Settings</span></button>
+  <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" data-act="closeMenu">✕</button></div>
+  <button class="side-item da-side" type="button" data-tab="demo" data-act="menuGo"><span class="si-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg></span><span class="si-t"><b>Demo Arena</b><small>Virtual Sports Predictions</small></span></button>
+  <button class="side-item" type="button" data-tab="standings" data-act="menuGo"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v18"/></svg><span data-i18n="nav_standings">Standings</span></button>
+  <button class="side-item" type="button" data-tab="upcoming" data-act="menuGo"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h3M8 18h6"/></svg><span data-i18n="nav_mc">Match Center</span></button>
+  <button class="side-item" type="button" data-tab="leagues" data-act="menuGo"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="nav_leagues">Leagues</span></button>
+  <button class="side-item" type="button" data-tab="performance" data-act="menuGo"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
+  <button class="side-item" type="button" data-tab="weekly" data-act="menuGo"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Agent Stats</span></button>
+  <button class="side-item" type="button" data-tab="unlock" data-act="menuGo"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span data-i18n="nav_unlock">Unlock Access</span></button>
+  <button class="side-item" id="menuLicBtn" type="button" data-act="menuLicense"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L21 2M16 7l3 3M14 9l2 2"/></svg><span data-i18n="lic_menu">Activate Premium</span></button>
+  <button class="side-item hidden" id="menuAdminBtn" type="button" data-tab="admin" data-act="menuGo"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><path d="M9 12l2 2 4-4"/></svg><span>Admin</span></button>
+  <button class="side-item" id="menuSetBtn" type="button" data-act="menuSettings"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span data-i18n="nav_settings">Settings</span></button>
   <a class="side-item" href="https://t.me/l1uci7er" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="nav_support">Support</span></a>
 </aside>
 
@@ -442,8 +442,8 @@
     <h2 data-i18n="lic_title">Activate Premium</h2>
     <p data-i18n="lic_sub">Enter your license key to activate Pro on your account.</p>
     <input type="text" class="auth-input" id="licKey" aria-label="License key" placeholder="LB-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <button class="auth-btn" id="licBtn" type="button" onclick="activateLicense()" data-i18n="lic_btn">Activate</button>
-    <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" onclick="closeLicenseModal()" data-i18n="cancel">Cancel</button>
+    <button class="auth-btn" id="licBtn" type="button" data-act="activateLicense" data-i18n="lic_btn">Activate</button>
+    <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" data-act="closeLicenseModal" data-i18n="cancel">Cancel</button>
     <div class="auth-error" id="licMsg"></div>
     <div class="lic-state" id="licState" role="status" aria-live="polite">
       <div class="lic-badge">
@@ -457,9 +457,9 @@
 </div>
 
 <nav class="bottom-nav hidden" id="bottomNav">
-  <button class="nav-item active" onclick="switchTab('signals')" id="nav-signals"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/></svg><span data-i18n="nav_signals">Signals</span></button>
-  <button class="nav-item" onclick="switchTab('discover')" id="nav-discover"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Discover</span></button>
-  <button class="nav-item" onclick="switchTab('history')" id="nav-history"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span data-i18n="nav_history">History</span></button>
+  <button class="nav-item active" data-act="switchTab" data-tab="signals" id="nav-signals"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/></svg><span data-i18n="nav_signals">Signals</span></button>
+  <button class="nav-item" data-act="switchTab" data-tab="discover" id="nav-discover"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Discover</span></button>
+  <button class="nav-item" data-act="switchTab" data-tab="history" id="nav-history"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span data-i18n="nav_history">History</span></button>
 </nav>
 
 <div id="cookieBar" role="region" aria-label="Cookies" hidden>
@@ -772,7 +772,58 @@ document.getElementById('themeSelect').addEventListener('change', (e) => {
 
 let authMode = 'login';
 let lpHash = null, lpAppHash = null, lpAppList = null, lpAppTs = 0;
-const authState = { token: localStorage.getItem('mde:token') || null, loggedIn: false, profile: null };
+// Sessions now live in an HttpOnly cookie the browser sends automatically; the token is never stored in JS/localStorage
+// (an XSS can no longer read it). `token` is kept only for backward compatibility and stays null in normal use.
+const authState = { token: null, loggedIn: false, profile: null };
+// One-time cleanup of the old localStorage token from before the cookie migration.
+try { localStorage.removeItem('mde:token'); } catch (e) {}
+// Double-submit CSRF: read the JS-readable csrf cookie and echo it on state-changing requests.
+function readCookie(name) { const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)')); return m ? decodeURIComponent(m[1]) : ''; }
+function csrfHeaders() { const t = readCookie('mde_csrf'); return t ? { 'X-CSRF-Token': t } : {}; }
+window.csrfHeaders = csrfHeaders;
+
+/* ── CSP-safe event delegation (replaces inline on* handlers so 'unsafe-inline' can be dropped from script-src) ──
+   Static controls carry data-act="<key>" (+ data-* args); dynamically-built controls that need a closure carry
+   data-run="<token>" minted by act(). Two document-level listeners dispatch clicks and Enter keys. */
+const _actReg = new Map(); let _actSeq = 0;
+function act(fn) { const id = 'r' + (++_actSeq); _actReg.set(id, fn); if (_actReg.size > 600) _actReg.delete(_actReg.keys().next().value); return id; }
+const ACT = {
+  openMenu: () => openMenu(), closeMenu: () => closeMenu(),
+  openAuthModal: () => openAuthModal(), closeAuthModal: () => closeAuthModal(), resetAuthSteps: () => resetAuthSteps(),
+  verifyOtp: () => verifyOtp(), resendOtp: () => resendOtp(),
+  submitPost: () => submitPost(), loadAdmin: () => loadAdmin(), histMore: () => histMore(),
+  closeFilterModal: () => closeFilterModal(), closeSettingsModal: () => closeSettingsModal(),
+  openLicenseModal: () => openLicenseModal(), closeLicenseModal: () => closeLicenseModal(), activateLicense: () => activateLicense(),
+  fbCloseTeam: () => fbCloseTeam(), miClose: () => miClose(), fbAllLeagues: () => { FB.lgOpen = null; renderLeagues(); },
+  openSearch: () => { window.__openSearch && window.__openSearch(); }, closeSearch: () => { window.__closeSearch && window.__closeSearch(); },
+  menuLicense: () => menuDo(openLicenseModal), menuSettings: () => menuDo(openSettingsModal),
+  checkNew: el => { el.disabled = true; el.textContent = 'Checking…'; pollFeed().finally(() => { el.disabled = false; el.textContent = 'Check for new matches'; }); },
+  switchTab: el => switchTab(el.dataset.tab),
+  menuGo: el => menuGo(el.dataset.tab),
+  mcDay: el => mcDay(el.dataset.day),
+  miOpen: el => miOpen(el.dataset.info),
+  miTab: el => miTab(el, el.dataset.uid),
+  mcToggle: el => mcToggle(el.dataset.mcid),
+  toggleBell: el => toggleBell(el.dataset.bell),
+  togglePin: el => togglePin(el.dataset.pin),
+  shareMatch: el => shareMatch(el.dataset.share, el),
+  likePost: el => likePost(el.dataset.post, el.dataset.vote),
+  toggleComments: el => toggleComments(el.dataset.post),
+  deletePost: el => deletePost(el.dataset.post),
+  addComment: el => addComment(el.dataset.post),
+  fbViewTable: el => { FB.sel = el.dataset.code; switchTab('standings'); }
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act],[data-run]');
+  if (!el) return;
+  if (el.dataset.run) { const fn = _actReg.get(el.dataset.run); if (fn) fn(e, el); return; }
+  const fn = ACT[el.dataset.act]; if (fn) fn(el, e);
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const c = e.target.closest('[data-ckey]'); if (c) { addComment(c.dataset.ckey); return; }
+  const r = e.target.closest('[data-run][role="button"]'); if (r) { const fn = _actReg.get(r.dataset.run); if (fn) fn(e, r); }
+});
 let historyFixtures = [];
 
 function cssVar(name, fallback) {
@@ -843,7 +894,7 @@ async function activateLicense() {
   if (btn.disabled) return;
   msg.style.color = ''; msg.textContent = '';
   if (!key) return;
-  if (!authState.token) { msg.textContent = t.lic_login; return; }
+  if (!authState.loggedIn) { msg.textContent = t.lic_login; return; }
   btn.disabled = true; btn.classList.add('loading'); btn.textContent = t.lic_doing; licUI('loading', t.lic_doing, t.lic_checking);
   msg.style.color = 'var(--ink-3)'; msg.textContent = t.lic_checking;
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 20000);
@@ -851,7 +902,7 @@ async function activateLicense() {
   try {
     const r = await fetch('/api/license/activate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token },
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
       body: JSON.stringify({ key }), signal: ctl.signal
     });
     const data = await r.json().catch(() => ({}));
@@ -914,7 +965,7 @@ document.getElementById('openFilterBtn').onclick = openFilterModal;
 })();
 
 document.getElementById('logoutBtn').onclick = async () => {
-  try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token } }); } catch(e) {}
+  try { await fetch('/api/auth/logout', { method: 'POST', headers: { ...csrfHeaders() } }); } catch(e) {}
   authState.token = null;
   authState.loggedIn = false;
   authState.profile = null;
@@ -937,10 +988,10 @@ function getDeviceHWID() {
 ['loginUser'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click(); }));
 
 function finishLogin(data) {
-  authState.token = data.token;
+  // The server set the HttpOnly session cookie; nothing to store here. Track login state from the profile only.
+  authState.token = null;
   authState.profile = data.profile || null;
   authState.loggedIn = true;
-  localStorage.setItem('mde:token', data.token);
   closeAuthModal();
   updateAuthUI();
   pollFeed();
@@ -1130,17 +1181,16 @@ async function authSubmit() {
 document.getElementById('loginSubmitBtn').onclick = authSubmit;
 
 async function checkAuth() {
-  if (!authState.token) { updateAuthUI(); return; }
+  // The HttpOnly session cookie (if any) is sent automatically; verify restores the session on page load.
   try {
-    const r = await fetch('/api/auth/verify', { headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/auth/verify');
     if (r.ok) {
       try { authState.profile = await r.json(); } catch (e) {}
       authState.loggedIn = true;
       updateAuthUI();
       pollFeed();
     } else {
-      authState.token = null;
-      localStorage.removeItem('mde:token');
+      authState.loggedIn = false;
       updateAuthUI();
     }
   } catch(e) { updateAuthUI(); }
@@ -1416,7 +1466,7 @@ async function fbLeagues(force) {
 }
 const fbImg = (src, cls) => src ? `<img class="${cls}" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fb-crest-ph'}))">` : `<span class="fb-crest-ph"></span>`;
 const fbSkel = n => Array.from({ length: n }, () => '<div class="fb-skel"></div>').join('');
-const fbErr = (msg, retry) => `<div class="fb-err">${esc(msg)}<br><button type="button" class="fb-btn" onclick="${retry}">${esc(tNow().fb_retry || 'Try again')}</button></div>`;
+const fbErr = (msg, retry) => `<div class="fb-err">${esc(msg)}<br><button type="button" class="fb-btn" data-run="${act(retry)}">${esc(tNow().fb_retry || 'Try again')}</button></div>`;
 function fbSeason(se) {
   if (!se || !se.start) return '';
   const a = se.start.slice(0, 4), b = se.end ? se.end.slice(0, 4) : '';
@@ -1431,7 +1481,7 @@ async function renderStandings() {
   const t = tNow(), chips = $('fbStChips'), body = $('fbStBody');
   if (!chips || !body) return;
   if (!FB.leagues) body.innerHTML = fbSkel(8);
-  try { await fbLeagues(); } catch (e) { body.innerHTML = fbErr(e.message, 'renderStandings()'); return; }
+  try { await fbLeagues(); } catch (e) { body.innerHTML = fbErr(e.message, () => renderStandings()); return; }
   if (!FB.sel || !FB.leagues.some(l => l.code === FB.sel)) FB.sel = FB.leagues[0] && FB.leagues[0].code;
   chips.innerHTML = FB.leagues.map(l => `<button type="button" role="tab" aria-selected="${l.code === FB.sel}" class="lg-chip fb-chip${l.code === FB.sel ? ' on' : ''}" data-code="${esc(l.code)}">${l.emblem ? `<img src="${esc(l.emblem)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}${esc(l.name)}</button>`).join('');
   chips.onclick = e => { const b = e.target.closest('.fb-chip'); if (!b || b.dataset.code === FB.sel) return; FB.sel = b.dataset.code; renderStandings(); };
@@ -1439,7 +1489,7 @@ async function renderStandings() {
   const code = FB.sel, url = '/api/football/standings/' + code;
   if (!FB.cache[url]) body.innerHTML = fbSkel(10);
   try { const d = await fbFetch(url); if (FB.sel === code) fbDrawTable(d); }
-  catch (e) { if (FB.sel === code) body.innerHTML = fbErr(e.message, 'renderStandings()'); }
+  catch (e) { if (FB.sel === code) body.innerHTML = fbErr(e.message, () => renderStandings()); }
 }
 function fbDrawTable(d) {
   const t = tNow(), body = $('fbStBody'); if (!body) return;
@@ -1460,7 +1510,7 @@ async function renderLeagues(force) {
   const t = tNow(), body = $('fbLgBody'); if (!body) return;
   if (FB.lgOpen) return fbDrawLeague(FB.lgOpen);
   if (!FB.leagues) body.innerHTML = `<div class="fb-lg-grid">${fbSkel(6)}</div>`;
-  try { await fbLeagues(force); } catch (e) { body.innerHTML = fbErr(e.message, 'renderLeagues(true)'); return; }
+  try { await fbLeagues(force); } catch (e) { body.innerHTML = fbErr(e.message, () => renderLeagues(true)); return; }
   body.innerHTML = `<div class="fb-lg-grid">${FB.leagues.map(l => {
     const se = fbSeason(l.season), md = l.season && l.season.matchday;
     return `<button type="button" class="fb-lg-card" data-code="${esc(l.code)}">
@@ -1473,10 +1523,10 @@ async function renderLeagues(force) {
 async function fbDrawLeague(code) {
   const t = tNow(), body = $('fbLgBody'); if (!body) return;
   const l = (FB.leagues || []).find(x => x.code === code) || { code, name: code };
-  const back = `<button type="button" class="fb-btn fb-back" onclick="FB.lgOpen=null;renderLeagues()">← ${esc(t.fb_all_leagues || 'All leagues')}</button>`;
+  const back = `<button type="button" class="fb-btn fb-back" data-act="fbAllLeagues">← ${esc(t.fb_all_leagues || 'All leagues')}</button>`;
   const shell = (inner) => `${back}<div class="fb-hero">${fbImg(l.emblem, '')}<div><h3>${esc(l.name)}</h3><p>${esc(l.country || '')}</p></div></div>${inner}`;
   const scHolder = `<div class="fb-h4">${esc(t.fb_scorers || 'Top scorers')}</div><div id="fbScorers">${fbSkel(3)}</div>`;
-  const actions = `<div class="fb-actions"><button type="button" class="fb-btn primary" onclick="FB.sel='${esc(code)}';switchTab('standings')">${esc(t.fb_view_table || 'View full table')}</button></div>`;
+  const actions = `<div class="fb-actions"><button type="button" class="fb-btn primary" data-act="fbViewTable" data-code="${esc(code)}">${esc(t.fb_view_table || 'View full table')}</button></div>`;
   body.onclick = e => { const r = e.target.closest('[data-team]'); if (r && r.dataset.team) fbOpenTeam(r.dataset.team); };
   const tableUrl = '/api/football/standings/' + code, cached = FB.cache[tableUrl];
   body.innerHTML = shell((cached ? fbLeagueTop(cached.data) : fbSkel(4)) + actions + scHolder);
@@ -1484,7 +1534,7 @@ async function fbDrawLeague(code) {
   if (cached) return;
   try { const d = await fbFetch(tableUrl); if (FB.lgOpen !== code) return; const keep = $('fbScorers') ? $('fbScorers').innerHTML : fbSkel(3);
     body.innerHTML = shell(fbLeagueTop(d) + actions + `<div class="fb-h4">${esc(t.fb_scorers || 'Top scorers')}</div><div id="fbScorers">${keep}</div>`); }
-  catch (e) { if (FB.lgOpen === code) body.innerHTML = shell(fbErr(e.message, `fbDrawLeague('${esc(code)}')`) + actions + scHolder); }
+  catch (e) { if (FB.lgOpen === code) body.innerHTML = shell(fbErr(e.message, () => fbDrawLeague(code)) + actions + scHolder); }
 }
 function fbLeagueTop(table) {
   const t = tNow();
@@ -1502,7 +1552,7 @@ async function fbLoadScorers(code) {
     const el = $('fbScorers'); if (!el || FB.lgOpen !== code) return;
     const list = (sc && sc.scorers) || [];
     el.innerHTML = list.length ? `<div class="fb-list">${list.slice(0, 10).map((s, i) => `<div class="fb-li${s.team && s.team.id ? ' tap' : ''}" data-team="${(s.team && s.team.id) || ''}"><span class="n">${i + 1}</span>${fbImg(s.team && s.team.crest, 'fb-crest')}<span class="who"><b>${esc(s.player.name)}</b><small>${esc((s.team && (s.team.short || s.team.name)) || '')}${s.player.nationality ? ' · ' + esc(s.player.nationality) : ''}</small></span><span class="val">${s.goals} <small>${esc(t.fb_goals || 'goals')}${s.assists ? ` · ${s.assists} ${esc(t.fb_assists || 'ast')}` : ''}</small></span></div>`).join('')}</div>` : `<div class="fb-err">${esc(t.fb_no_scorers || 'No scorers yet.')}</div>`;
-  } catch (e) { const el = $('fbScorers'); if (el && FB.lgOpen === code) el.innerHTML = fbErr(e.message, `fbLoadScorers('${esc(code)}')`); }
+  } catch (e) { const el = $('fbScorers'); if (el && FB.lgOpen === code) el.innerHTML = fbErr(e.message, () => fbLoadScorers(code)); }
 }
 
 /* Team sheet */
@@ -1557,7 +1607,7 @@ async function fbOpenTeam(id) {
     const site = d.website ? `<p style="margin:10px 0 0"><a class="fb-link" href="${esc(d.website)}" target="_blank" rel="noopener noreferrer">${esc(t.fb_website || 'Official website')} ↗</a></p>` : '';
     $('fbTmMore').innerHTML = comps + squad + site;
   } catch (e) {
-    if (!m.classList.contains('hidden') && FB.teamOpen === id) { const more = $('fbTmMore'); if (more) more.innerHTML = fbErr(e.message, `fbOpenTeam('${id}')`); }
+    if (!m.classList.contains('hidden') && FB.teamOpen === id) { const more = $('fbTmMore'); if (more) more.innerHTML = fbErr(e.message, () => fbOpenTeam(id)); }
   }
 }
 function fbCloseTeam() {
@@ -1571,14 +1621,14 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') fbCloseTeam(
 const MI = { cache: {}, open: null, from: null, mcOpen: null, mcDay: 'all', mcQ: '' };
 const MI_TTL = 2 * 60 * 1000;
 function infoHTML(id) {
-  return `<button class="pin-btn info-btn" type="button" data-info="${esc(id)}" onclick="miOpen(this.dataset.info)" title="${esc(tNow().mi_btn || 'Line-ups & team news')}" aria-label="${esc(tNow().mi_btn || 'Line-ups & team news')}">
+  return `<button class="pin-btn info-btn" type="button" data-info="${esc(id)}" data-act="miOpen" title="${esc(tNow().mi_btn || 'Line-ups & team news')}" aria-label="${esc(tNow().mi_btn || 'Line-ups & team news')}">
     <svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
   </button>`;
 }
 async function miFetch(id, force) {
   const c = MI.cache[id];
   if (!force && c && Date.now() - c.ts < MI_TTL) return c.data;
-  const r = await fetch('/api/match/' + encodeURIComponent(id) + '/info', { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + (authState.token || '') } });
+  const r = await fetch('/api/match/' + encodeURIComponent(id) + '/info', { cache: 'no-store', headers: { ...csrfHeaders() } });
   const d = await r.json().catch(() => ({}));
   if (r.status === 401) throw new Error(tNow().mi_login || 'Please log in again.');
   if (r.status === 403) throw new Error(tNow().mi_pro || 'Match info is part of the Pro plan.');
@@ -1675,7 +1725,7 @@ function miRender(d, uid) {
   return `
     <div class="mi-teams"><div class="mi-team">${crestHTML(d.home)}<b>${esc(d.home.name)}</b></div><div class="mi-vs">${score}</div><div class="mi-team">${crestHTML(d.away)}<b>${esc(d.away.name)}</b></div></div>
     <div class="mi-meta">${meta.map(m => `<span>${esc(m)}</span>`).join('')}</div>
-    <div class="mi-tabs" role="tablist">${tabs.map(([k, l], i) => `<button type="button" role="tab" class="mi-tab${i === 0 ? ' on' : ''}" data-mi="${k}" onclick="miTab(this,'${uid}')">${esc(l)}</button>`).join('')}</div>
+    <div class="mi-tabs" role="tablist">${tabs.map(([k, l], i) => `<button type="button" role="tab" class="mi-tab${i === 0 ? ' on' : ''}" data-mi="${k}" data-act="miTab" data-uid="${uid}">${esc(l)}</button>`).join('')}</div>
     <div class="mi-pane on" data-pane="ov"><div class="mi-grid">${miTeamCol(d.home)}${miTeamCol(d.away)}</div>${miAnalysis(d.id)}</div>
     <div class="mi-pane" data-pane="lu">${luPane}</div>
     <div class="mi-pane" data-pane="ab"><div class="mi-grid">${miAbsCol(d.home, ab ? ab.home : null)}${miAbsCol(d.away, ab ? ab.away : null)}</div></div>
@@ -1696,7 +1746,7 @@ async function miLoadInto(id, el, uid) {
     // A code fault (TypeError...) is logged for us and shown as a plain sentence; only messages written for people (login, Pro plan, network) are shown as they are.
     const bug = e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError;
     if (bug) console.error('match info render failed', id, e);
-    if (el.isConnected) el.innerHTML = fbErr(bug ? (tNow().mi_fail || 'Team news could not be displayed for this match.') : e.message, `miRetry('${esc(id)}','${uid}')`);
+    if (el.isConnected) el.innerHTML = fbErr(bug ? (tNow().mi_fail || 'Team news could not be displayed for this match.') : e.message, () => miRetry(id, uid));
   }
 }
 window.miRetry = function (id, uid) { delete MI.cache[id]; const el = document.getElementById(uid); if (el) miLoadInto(id, el, uid); };
@@ -1719,7 +1769,7 @@ document.addEventListener('click', e => { const m = $('miModal'); if (m && e.tar
 function mcDayKey(fx) { const d = fxDateTime(fx); return isNaN(d) ? fx.date : localDateStr(d); }
 function renderUpcoming() {
   const t = tNow(), body = $('mcBody'); if (!body) return;
-  if (!isPro()) { body.innerHTML = `<div class="empty-state"><strong>${esc(t.mi_pro || 'Match info is part of the Pro plan.')}</strong><p>${esc(t.mc_pro_p || 'Unlock Pro to see line-ups, injuries and head-to-head for every match.')}</p><button type="button" class="empty-cta" onclick="switchTab('unlock')">${esc(t.nav_unlock || 'Unlock Access')}</button></div>`; return; }
+  if (!isPro()) { body.innerHTML = `<div class="empty-state"><strong>${esc(t.mi_pro || 'Match info is part of the Pro plan.')}</strong><p>${esc(t.mc_pro_p || 'Unlock Pro to see line-ups, injuries and head-to-head for every match.')}</p><button type="button" class="empty-cta" data-act="switchTab" data-tab="unlock">${esc(t.nav_unlock || 'Unlock Access')}</button></div>`; return; }
   const today = localDateStr(new Date()), tmr = localDateStr(new Date(Date.now() + 864e5));
   const q = normQ(MI.mcQ);
   const seen = new Set();
@@ -1740,7 +1790,7 @@ function renderUpcoming() {
     if (k !== day) { day = k; html += `<div class="mc-day">${live ? '🔴 LIVE' : esc(k === today ? (t.mc_today || 'Today') : k === tmr ? (t.mc_tomorrow || 'Tomorrow') : fxDateLabel(fx))}</div>`; }
     const id = String(fx.id), open = MI.mcOpen === id, uid = 'mcb_' + id.replace(/[^a-z0-9_]/gi, '');
     html += `<div class="mc-item${open ? ' open' : ''}" data-id="${esc(id)}">
-      <button type="button" class="mc-row" aria-expanded="${open}" onclick="mcToggle('${esc(id)}')">
+      <button type="button" class="mc-row" aria-expanded="${open}" data-act="mcToggle" data-mcid="${esc(id)}">
         <span class="mc-time${live ? ' live' : ''}">${live ? esc(scoreTxt(fx)) : esc(fxLocalTime(fx))}</span>
         <span class="tm h"><span>${esc(teamDisp(fx.home, fx))}</span>${crestHTML(fx.home)}</span>
         <span class="mc-vs">${live ? 'LIVE' : 'VS'}</span>
@@ -1953,7 +2003,7 @@ function saveBells(b) { try { localStorage.setItem(BELL_KEY, JSON.stringify(b));
 
 function bellHTML(id) {
   const on = !!getBells()[String(id)];
-  return `<button class="bell-btn ${on ? 'on' : ''}" data-bell="${esc(id)}" onclick="toggleBell(this.dataset.bell)" title="Notify me when the match starts" aria-label="Notify me when the match starts">
+  return `<button class="bell-btn ${on ? 'on' : ''}" data-bell="${esc(id)}" data-act="toggleBell" title="Notify me when the match starts" aria-label="Notify me when the match starts">
     <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
   </button>`;
 }
@@ -1978,7 +2028,7 @@ function getPins() { try { return JSON.parse(localStorage.getItem(PIN_KEY) || '{
 function isPinned(id) { return !!getPins()[String(id)]; }
 function pinHTML(id) {
   const on = isPinned(id);
-  return `<button class="pin-btn ${on ? 'on' : ''}" data-pin="${esc(id)}" onclick="togglePin(this.dataset.pin)" title="Pin this match" aria-label="Pin this match" aria-pressed="${on}">
+  return `<button class="pin-btn ${on ? 'on' : ''}" data-pin="${esc(id)}" data-act="togglePin" title="Pin this match" aria-label="Pin this match" aria-pressed="${on}">
     <svg viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
   </button>`;
 }
@@ -2077,7 +2127,7 @@ function renderSignals() {
         </div>
       </div>
     </div>
-    <button class="stat-search" type="button" aria-label="${esc(t.search_team||'Search a team')}" onclick="window.__openSearch&&window.__openSearch()">
+    <button class="stat-search" type="button" aria-label="${esc(t.search_team||'Search a team')}" data-act="openSearch">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
       <span>${esc(t.search_team||'Search a team')}</span>
     </button>
@@ -2090,7 +2140,7 @@ function renderSignals() {
   if (st.feedDegraded) note.push('The data feed is incomplete right now: some of today\'s matches may be missing. The list updates by itself.');
   const noteHTML = note.length ? `<div class="empty-state" style="grid-column:1/-1;padding:10px 14px;text-align:left;font-size:var(--fs-sm)">⚠️ ${esc(note.join(' · '))}</div>` : '';
   const cardsHTML = cardHTMLs.join('');
-  $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + (st.query ? `<div class="empty-state"><strong>No team matches “${esc(st.queryRaw)}”.</strong><p>Check the spelling or try a shorter name.</p><button type="button" class="empty-cta" onclick="window.__closeSearch()">Clear search</button></div>` : `<div class="empty-state"><strong>${t.no_upcoming}</strong><p>Picks appear here as soon as bookmakers post prices for upcoming matches.</p><button type="button" class="empty-cta" onclick="this.disabled=true;this.textContent='Checking…';pollFeed().finally(()=>{this.disabled=false;this.textContent='Check for new matches'})">Check for new matches</button></div>`)));
+  $('cards').innerHTML = (cardsHTML ? noteHTML + cardsHTML : (noteHTML + (st.query ? `<div class="empty-state"><strong>No team matches “${esc(st.queryRaw)}”.</strong><p>Check the spelling or try a shorter name.</p><button type="button" class="empty-cta" data-act="closeSearch">Clear search</button></div>` : `<div class="empty-state"><strong>${t.no_upcoming}</strong><p>Picks appear here as soon as bookmakers post prices for upcoming matches.</p><button type="button" class="empty-cta" data-act="checkNew">Check for new matches</button></div>`)));
   const inDom = $('cards').querySelectorAll('article.match').length;
   if (inDom !== rendered.length) console.warn('Signals: dashboard counts', rendered.length, 'but', inDom, 'cards are in the page');
   syncStatsFromCards();
@@ -2171,7 +2221,7 @@ function buildCard(r, t) {
         <div class="vb-body"><span class="vb-sel">${esc(bv.selection ?? '—')}</span><span class="vb-price">${Number.isFinite(bvOdds) ? bvOdds.toFixed(2) : '—'}</span></div>
         <div class="vb-meta"><span>${t.kelly}: ${esc(bv.quarter_kelly ?? '—')}</span><span class="pill ${riskClass(bv.risk_level)}">${esc(bv.risk_level ?? '—')}</span></div>
       </div>` : '';
-  const actions = `${mxQuality(fx)}<div class="mx-actions">${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" onclick="shareMatch(this.dataset.share, this)" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${infoHTML(fx.id)}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}</div>`;
+  const actions = `${mxQuality(fx)}<div class="mx-actions">${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" data-act="shareMatch" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${infoHTML(fx.id)}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}</div>`;
 
   return `<article data-fx="${esc(fx.id)}" data-odds="${fx.odds && fx.odds.length ? 1 : 0}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
       ${mxTop(fx, actions)}
@@ -2250,7 +2300,7 @@ function renderHistory() {
       </div>
       ${legRows}
     </div>`;
-  }).join('') + (listed.length > histShown ? `<button type="button" class="hist-more" onclick="histMore()">${esc((t.show_more || 'Show more'))} <small>(${listed.length - histShown})</small></button>` : '');
+  }).join('') + (listed.length > histShown ? `<button type="button" class="hist-more" data-act="histMore">${esc((t.show_more || 'Show more'))} <small>(${listed.length - histShown})</small></button>` : '');
 
   renderPerfKpis();
 }
@@ -2317,7 +2367,7 @@ async function loadGate() {
   if (!authState.loggedIn || !isPro()) return;
   const seq = ++_gateSeq;
   try {
-    const r = await fetch('/api/engine/predictions?mw=' + encodeURIComponent(st.mw) + '&mev=' + encodeURIComponent(st.mev), { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/engine/predictions?mw=' + encodeURIComponent(st.mw) + '&mev=' + encodeURIComponent(st.mev), { cache: 'no-store', headers: { ...csrfHeaders() } });
     if (!r.ok) return;
     const d = await r.json(), m = new Map(), tm = new Map();
     if (seq !== _gateSeq) return; // a newer request is already on its way
@@ -2411,7 +2461,7 @@ async function pollFeedInner() {
   try {
     const r = await fetch('/api/fixtures?t=' + Date.now(), {
       cache: 'no-store',
-      headers: { 'Authorization': 'Bearer ' + authState.token }
+      headers: { ...csrfHeaders() }
     });
 
     if (r.status === 401) {
@@ -2497,8 +2547,8 @@ async function loadAdmin() {
   $('adminMsg').textContent = '';
   try {
     const [uRes, sRes] = await Promise.all([
-      fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + authState.token } }),
-      fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + authState.token } })
+      fetch('/api/admin/users', { headers: { ...csrfHeaders() } }),
+      fetch('/api/admin/stats', { headers: { ...csrfHeaders() } })
     ]);
     adminLive = sRes.ok ? await sRes.json().catch(() => null) : null;
     if (!uRes.ok) throw new Error('HTTP ' + uRes.status);
@@ -2522,7 +2572,7 @@ function applyPlanGate() {
 function renderFreeSignals() {
   const t = tNow();
   $('stats').innerHTML = '';
-  if (lpAppList) renderLanding(lpAppList, 'cards', "switchTab('unlock')");
+  if (lpAppList) renderLanding(lpAppList, 'cards', () => switchTab('unlock'));
   else { $('cards').innerHTML = ''; loadPublicFixtures('app'); }
 }
 
@@ -2774,11 +2824,11 @@ function ntView(n) {
   if (n.type === 'big') {
     const ko = new Date(d.ko), sameDay = ko.toDateString() === new Date().toDateString();
     const when = (sameDay ? (t.nt_today || 'Today') : ko.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' })) + ' · ' + ko.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
-    return { icon: 'pro', tone: 'warn', title: t.nt_big || 'Big match', body: `${d.h} vs ${d.a}`, meta: `${d.lg} · ${when}`, go: `ntGo('signals','${esc(d.id)}')` };
+    return { icon: 'pro', tone: 'warn', title: t.nt_big || 'Big match', body: `${d.h} vs ${d.a}`, meta: `${d.lg} · ${when}`, go: () => ntGo('signals', d.id) };
   }
-  if (n.type === 'week') return { icon: 'rate', tone: 'brand', title: t.nt_week || 'Weekly win rate', body: `${rate(d.w, d.l)} · ${d.w} ${t.wins} / ${d.l} ${t.losses}`, meta: `${dbShortDay(d.from)} – ${dbShortDay(d.to)}`, go: "ntGo('weekly')" };
+  if (n.type === 'week') return { icon: 'rate', tone: 'brand', title: t.nt_week || 'Weekly win rate', body: `${rate(d.w, d.l)} · ${d.w} ${t.wins} / ${d.l} ${t.losses}`, meta: `${dbShortDay(d.from)} – ${dbShortDay(d.to)}`, go: () => ntGo('weekly') };
   const [y, m] = String(d.m).split('-').map(Number);
-  return { icon: 'picks', tone: 'good', title: t.nt_month || 'Monthly win rate', body: `${rate(d.w, d.l)} · ${d.w} ${t.wins} / ${d.l} ${t.losses}`, meta: new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(loc, { month: 'long', year: 'numeric', timeZone: 'UTC' }), go: "ntGo('weekly')" };
+  return { icon: 'picks', tone: 'good', title: t.nt_month || 'Monthly win rate', body: `${rate(d.w, d.l)} · ${d.w} ${t.wins} / ${d.l} ${t.losses}`, meta: new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(loc, { month: 'long', year: 'numeric', timeZone: 'UTC' }), go: () => ntGo('weekly') };
 }
 function ntAgo(ts) {
   const lang = localStorage.getItem('mde:lang') || 'en', s = Math.round((ts - Date.now()) / 1000);
@@ -2797,7 +2847,7 @@ function ntRender(s) {
   const t = tNow();
   $('notifList').innerHTML = s.items.length ? s.items.map(n => {
     const v = ntView(n);
-    return `<button type="button" class="nt-item${n.read ? '' : ' unread'}" onclick="${v.go}"><span class="db-ico tone-${v.tone}">${dbIcon(v.icon)}</span><span class="nt-main"><span class="nt-top"><b>${esc(v.title)}</b><small>${esc(ntAgo(n.ts))}</small></span><span class="nt-body">${esc(v.body)}</span><span class="nt-meta">${esc(v.meta)}</span></span></button>`;
+    return `<button type="button" class="nt-item${n.read ? '' : ' unread'}" data-run="${act(v.go)}"><span class="db-ico tone-${v.tone}">${dbIcon(v.icon)}</span><span class="nt-main"><span class="nt-top"><b>${esc(v.title)}</b><small>${esc(ntAgo(n.ts))}</small></span><span class="nt-body">${esc(v.body)}</span><span class="nt-meta">${esc(v.meta)}</span></span></button>`;
   }).join('') : `<p class="db-empty">${esc(t.nt_empty || 'No notifications yet. Big matches and the weekly and monthly win rate show up here.')}</p>`;
 }
 window.ntGo = function (tab, fxId) {
@@ -2908,7 +2958,7 @@ function renderUnlock() {
   $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p>
     <ul class="plan-feats">${[t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5].map(f => `<li>${esc(f)}</li>`).join('')}</ul>
     <a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${isPro() ? t.plan_renew : t.plan_get}</span></a>
-    ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:12px" onclick="openLicenseModal()">${t.lic_have}</button>`}
+    ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:12px" data-act="openLicenseModal">${t.lic_have}</button>`}
     <p class="plan-note">${t.plan_note.replace('{email}', esc(p.username || ''))}</p></div>`;
 }
 
@@ -2951,7 +3001,7 @@ function lgBar(elId, list, rerender) {
   bar.onclick = e => { const b = e.target.closest('.lg-chip'); if (!b) return; st.sel = b.dataset.lg; st.rerender(); };
   return st.sel === 'all' ? list : list.filter(fx => leagueDisp(fx) === st.sel);
 }
-function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
+function renderLanding(list, elId = 'lpCards', unlockCall = () => openAuthModal()) {
   const t = tNow();
   const el = $(elId); if (!el) return;
   if (!list.length) { const bar = document.getElementById(elId + 'Bar'); if (bar) bar.innerHTML = ''; el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
@@ -2961,7 +3011,7 @@ function renderLanding(list, elId = 'lpCards', unlockCall = 'openAuthModal()') {
     return `<article class="match ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
       ${mxTop(fx)}
       ${mxTeams(fx, live)}
-      <div class="lp-lock" onclick="${unlockCall}" role="button" tabindex="0" aria-label="${esc(t.lp_show)}">
+      <div class="lp-lock" data-run="${act(unlockCall)}" role="button" tabindex="0" aria-label="${esc(t.lp_show)}">
         ${mxProb(null, t)}
         <button class="lp-unlock" type="button">${t.lp_show}</button>
       </div>
@@ -2982,7 +3032,7 @@ async function loadPublicFixtures(mode) {
     if (app ? (!authState.loggedIn || isPro()) : authState.loggedIn) return;
     const list = (data.fixtures || []).sort((a, b) => (Number(b.status === 'started') - Number(a.status === 'started')) || (fxDateTime(a) - fxDateTime(b)));
     const h = JSON.stringify(list.map(f => [f.id, f.status, f.homeScore, f.awayScore, f.home.logo, f.away.logo]));
-    if (app) { lpAppList = list; notifSync(); if (h !== lpAppHash) { lpAppHash = h; renderLanding(list, 'cards', "switchTab('unlock')"); } }
+    if (app) { lpAppList = list; notifSync(); if (h !== lpAppHash) { lpAppHash = h; renderLanding(list, 'cards', () => switchTab('unlock')); } }
     else if (h !== lpHash) { lpHash = h; renderLanding(list); }
   } catch (e) { /* silent */ }
 }
@@ -2996,7 +3046,7 @@ async function loadDiscover() {
   if (postForm) postForm.classList.toggle('hidden', !isAdmin());
 
   try {
-    const r = await fetch('/api/discover', { headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/discover', { headers: { ...csrfHeaders() } });
     if (!r.ok) return;
     const data = await r.json();
     const posts = data.posts || [];
@@ -3021,22 +3071,22 @@ async function loadDiscover() {
             <div class="dc-avatar">L</div>
             <div><b>LuciBet Admin</b></div>
             <span class="dc-time">${dateStr}</span>
-            ${isAdmin() ? `<button class="dc-del" type="button" onclick="deletePost('${p.id}')" title="Delete post" aria-label="Delete post"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 11v6M14 11v6"/></svg></button>` : ''}
+            ${isAdmin() ? `<button class="dc-del" type="button" data-act="deletePost" data-post="${p.id}" title="Delete post" aria-label="Delete post"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 11v6M14 11v6"/></svg></button>` : ''}
           </div>
           ${p.match ? discoverMatchHTML(p.match) : ''}
           ${p.text ? `<div class="dc-text">${esc(p.text)}</div>` : ''}
           ${p.image ? `<img src="${esc(p.image)}" class="dc-img" loading="lazy" onerror="this.style.display='none'">` : ''}
           
           <div class="dc-actions">
-            <button class="dc-btn ${isLiked ? 'active' : ''}" onclick="likePost('${p.id}', 'like')">
+            <button class="dc-btn ${isLiked ? 'active' : ''}" data-act="likePost" data-post="${p.id}" data-vote="like">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
               <span>${nLikes}</span>
             </button>
-            <button class="dc-btn ${isDisliked ? 'active' : ''}" onclick="likePost('${p.id}', 'dislike')">
+            <button class="dc-btn ${isDisliked ? 'active' : ''}" data-act="likePost" data-post="${p.id}" data-vote="dislike">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2"/></svg>
               <span>${nDislikes}</span>
             </button>
-            <button class="dc-btn" onclick="toggleComments('${p.id}')">
+            <button class="dc-btn" data-act="toggleComments" data-post="${p.id}">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
               <span>${(p.comments || []).length}</span>
             </button>
@@ -3045,8 +3095,8 @@ async function loadDiscover() {
           <div class="dc-comments" id="comments-${p.id}">
             ${commentsHtml}
             <div class="dc-comment-input">
-              <input type="text" id="inp-${p.id}" placeholder="Write a comment..." onkeydown="if(event.key==='Enter')addComment('${p.id}')">
-              <button onclick="addComment('${p.id}')">Send</button>
+              <input type="text" id="inp-${p.id}" placeholder="Write a comment..." data-ckey="${p.id}">
+              <button data-act="addComment" data-post="${p.id}">Send</button>
             </div>
           </div>
         </div>
@@ -3094,7 +3144,7 @@ async function submitPost() {
       
       const upRes = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + authState.token },
+        headers: { ...csrfHeaders() },
         body: fd
       });
       
@@ -3109,7 +3159,7 @@ async function submitPost() {
     btn.textContent = 'Saving post...';
     const r = await fetch('/api/discover', {
       method: 'POST', 
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token },
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
       body: JSON.stringify({ text, image: imageUrl })
     });
     
@@ -3157,7 +3207,7 @@ async function shareMatch(id, btn) {
   if (!isAdmin() || (btn && btn.disabled)) return;
   if (btn) btn.disabled = true;
   try {
-    const r = await fetch('/api/discover', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token }, body: JSON.stringify({ matchId: id }) });
+    const r = await fetch('/api/discover', { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, body: JSON.stringify({ matchId: id }) });
     const e = r.ok ? {} : await r.json().catch(() => ({}));
     if (r.ok || r.status === 409) {
       sharedIds.add(String(id));
@@ -3174,7 +3224,7 @@ async function shareMatch(id, btn) {
 async function deletePost(id) {
   if (!isAdmin() || !confirm('Delete this post?')) return;
   try {
-    const r = await fetch('/api/discover/' + encodeURIComponent(id) + '/delete', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/discover/' + encodeURIComponent(id) + '/delete', { method: 'POST', headers: { ...csrfHeaders() } });
     if (r.ok) { loadDiscover(); return; }
     const e = await r.json().catch(() => ({}));
     alert(e.error || 'Delete failed');
@@ -3185,7 +3235,7 @@ async function likePost(id, action) {
   if (!authState.loggedIn) return;
   try {
     const r = await fetch('/api/discover/' + id + '/' + action, {
-      method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token }
+      method: 'POST', headers: { ...csrfHeaders() }
     });
     if (r.ok) {
       const data = await r.json();
@@ -3212,7 +3262,7 @@ async function addComment(id) {
   inp.disabled = true;
   try {
     const r = await fetch('/api/discover/' + id + '/comment', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
       body: JSON.stringify({ text })
     });
     if (r.ok) {
@@ -3357,6 +3407,7 @@ document.addEventListener('DOMContentLoaded',function(){
 <script src="vendor/lenis.min.js" defer></script>
 <script src="demo-arena.js" defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" async defer onload="onAppleSdkLoad()"></script>
+<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" async defer id="appleSdkScript"></script>
+<script>(function(){var s=document.getElementById('appleSdkScript');if(!s)return;if(window.AppleID){onAppleSdkLoad();}else{s.addEventListener('load',onAppleSdkLoad);}})();</script>
 </body>
 </html>
