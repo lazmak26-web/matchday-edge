@@ -1786,10 +1786,19 @@ html,body{max-width:100%;overflow-x:clip}
   /* keep brand + actions above the absolutely-centered nav if they ever meet */
   .app-header .brand,.app-header .header-actions{position:relative;z-index:2}
 }
-/* Mobile: ensure the nav returns to a floating bottom bar even though it's now a header child */
+/* Mobile: a detached, fully-rounded floating pill (not the edge-to-edge docked bar) */
 @media (max-width:959.98px){
   #bottomNav.bottom-nav{position:fixed;left:50%;right:auto;top:auto;
-    bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%)}
+    bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+    width:auto;max-width:calc(100% - 20px);height:auto;
+    padding:6px;gap:4px;
+    border-radius:var(--r-pill);border:1px solid var(--line);
+    background:color-mix(in srgb,var(--card) 90%,transparent);
+    -webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);
+    box-shadow:0 16px 40px -16px rgba(0,0,0,.6)!important}
+  #bottomNav.bottom-nav .nav-item{flex:0 0 auto;min-height:auto;padding:9px 15px;border-radius:var(--r-pill)}
+  #bottomNav.bottom-nav .nav-item.active{background:var(--soft)}
+  #bottomNav.bottom-nav .nav-item.active::before{display:none}
 }
 
 /* ── Card deal-in: staggered 3D entrance for match cards (Thumbsy-style load motion) ── */
