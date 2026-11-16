@@ -1346,14 +1346,52 @@ const verifyAppleIdToken  = makeOidcVerifier({ name: 'apple',  jwksUrl: 'https:/
 /* ═══════════════════════════════════════════════════════════
    AUTH MIDDLEWARE & ENDPOINTS
    ═══════════════════════════════════════════════════════════ */
+// Cookie-based sessions (HttpOnly) + double-submit CSRF.
+// The session token lives in an HttpOnly cookie so no page script — and therefore no XSS — can read it. A second,
+// JS-readable cookie carries a CSRF token; a cookie-authenticated state-changing call must echo it in X-CSRF-Token.
+// The Authorization: Bearer header still works for API clients and tests (header auth is not sent cross-site, so it
+// is not CSRF-prone and is exempt from the CSRF check).
+const COOKIE_SESS = 'mde_sess', COOKIE_CSRF = 'mde_csrf';
+function parseCookies(req) {
+  const out = {}, h = req.headers.cookie;
+  if (!h) return out;
+  for (const part of h.split(';')) {
+    const i = part.indexOf('='); if (i < 0) continue;
+    const k = part.slice(0, i).trim(); if (!k || out[k] !== undefined) continue;
+    const v = part.slice(i + 1).trim();
+    try { out[k] = decodeURIComponent(v); } catch (e) { out[k] = v; }
+  }
+  return out;
+}
+const isHttps = req => req.secure || String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
+function setSessionCookies(req, res, token) {
+  const base = `Path=/; Max-Age=${Math.floor(SESSION_TTL / 1000)}; SameSite=Lax` + (isHttps(req) ? '; Secure' : '');
+  const csrf = crypto.randomBytes(18).toString('hex');
+  res.append('Set-Cookie', `${COOKIE_SESS}=${token}; HttpOnly; ${base}`);
+  res.append('Set-Cookie', `${COOKIE_CSRF}=${csrf}; ${base}`);
+  return csrf;
+}
+function clearSessionCookies(req, res) {
+  const base = `Path=/; Max-Age=0; SameSite=Lax` + (isHttps(req) ? '; Secure' : '');
+  res.append('Set-Cookie', `${COOKIE_SESS}=; HttpOnly; ${base}`);
+  res.append('Set-Cookie', `${COOKIE_CSRF}=; ${base}`);
+}
 function authMiddleware(req, res, next) {
-  const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+  const cookies = req.headers.cookie ? parseCookies(req) : {};
+  let token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, ''), viaCookie = false;
+  if (!token && cookies[COOKIE_SESS]) { token = cookies[COOKIE_SESS]; viaCookie = true; }
   if (!token || token.length > 200) return res.status(401).json({ error: 'Authentication required' });
   const key = tokHash(token), now = Date.now();
   const sess = sessions.get(key);
   if (!sess || sessionExpired(sess, now)) {
     if (sess) { sessions.delete(key); saveSessionsSoon(); }
     return res.status(401).json({ error: 'Session expired' });
+  }
+  // CSRF: a cookie-authenticated write must present the matching double-submit token. Header-auth clients are exempt.
+  if (viaCookie && req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+    if (!cookies[COOKIE_CSRF] || (req.headers['x-csrf-token'] || '') !== cookies[COOKIE_CSRF]) {
+      return res.status(403).json({ error: 'Invalid or missing CSRF token.' });
+    }
   }
   if (now - (sess.lastSeen || 0) > 10 * 60 * 1000) { sess.lastSeen = now; saveSessionsSoon(); }
   req.authToken = key;
@@ -1366,21 +1404,29 @@ app.disable('x-powered-by');
 const GSI_ORIGIN = 'https://accounts.google.com';
 const APPLE_SDK = 'https://appleid.cdn-apple.com';
 const APPLE_ORIGIN = 'https://appleid.apple.com';
-const CSP = [
-  "default-src 'self'",
-  // Scripts are self-hosted (public/vendor) except Google Identity Services and the Apple sign-in SDK. 'unsafe-inline' remains
-  // because index.html uses inline <script> blocks and onclick handlers; removing it needs nonces/hashes (see SECURITY_AUDIT_REPORT.md).
-  `script-src 'self' 'unsafe-inline' ${GSI_ORIGIN} ${APPLE_SDK}`,
-  `style-src 'self' 'unsafe-inline' ${GSI_ORIGIN}`,
-  "font-src 'self'",
-  "img-src 'self' data: https:",
-  `connect-src 'self' ${GSI_ORIGIN} ${APPLE_ORIGIN}`,
-  `frame-src 'self' ${GSI_ORIGIN} ${APPLE_ORIGIN}`,
-  "object-src 'none'",
-  "base-uri 'self'",
-  `form-action 'self' ${APPLE_ORIGIN}`,
-  "frame-ancestors 'none'"
-].join('; ');
+// script-src no longer allows 'unsafe-inline': the HTML page carries a per-request nonce on its inline <script> blocks
+// (see sendIndex) and every inline on* handler was moved to delegated listeners. An injected <script> without the nonce
+// cannot execute. style-src keeps 'unsafe-inline' (inline styles are pervasive and far lower risk). A nonce is only
+// meaningful on the HTML document; other responses (JSON/assets) use the no-nonce form, which also forbids inline scripts.
+function cspHeader(nonce) {
+  const script = nonce
+    ? `script-src 'self' 'nonce-${nonce}' ${GSI_ORIGIN} ${APPLE_SDK}`
+    : `script-src 'self' ${GSI_ORIGIN} ${APPLE_SDK}`;
+  return [
+    "default-src 'self'",
+    script,
+    `style-src 'self' 'unsafe-inline' ${GSI_ORIGIN}`,
+    "font-src 'self'",
+    "img-src 'self' data: https:",
+    `connect-src 'self' ${GSI_ORIGIN} ${APPLE_ORIGIN}`,
+    `frame-src 'self' ${GSI_ORIGIN} ${APPLE_ORIGIN}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    `form-action 'self' ${APPLE_ORIGIN}`,
+    "frame-ancestors 'none'"
+  ].join('; ');
+}
+const CSP = cspHeader(null);
 // ── Load shedding: bound the number of requests in flight at once so a burst flood (or a slow upstream data feed)
 // cannot pile up, exhaust the event loop and memory, and take the whole process down. The ceiling sits well above
 // real traffic; past it we shed with a cheap 503 + Retry-After instead of degrading for everyone. ──
@@ -1483,6 +1529,20 @@ app.use((req, res, next) => {
   }
   next();
 });
+// Serve index.html ourselves (before express.static) so each load gets a fresh CSP nonce on its inline <script> blocks.
+// The file is read once at startup (the container ships a fixed build); the nonce makes the response uncacheable.
+const INDEX_PATH = path.join(__dirname, 'public', 'index.html');
+let INDEX_HTML = '';
+try { INDEX_HTML = fs.readFileSync(INDEX_PATH, 'utf8'); } catch (e) { console.error('index.html read error:', e.message); }
+function sendIndex(req, res) {
+  if (!INDEX_HTML) return res.status(500).send('index unavailable');
+  const nonce = crypto.randomBytes(16).toString('base64');
+  res.setHeader('Content-Security-Policy', cspHeader(nonce));
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('html').send(INDEX_HTML.split('<script>').join(`<script nonce="${nonce}">`));
+}
+app.get('/', sendIndex);
+app.get('/index.html', sendIndex);
 // The same pure odds core runs in the browser (sharp weighting, outlier filter, best price), so the Value Board matches the server engine.
 app.get('/odds-core.js', (req, res) => { res.type('application/javascript').set('Cache-Control', 'public, max-age=300').sendFile(path.join(__dirname, 'engine', 'odds.js')); });
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -1693,18 +1753,20 @@ function requirePro(req, res, next) {
   if (planOf(sessions.get(req.authToken)) === 'pro') return next();
   res.status(403).json({ error: 'Pro plan required', fixtures: [] });
 }
-function startSession(res, sess) {
+function startSession(req, res, sess) {
   const token = crypto.randomBytes(32).toString('hex');
   const key = tokHash(token), now = Date.now();
   sessions.set(key, { ...sess, createdAt: now, lastSeen: now });
   const mine = [...sessions.entries()].filter(([, v]) => v.username === sess.username).sort((a, b) => b[1].createdAt - a[1].createdAt);
   for (const [k] of mine.slice(MAX_SESSIONS_PER_USER)) sessions.delete(k);
   saveSessionsSoon();
-  res.json({ token, username: sess.username, expiresIn: SESSION_TTL, profile: profileOf(sessions.get(key)) });
+  const csrf = setSessionCookies(req, res, token);
+  // token is still returned for API clients / tests; the web app ignores it and authenticates via the HttpOnly cookie.
+  res.json({ token, csrf, username: sess.username, expiresIn: SESSION_TTL, profile: profileOf(sessions.get(key)) });
 }
 const EMAIL_RE = /^[a-z0-9._%+-]{1,64}@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/i;
 
-async function localLogin(res, email, password, uKey) {
+async function localLogin(req, res, email, password, uKey) {
   if (otpUnavailable(res)) return;
   const u = users.get(email);
   let ok = false;
@@ -1727,7 +1789,7 @@ async function localLogin(res, email, password, uKey) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
   userFails.delete(uKey);
-  if (!OTP_ENABLED) return startSession(res, { kind: 'local', username: email });
+  if (!OTP_ENABLED) return startSession(req, res, { kind: 'local', username: email });
   const o = await sendOtp(email);
   if (!o.ok) return res.status(o.status).json({ error: o.error });
   res.json({ otpRequired: true, email, resendIn: o.resendIn });
@@ -1769,7 +1831,7 @@ app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) =
       users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), n: CUR_N, plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: !OTP_ENABLED, consentAt: Date.now(), termsVersion: TERMS_VERSION });
     }
     saveUsersSoon();
-    if (!OTP_ENABLED) return startSession(res, { kind: 'local', username: email });
+    if (!OTP_ENABLED) return startSession(req, res, { kind: 'local', username: email });
     const o = await sendOtp(email);
     if (!o.ok) return res.status(o.status).json({ error: o.error });
     res.json({ otpRequired: true, email, resendIn: o.resendIn });
@@ -1816,7 +1878,7 @@ app.post('/api/auth/verify-otp', otpLimiter, (req, res) => {
     users.set(email, u);
     saveUsersSoon();
   } else if (u.verified === false) { u.verified = true; saveUsersSoon(); }
-  startSession(res, { kind: 'local', username: email });
+  startSession(req, res, { kind: 'local', username: email });
 });
 
 app.post('/api/auth/resend-otp', otpLimiter, async (req, res) => {
@@ -1992,7 +2054,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const uKey = 'login:' + (username.includes('@') ? username.trim() : username).toLowerCase();
   const uf = userFails.get(uKey);
   if (uf && uf.n >= 8 && Date.now() - uf.t < 10 * 60 * 1000) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
-  if (username.includes('@')) return localLogin(res, username.trim().toLowerCase(), password, uKey);
+  if (username.includes('@')) return localLogin(req, res, username.trim().toLowerCase(), password, uKey);
   if (!AUTH_CONFIGURED) return res.status(503).json({ error: 'Login is temporarily unavailable.' });
   const unavailable = () => res.status(503).json({ error: 'Login service is temporarily unavailable. Please try again.' });
   let init, login;
@@ -2010,7 +2072,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const exp = Math.max(0, ...subs.map(x => Number(x.expiry) || 0));
   const sx = { kind: 'keyauth', keyauthSessionId: sessionid, username };
   if (exp > 0) { if (exp * 1000 > Date.UTC(2090, 0, 1)) sx.lifetime = true; else sx.expiry = exp * 1000; }
-  startSession(res, sx);
+  startSession(req, res, sx);
 });
 
 app.post('/api/auth/google', loginLimiter, async (req, res) => {
@@ -2043,7 +2105,7 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
     if (u.verified === false) { u.verified = true; changed = true; }
     if (changed) saveUsersSoon();
   }
-  startSession(res, { kind: 'google', username: email });
+  startSession(req, res, { kind: 'google', username: email });
 });
 
 app.post('/api/auth/apple', loginLimiter, async (req, res) => {
@@ -2074,7 +2136,7 @@ app.post('/api/auth/apple', loginLimiter, async (req, res) => {
     if (u.verified === false) { u.verified = true; changed = true; }
     if (changed) saveUsersSoon();
   }
-  startSession(res, { kind: 'apple', username: email });
+  startSession(req, res, { kind: 'apple', username: email });
 });
 
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
@@ -2158,6 +2220,7 @@ app.get('/api/public/config', (req, res) => {
 app.post('/api/auth/logout', authMiddleware, (req, res) => {
   sessions.delete(req.authToken);
   saveSessionsSoon();
+  clearSessionCookies(req, res);
   res.json({ ok: true });
 });
 

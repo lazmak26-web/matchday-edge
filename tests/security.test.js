@@ -85,7 +85,9 @@ test('CSP trusts no third-party script host and the pinned libraries are self-ho
   const r = await call(C.base, 'GET', '/', { ip: '10.9.0.1' });
   const csp = r.headers.get('content-security-policy') || '';
   const scriptSrc = (csp.split(';').find(d => d.trim().startsWith('script-src')) || '').trim();
-  assert.strictEqual(scriptSrc, "script-src 'self' 'unsafe-inline'");
+  // script-src: self + a fresh per-request nonce + the Google/Apple sign-in SDK hosts, and NO 'unsafe-inline'.
+  assert.match(scriptSrc, /^script-src 'self' 'nonce-[A-Za-z0-9+/=]+' https:\/\/accounts\.google\.com https:\/\/appleid\.cdn-apple\.com$/);
+  assert.ok(!/unsafe-inline/.test(scriptSrc), "script-src no longer allows 'unsafe-inline'");
   assert.ok(!/cdn\.jsdelivr\.net\/npm\/chart\.js['"]/.test(r.text), 'index.html no longer loads an unpinned Chart.js from a CDN');
   for (const f of ['/vendor/chart.umd.min.js', '/vendor/cobe.esm.js', '/vendor/lenis.min.js']) {
     const v = await call(C.base, 'GET', f, { ip: '10.9.0.1' });
