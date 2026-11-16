@@ -1521,3 +1521,150 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .match .tile b{margin-top:1px;font-size:var(--fs-md)}
 .match .kv{gap:7px}
 .mx-skel{height:300px;border-radius:var(--r-card)}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   8. DASHBOARDS — Performance, Agent stats, Admin; header notifications
+   ═══════════════════════════════════════════════════════════════ */
+.db{display:flex;flex-direction:column;gap:var(--s-4)}
+.db>.section-head{margin:0 0 var(--s-1)}
+.db .perf-note{margin:calc(var(--s-2) * -1) 2px 0}
+/* KPI cards */
+.db-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3)}
+@media (min-width:760px){.db-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.db-kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s-4);min-width:0;display:flex;flex-direction:column}
+.db-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin-bottom:var(--s-4)}
+.db-ico{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--brand-dim);color:var(--brand)}
+.db-ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tone-good>.db-kpi-top .db-ico,.db-ico.tone-good{background:var(--good-dim);color:var(--good)}
+.tone-bad>.db-kpi-top .db-ico,.db-ico.tone-bad{background:var(--bad-dim);color:var(--bad)}
+.tone-warn>.db-kpi-top .db-ico,.db-ico.tone-warn{background:var(--warn-dim);color:var(--warn)}
+.tone-ink>.db-kpi-top .db-ico{background:var(--soft);color:var(--ink-2)}
+.db-delta{display:inline-flex;align-items:center;gap:2px;min-width:0;font-size:var(--fs-xs);font-weight:700;white-space:nowrap;color:var(--ink-3)}
+.db-delta svg{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.db-delta.good{color:var(--good)}.db-delta.bad{color:var(--bad)}.db-delta.neutral{color:var(--ink-2)}
+.db-delta.flat{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.db-kpi-v{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.db-kpi-l{margin-top:6px;font-size:var(--fs-sm);color:var(--ink-2)}
+.db-kpi-s{margin-top:2px;font-size:var(--fs-xs);color:var(--ink-3)}
+/* Cards and rows */
+.db-row{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-4)}
+@media (min-width:960px){.db-row{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}}
+.db-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s-4) var(--s-4) var(--s-5);min-width:0}
+.db-card.db-flush{padding:0}
+.db-card.db-flush>.db-card-h{padding:var(--s-4) var(--s-4) 0}
+.db-card.db-flush>.perf-note{padding:0 var(--s-4) var(--s-3)}
+.db-card-h{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s-2) var(--s-3);margin-bottom:var(--s-4)}
+.db-card-h h3{font-size:var(--fs-md);font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.db-muted{color:var(--ink-3)}
+.db-empty{padding:var(--s-5) var(--s-2);text-align:center;font-size:var(--fs-sm);color:var(--ink-3)}
+.db-more{margin-top:var(--s-2);text-align:center;font-size:var(--fs-xs);color:var(--ink-3)}
+/* Segmented control (also restyles the Agent stats range tabs) */
+.db-seg,.range-tabs.db-seg{display:inline-flex;gap:2px;padding:3px;margin:0;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.db-seg button,.range-tabs.db-seg .range-tab{border:0;background:transparent;color:var(--ink-3);border-radius:8px;padding:6px 12px;min-height:32px;font:600 var(--fs-xs) var(--font);cursor:pointer;transition:background .15s,color .15s;box-shadow:none}
+.db-seg button:hover{color:var(--ink)}
+.db-seg button.on,.range-tabs.db-seg .range-tab.active{background:var(--brand);color:#fff;box-shadow:none}
+.db-seg button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.range-tabs.db-seg{align-self:flex-start}
+/* Period totals above the Performance chart */
+.db-sums{display:flex;gap:var(--s-5);margin:calc(var(--s-1) * -1) 0 var(--s-4);font-size:var(--fs-xs);color:var(--ink-3)}
+.db-sums>span{display:flex;align-items:baseline;gap:8px}
+.db-sums b{font-size:var(--fs-lg);font-weight:700;font-variant-numeric:tabular-nums}
+.db-sums b.good{color:var(--good)}.db-sums b.bad{color:var(--bad)}
+/* Line chart */
+.db-chart{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:200px auto;column-gap:10px}
+.db-y{position:relative;min-width:22px}
+.db-y span{position:absolute;right:0;transform:translateY(-50%);font-size:11px;line-height:1;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.db-plot{position:relative}
+.db-plot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.db-grid i{position:absolute;left:0;right:0;height:1px;background:var(--line)}
+.db-dot{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--card);border:2px solid var(--c)}
+.db-x{grid-column:2;position:relative;height:26px;margin-top:6px}
+.db-x span{position:absolute;top:4px;transform:translateX(-50%);font-size:11px;color:var(--ink-3);white-space:nowrap}
+.db-x span.first{transform:none}.db-x span.last{transform:translateX(-100%)}
+.db-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px;margin-top:6px;font-size:var(--fs-xs);color:var(--ink-2)}
+.db-legend span{display:inline-flex;align-items:center;gap:7px}
+.db-legend i{width:10px;height:10px;border-radius:50%}
+/* Ring chart */
+.db-donut{display:flex;flex-direction:column;align-items:center;gap:var(--s-4)}
+.db-ring{position:relative;width:min(184px,62%);aspect-ratio:1}
+.db-ring svg{width:100%;height:100%}
+.db-ring-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 22%}
+.db-ring-c b{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.1}
+.db-ring-c span{margin-top:3px;font-size:var(--fs-xs);color:var(--ink-3);line-height:1.2}
+.db-dl{list-style:none;width:100%;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.db-dl li{display:grid;grid-template-columns:10px minmax(0,1fr) auto 42px;align-items:center;gap:10px;padding:7px 2px;font-size:var(--fs-sm);border-top:1px solid var(--line)}
+.db-dl li:first-child{border-top:0}
+.db-dl i{width:10px;height:10px;border-radius:50%}
+.db-dl span{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.db-dl b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.db-dl em{font-style:normal;text-align:end;color:var(--ink-3);font-variant-numeric:tabular-nums}
+/* Tables */
+.db-tablewrap,.db-card .adm-wrap{overflow-x:auto;background:transparent;border:0;border-radius:0 0 var(--r-lg) var(--r-lg)}
+.db-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm);color:var(--ink)}
+.db-table th,.db-table td{padding:12px var(--s-4);text-align:start;white-space:nowrap;border-top:1px solid var(--line);border-bottom:0}
+.db-table thead th{font-size:var(--fs-xs);font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);background:transparent}
+.db-table .num{text-align:end;font-variant-numeric:tabular-nums}
+.db-table td.good{color:var(--good)}.db-table td.bad{color:var(--bad)}
+.db-table tbody tr:hover td{background:color-mix(in srgb,var(--soft) 55%,transparent)}
+.db-user{display:inline-flex;align-items:center;gap:10px;min-width:0}
+.db-av{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--brand-dim);color:var(--brand);font-size:var(--fs-xs);font-weight:700}
+.db-tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:var(--fs-xs);font-weight:700;line-height:1.3;background:var(--soft);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.db-tag.good{background:var(--good-dim);color:var(--good)}.db-tag.bad{background:var(--bad-dim);color:var(--bad)}.db-tag.warn{background:var(--warn-dim);color:var(--warn)}
+.db-tag.plan-pro{background:var(--brand-dim);color:var(--brand)}
+.db-tag.plan-lifetime{background:color-mix(in srgb,var(--p-away) 18%,transparent);color:var(--p-away)}
+.db-tag.plan-expired{background:var(--warn-dim);color:var(--warn)}
+.db-search{height:36px;width:min(220px,100%);padding:0 12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--soft);color:var(--ink);font:inherit;font-size:var(--fs-sm)}
+.db-search:focus{outline:2px solid var(--brand);outline-offset:0;border-color:transparent}
+.db-card .adm-table th,.db-card .adm-table td{border-bottom:0}
+/* Simple list (expiring plans) */
+.db-list{list-style:none;margin:0;padding:0}
+.db-list li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.db-list li:first-child{border-top:0;padding-top:0}
+.db-li-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.db-li-main b{font-size:var(--fs-sm);font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.db-li-main small{font-size:var(--fs-xs);color:var(--ink-3)}
+/* Pick tracking totals inside the admin dashboard */
+#adminTracking .perf-grid{margin:0}
+#adminTracking .perf-card{border-radius:var(--r-lg)}
+
+/* ── Header notifications ── */
+.notif-wrap{position:relative}
+#notifBtn{position:relative}
+.notif-count{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;border:2px solid var(--bg);box-sizing:content-box}
+.notif-count.hidden{display:none}
+.notif-panel{padding:0;width:min(360px,calc(100vw - 24px));max-height:min(70vh,520px);display:flex;flex-direction:column;overflow:hidden}
+.notif-panel.hidden{display:none}
+.nt-head{flex:none;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.nt-head b{font-size:var(--fs-md);font-weight:700}
+.nt-clear{border:0;background:transparent;color:var(--brand);font:600 var(--fs-xs) var(--font);cursor:pointer;padding:6px 4px}
+.nt-list{overflow-y:auto;overscroll-behavior:contain}
+.nt-item{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 16px;border:0;border-top:1px solid var(--line);background:transparent;color:inherit;text-align:start;font:inherit;cursor:pointer}
+.nt-item:first-child{border-top:0}
+.nt-item:hover{background:var(--soft)}
+.nt-item.unread{background:color-mix(in srgb,var(--brand) 7%,transparent)}
+.nt-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.nt-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.nt-top b{font-size:var(--fs-sm);font-weight:700;color:var(--ink)}
+.nt-item.unread .nt-top b::after{content:"";display:inline-block;width:7px;height:7px;margin-inline-start:7px;border-radius:50%;background:var(--brand);vertical-align:middle}
+.nt-top small{flex:none;font-size:var(--fs-xs);color:var(--ink-3)}
+.nt-body{font-size:var(--fs-sm);color:var(--ink-2);overflow-wrap:anywhere}
+.nt-meta{font-size:var(--fs-xs);color:var(--ink-3)}
+@media (max-width:480px){.notif-panel{position:fixed;left:12px;right:12px;top:calc(var(--hdr-h) + 8px);width:auto}}
+@media (max-width:560px){
+  .db-table th,.db-table td{padding:11px 8px}
+  .db-table th:first-child,.db-table td:first-child{padding-inline-start:var(--s-4)}
+  .db-table th:last-child,.db-table td:last-child{padding-inline-end:var(--s-4)}
+  .db-table thead th{letter-spacing:.02em}
+}
+/* Admin users list: scrolls inside its card so the rest of the dashboard stays in reach */
+.db-card .adm-wrap:has(#adminRows){max-height:560px;overflow:auto}
+.db-card .adm-table:has(#adminRows) td{white-space:normal}
+.db-card .adm-table:has(#adminRows) thead th{position:sticky;top:0;z-index:1;background:var(--card)}
+@media (min-width:960px){.db-chart{grid-template-rows:280px auto}}
+/* Pick tracking totals: same card language as the KPIs above */
+#adminTracking .perf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:var(--s-3)}
+#adminTracking .perf-card,#adminTracking .perf-card.hero{grid-column:auto;margin:0;padding:var(--s-4);background:var(--card);border:1px solid var(--line);box-shadow:none}
+#adminTracking .perf-card.hero::before,#adminTracking .perf-card.hero::after{display:none}
+#adminTracking .perf-val{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+#adminTracking .perf-lbl{margin-top:6px;font-size:var(--fs-xs);color:var(--ink-3)}

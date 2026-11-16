@@ -58,6 +58,13 @@
         <span class="dot"></span><span id="live-text">LIVE</span>
       </div>
       <button class="icon-btn" id="loginBtn" title="Login" aria-label="Login"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:20px;height:20px"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
+      <div class="notif-wrap">
+        <button class="icon-btn hidden" id="notifBtn" type="button" title="Notifications" aria-label="Notifications" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="notif-count hidden" id="notifCount" aria-hidden="true"></span></button>
+        <div class="profile-menu notif-panel hidden" id="notifPanel" role="dialog" aria-label="Notifications">
+          <div class="nt-head"><b data-i18n="nt_title">Notifications</b><button type="button" class="nt-clear" id="notifClear" data-i18n="nt_clear">Clear all</button></div>
+          <div class="nt-list" id="notifList"></div>
+        </div>
+      </div>
       <div class="profile-wrap">
         <button class="icon-btn hidden" id="profileBtn" title="Profile" aria-label="Profile"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></button>
         <div class="profile-menu hidden" id="profileMenu">
@@ -162,68 +169,46 @@
     </div>
 
     <div id="view-performance" class="tab-view">
-      <section style="margin-top:24px;">
+      <section class="db" style="margin-top:24px;">
         <div class="section-head"><div class="section-label"><span data-i18n="bot_stats">Bot Stats</span></div><h2 data-i18n="perf_overview">Performance Overview</h2></div>
-        <div class="perf-grid">
-          <div class="perf-card hero">
-            <div class="perf-val" id="perf-winrate" style="color:var(--good);">0%</div>
-            <div class="perf-lbl" data-i18n="win_rate_today">Today's Win Rate</div>
-            <div class="perf-track"><div class="perf-fill" id="perf-bar"></div></div>
-          </div>
-          <div class="perf-card">
-            <div class="perf-val" id="perf-wins" style="color:var(--good);">0</div>
-            <div class="perf-lbl" data-i18n="wins">Wins</div>
-          </div>
-          <div class="perf-card">
-            <div class="perf-val" id="perf-losses" style="color:var(--bad);">0</div>
-            <div class="perf-lbl" data-i18n="losses">Losses</div>
-          </div>
-          <div class="perf-card">
-            <div class="perf-val" id="perf-total" style="color:var(--ink-2);">0</div>
-            <div class="perf-lbl" data-i18n="total_picks">Total Picks</div>
-          </div>
-        </div>
-
+        <div class="db-kpis" id="perfKpis"></div>
         <p class="perf-note" data-i18n="perf_note">Results of our own model's past picks. Past performance does not guarantee future results.</p>
-        <div class="chart-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h3 style="font-size:var(--fs-md); font-weight:800; color:var(--ink);" data-i18n="perf_history">Performance History</h3>
-            <select id="chartRange" class="settings-select" style="width:auto; margin:0; padding:4px 8px;">
-              <option value="7" data-i18n="last_7">Last 7 Days</option>
-              <option value="30" data-i18n="last_30">Last 30 Days</option>
-            </select>
+        <div class="db-row">
+          <div class="db-card db-wide">
+            <div class="db-card-h"><h3 data-i18n="perf_history">Performance History</h3>
+              <div class="db-seg" id="perfRange" role="tablist" aria-label="Period">
+                <button type="button" role="tab" class="on" aria-selected="true" data-days="7" data-i18n="last_7">Last 7 Days</button>
+                <button type="button" role="tab" aria-selected="false" data-days="30" data-i18n="last_30">Last 30 Days</button>
+              </div></div>
+            <div class="db-sums"><span><span data-i18n="period_wins">Period Wins</span><b id="chartTotalWins" class="good">0</b></span><span><span data-i18n="period_losses">Period Losses</span><b id="chartTotalLosses" class="bad">0</b></span></div>
+            <div id="perfChart" role="img" aria-label="Wins and losses per day over the selected period"></div>
           </div>
-
-          <div style="display:flex; gap:16px; margin-bottom:16px;">
-            <div style="flex:1; background:var(--soft); padding:12px; border-radius:var(--r-sm); text-align:center;">
-               <div style="font-size:var(--fs-xs); font-weight:700; color:var(--ink-3); text-transform:uppercase;" data-i18n="period_wins">Period Wins</div>
-               <div id="chartTotalWins" style="font-size:var(--fs-lg); font-weight:800; color:var(--good);">0</div>
-            </div>
-            <div style="flex:1; background:var(--soft); padding:12px; border-radius:var(--r-sm); text-align:center;">
-               <div style="font-size:var(--fs-xs); font-weight:700; color:var(--ink-3); text-transform:uppercase;" data-i18n="period_losses">Period Losses</div>
-               <div id="chartTotalLosses" style="font-size:var(--fs-lg); font-weight:800; color:var(--bad);">0</div>
-            </div>
-          </div>
-
-          <div class="chart-container">
-            <canvas id="perfChart" role="img" aria-label="Chart of wins and losses over the selected period"></canvas>
+          <div class="db-card">
+            <div class="db-card-h"><h3 data-i18n="period_rate">Win rate</h3></div>
+            <div id="perfDonut"></div>
           </div>
         </div>
-
       </section>
     </div>
 
     <div id="view-weekly" class="tab-view">
-      <section style="margin-top:24px;">
+      <section class="db" style="margin-top:24px;">
         <div class="section-head"><div><div class="section-label"><span data-i18n="nav_weekly">Agent Stats</span></div><h2 data-i18n="agent_h">Agent performance</h2></div></div>
-        <div class="range-tabs" id="agentRange" role="tablist" aria-label="Time range">
-          <button type="button" class="range-tab active" data-range="7d" role="tab" aria-selected="true" data-i18n="range_7d">Last 7 days</button>
+        <div class="range-tabs db-seg" id="agentRange" role="tablist" aria-label="Time range">
+          <button type="button" class="range-tab active on" data-range="7d" role="tab" aria-selected="true" data-i18n="range_7d">Last 7 days</button>
           <button type="button" class="range-tab" data-range="30d" role="tab" aria-selected="false" data-i18n="range_month">Last month</button>
           <button type="button" class="range-tab" data-range="12m" role="tab" aria-selected="false" data-i18n="range_12m">12 months</button>
         </div>
-        <div class="perf-grid" id="weeklyTop"></div>
+        <div class="db-kpis" id="weeklyTop"></div>
         <p class="perf-note" data-i18n="perf_note">Results of our own model's past picks. Past performance does not guarantee future results.</p>
-        <div class="history-grid" id="weeklyDays" style="margin-top:16px;"></div>
+        <div class="db-card">
+          <div class="db-card-h"><h3 data-i18n="agent_trend">Win rate trend</h3></div>
+          <div id="weeklyChart" role="img" aria-label="Win rate per period"></div>
+        </div>
+        <div class="db-card db-flush">
+          <div class="db-card-h"><h3 data-i18n="agent_periods">By period</h3></div>
+          <div class="db-tablewrap"><table class="db-table"><thead><tr><th data-i18n="period">Period</th><th class="num" data-i18n="picks_short">Picks</th><th class="num" data-i18n="wins">Wins</th><th class="num" data-i18n="losses">Losses</th><th class="num" data-i18n="win_rate_short">Win rate</th></tr></thead><tbody id="weeklyDays"></tbody></table></div>
+        </div>
       </section>
     </div>
 
@@ -264,23 +249,39 @@
     </div>
 
     <div id="view-admin" class="tab-view">
-      <section style="margin-top:24px;">
-        <div class="section-head"><div><div class="section-label">Admin</div><h2>Users</h2></div>
-          <button class="hide-btn" type="button" onclick="loadAdmin()">Refresh</button></div>
-        
-        <div class="perf-grid" id="siteStats" style="margin-bottom:16px;"></div>
-        <div class="perf-grid" id="adminStats"></div>
-        
-        <input type="search" class="auth-input" id="adminSearch" placeholder="Search email…" autocomplete="off" aria-label="Search email" style="margin:16px 0 12px">
-        <div class="adm-wrap"><table class="adm-table"><thead><tr><th>#</th><th>Email</th><th>Plan</th><th>Expires</th><th>Joined</th></tr></thead><tbody id="adminRows"></tbody></table></div>
-        <p class="perf-note" id="adminMsg"></p>
+      <section class="db" style="margin-top:24px;">
+        <div class="section-head"><div><div class="section-label">Admin</div><h2>Dashboard</h2></div>
+          <button class="hide-btn" type="button" onclick="loadAdmin(); loadTracking()">Refresh</button></div>
+        <div class="db-kpis" id="admKpis"></div>
+        <div class="db-row">
+          <div class="db-card db-wide">
+            <div class="db-card-h"><h3>Sign-ups</h3>
+              <div class="db-seg" id="admRange" role="tablist" aria-label="Period">
+                <button type="button" role="tab" class="on" aria-selected="true" data-r="7d">7 days</button>
+                <button type="button" role="tab" aria-selected="false" data-r="30d">30 days</button>
+                <button type="button" role="tab" aria-selected="false" data-r="12m">12 months</button>
+              </div></div>
+            <div id="admChart" role="img" aria-label="Sign-ups over the selected period"></div>
+          </div>
+          <div class="db-card"><div class="db-card-h"><h3>Plans</h3></div><div id="admDonut"></div></div>
+        </div>
+        <div class="db-row">
+          <div class="db-card db-wide db-flush">
+            <div class="db-card-h"><h3>Users</h3><input type="search" class="db-search" id="adminSearch" placeholder="Search email…" autocomplete="off" aria-label="Search email"></div>
+            <div class="adm-wrap"><table class="adm-table db-table"><thead><tr><th>#</th><th>User</th><th>Plan</th><th>Expires</th><th>Joined</th></tr></thead><tbody id="adminRows"></tbody></table></div>
+            <p class="perf-note" id="adminMsg"></p>
+          </div>
+          <div class="db-card"><div class="db-card-h"><h3>Expiring soon</h3><small class="db-muted">14 days</small></div><div id="admExpiring"></div></div>
+        </div>
       </section>
-      <section style="margin-top:32px;" id="adminTracking">
+      <section class="db" style="margin-top:32px;" id="adminTracking">
         <div class="section-head"><div><div class="section-label">Admin only</div><h2>Pick tracking</h2></div>
           <button class="hide-btn" type="button" onclick="loadTracking()">Refresh</button></div>
         <div class="perf-grid" id="trkTotals"></div>
-        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Day</th><th>Bets W/L</th><th>Bets units</th><th>1X2 W/L</th><th>1X2 units</th><th>O/U W/L</th><th>O/U units</th></tr></thead><tbody id="trkDays"></tbody></table></div>
-        <div class="adm-wrap" style="margin-top:12px"><table class="adm-table"><thead><tr><th>Match</th><th>Score</th><th>Value bet</th><th>1X2 pick</th><th>Over/Under 2.5</th></tr></thead><tbody id="trkRows"></tbody></table></div>
+        <div class="db-card db-flush"><div class="db-card-h"><h3>By day</h3></div>
+          <div class="adm-wrap"><table class="adm-table db-table"><thead><tr><th>Day</th><th>Bets W/L</th><th>Bets units</th><th>1X2 W/L</th><th>1X2 units</th><th>O/U W/L</th><th>O/U units</th></tr></thead><tbody id="trkDays"></tbody></table></div></div>
+        <div class="db-card db-flush"><div class="db-card-h"><h3>By match</h3></div>
+          <div class="adm-wrap"><table class="adm-table db-table"><thead><tr><th>Match</th><th>Score</th><th>Value bet</th><th>1X2 pick</th><th>Over/Under 2.5</th></tr></thead><tbody id="trkRows"></tbody></table></div></div>
         <p class="perf-note" id="trkNote"></p>
       </section>
     </div>
@@ -494,18 +495,6 @@
   });
 })();
 
-let _chartLib = null;
-function loadChartLib() {
-  if (typeof Chart !== 'undefined') return Promise.resolve();
-  return _chartLib || (_chartLib = new Promise((ok, no) => {
-    const s = document.createElement('script');
-    s.src = '/vendor/chart.umd.min.js';   // pinned Chart.js 4.6.1 served from our own origin (no third-party script host)
-    s.onload = () => { Chart.defaults.animation = false; ok(); };
-    s.onerror = () => { _chartLib = null; no(new Error('chart.js failed')); };
-    document.head.appendChild(s);
-  }));
-}
-
 const translations = {
   en: {
     consent_a: "I am 18 or older and I accept the",
@@ -686,6 +675,9 @@ Object.assign(translations.ar, { or_email: "أو بالبريد الإلكترو
 Object.assign(translations.en, { nav_mc: "Match Center", mc_label: "Upcoming matches", mc_sub: "Line-ups, injuries, head-to-head and league position for every upcoming match. Tap a match.", mc_today: "Today", mc_tomorrow: "Tomorrow", mc_search_ph: "Search a team or league…", mc_pro_p: "Unlock Pro to see line-ups, injuries and head-to-head for every match.", mi_title: "Team news", mi_btn: "Line-ups & team news", mi_login: "Please log in again.", mi_pro: "Match info is part of the Pro plan.", mi_t_overview: "Overview", mi_t_lineups: "Line-ups", mi_t_absences: "Injuries", mi_t_h2h: "Head-to-head", mi_s_full: "Full strength", mi_s_mostly: "Almost full strength", mi_s_weak: "Weakened", mi_s_rot: "Rotated XI", mi_s_unknown: "No team news yet", mi_out_n: "out", mi_doubt_n: "doubtful", mi_changes_n: "changes vs last match", mi_no_table: "No league table for this team.", mi_record: "W-D-L", mi_lu_none: "No line-up for this team.", mi_lu_soon: "Line-ups are announced about 1 hour before kick-off ({time}).", mi_lu_na: "No line-up data for this match.", mi_new: "NEW", mi_same_xi: "Same XI as the last match", mi_formation: "Formation", mi_subs: "Substitutes", mi_abs_unknown: "No team news available.", mi_abs_none: "No reported injuries or suspensions.", mi_out: "OUT", mi_doubt: "DOUBT", mi_h2h_none: "These teams have not met recently.", mi_h2h_total: "Matches played", mi_wins: "wins", mi_goals: "Goals", mi_last_meet: "Last meetings", mi_src: "Data: API-Football", mi_src_basic: "Line-ups and injuries are not available for this match." });
 Object.assign(translations.fr, { nav_mc: "Centre des matchs", mc_label: "Matchs à venir", mc_sub: "Compositions, blessés, confrontations et classement pour chaque match à venir. Touchez un match.", mc_today: "Aujourd'hui", mc_tomorrow: "Demain", mc_search_ph: "Chercher une équipe ou une compétition…", mc_pro_p: "Passez Pro pour voir compositions, blessés et confrontations de chaque match.", mi_title: "Infos équipes", mi_btn: "Compositions et infos équipes", mi_login: "Reconnectez-vous.", mi_pro: "Les infos de match font partie du plan Pro.", mi_t_overview: "Aperçu", mi_t_lineups: "Compositions", mi_t_absences: "Blessés", mi_t_h2h: "Confrontations", mi_s_full: "Au complet", mi_s_mostly: "Presque au complet", mi_s_weak: "Affaiblie", mi_s_rot: "Équipe remaniée", mi_s_unknown: "Pas encore d'infos", mi_out_n: "absent(s)", mi_doubt_n: "incertain(s)", mi_changes_n: "changements vs dernier match", mi_no_table: "Pas de classement pour cette équipe.", mi_record: "G-N-P", mi_lu_none: "Pas de composition pour cette équipe.", mi_lu_soon: "Les compositions sont annoncées environ 1 h avant le coup d'envoi ({time}).", mi_lu_na: "Pas de composition pour ce match.", mi_new: "NOUV.", mi_same_xi: "Même onze que le dernier match", mi_formation: "Schéma", mi_subs: "Remplaçants", mi_abs_unknown: "Pas d'infos disponibles.", mi_abs_none: "Aucun blessé ni suspendu signalé.", mi_out: "ABSENT", mi_doubt: "INCERTAIN", mi_h2h_none: "Ces équipes ne se sont pas affrontées récemment.", mi_h2h_total: "Matchs joués", mi_wins: "victoires", mi_goals: "Buts", mi_last_meet: "Dernières confrontations", mi_src: "Données : API-Football", mi_src_basic: "Compositions et blessés indisponibles pour ce match." });
 Object.assign(translations.ar, { nav_mc: "مركز المباريات", mc_label: "المباريات القادمة", mc_sub: "التشكيلات والإصابات والمواجهات المباشرة والترتيب لكل مباراة قادمة. اضغط على مباراة.", mc_today: "اليوم", mc_tomorrow: "غداً", mc_search_ph: "ابحث عن فريق أو بطولة…", mc_pro_p: "فعّل Pro لرؤية التشكيلات والإصابات والمواجهات لكل مباراة.", mi_title: "أخبار الفريقين", mi_btn: "التشكيلة وأخبار الفريقين", mi_login: "يرجى تسجيل الدخول من جديد.", mi_pro: "معلومات المباراة متاحة في خطة Pro.", mi_t_overview: "نظرة عامة", mi_t_lineups: "التشكيلة", mi_t_absences: "الإصابات", mi_t_h2h: "المواجهات", mi_s_full: "التشكيلة كاملة", mi_s_mostly: "شبه كاملة", mi_s_weak: "منقوصة", mi_s_rot: "تشكيلة مُدوَّرة", mi_s_unknown: "لا أخبار بعد", mi_out_n: "غائب", mi_doubt_n: "مشكوك فيه", mi_changes_n: "تغييرات مقارنة بالمباراة السابقة", mi_no_table: "لا يوجد ترتيب لهذا الفريق.", mi_record: "ف-ت-خ", mi_lu_none: "لا توجد تشكيلة لهذا الفريق.", mi_lu_soon: "تُعلن التشكيلات قبل ساعة تقريباً من البداية ({time}).", mi_lu_na: "لا توجد تشكيلة لهذه المباراة.", mi_new: "جديد", mi_same_xi: "نفس تشكيلة المباراة السابقة", mi_formation: "الخطة", mi_subs: "البدلاء", mi_abs_unknown: "لا توجد أخبار متاحة.", mi_abs_none: "لا إصابات ولا إيقافات معلنة.", mi_out: "غائب", mi_doubt: "شك", mi_h2h_none: "لم يلتقِ الفريقان مؤخراً.", mi_h2h_total: "عدد المباريات", mi_wins: "فوز", mi_goals: "الأهداف", mi_last_meet: "آخر المواجهات", mi_src: "المصدر: API-Football", mi_src_basic: "التشكيلات والإصابات غير متاحة لهذه المباراة." });
+Object.assign(translations.en, { picks_short: "Picks", vs_yesterday: "vs yesterday", vs_prev_7: "vs the 7 days before", vs_prev_30: "vs the month before", vs_prev_12: "vs the 12 months before", period_rate: "Win rate", win_rate_short: "Win rate", period: "Period", agent_trend: "Win rate trend", agent_periods: "By period", nt_title: "Notifications", nt_clear: "Clear all", nt_empty: "No notifications yet. Big matches and the weekly and monthly win rate show up here.", nt_big: "Big match", nt_week: "Weekly win rate", nt_month: "Monthly win rate", nt_today: "Today" });
+Object.assign(translations.fr, { picks_short: "Pronos", vs_yesterday: "vs hier", vs_prev_7: "vs les 7 jours d'avant", vs_prev_30: "vs le mois d'avant", vs_prev_12: "vs les 12 mois d'avant", period_rate: "Taux de réussite", win_rate_short: "Réussite", period: "Période", agent_trend: "Évolution du taux de réussite", agent_periods: "Par période", nt_title: "Notifications", nt_clear: "Tout effacer", nt_empty: "Aucune notification. Les grands matchs et le taux de réussite de la semaine et du mois s'affichent ici.", nt_big: "Grand match", nt_week: "Réussite de la semaine", nt_month: "Réussite du mois", nt_today: "Aujourd'hui" });
+Object.assign(translations.ar, { picks_short: "التوقعات", vs_yesterday: "مقارنة بالأمس", vs_prev_7: "مقارنة بالأيام السبعة السابقة", vs_prev_30: "مقارنة بالشهر السابق", vs_prev_12: "مقارنة بالأشهر الـ12 السابقة", period_rate: "معدل الفوز", win_rate_short: "معدل الفوز", period: "الفترة", agent_trend: "تطور معدل الفوز", agent_periods: "حسب الفترة", nt_title: "الإشعارات", nt_clear: "مسح الكل", nt_empty: "لا توجد إشعارات بعد. ستظهر هنا المباريات الكبرى ومعدل الفوز الأسبوعي والشهري.", nt_big: "مباراة كبرى", nt_week: "معدل فوز الأسبوع", nt_month: "معدل فوز الشهر", nt_today: "اليوم" });
 Object.assign(translations.en, { an_title: "Analysis", an_basis: "Based on", an_alt: "Other likely scores", an_xg: "xG for / against", an_form: "Recent form", an_prices: "Best prices", an_book: "bookmaker", an_books: "bookmakers", q_title: "Data quality", q_s_high: "High", q_s_med: "Medium", q_s_low: "Low", q_s_est: "Est." });
 Object.assign(translations.fr, { an_title: "Analyse", an_basis: "Basé sur", an_alt: "Autres scores probables", an_xg: "xG pour / contre", an_form: "Forme récente", an_prices: "Meilleures cotes", an_book: "bookmaker", an_books: "bookmakers", q_title: "Qualité des données", q_s_high: "Élevée", q_s_med: "Moyenne", q_s_low: "Faible", q_s_est: "Est." });
 Object.assign(translations.ar, { an_title: "التحليل", an_basis: "يعتمد على", an_alt: "نتائج محتملة أخرى", an_xg: "xG له / عليه", an_form: "النتائج الأخيرة", an_prices: "أفضل الأسعار", an_book: "مكتب مراهنات", an_books: "مكاتب مراهنات", q_title: "جودة البيانات", q_s_high: "عالية", q_s_med: "متوسطة", q_s_low: "منخفضة", q_s_est: "تقديري" });
@@ -774,7 +766,7 @@ buildThemeGrid();
 applyTheme(savedTheme);
 
 function refreshCharts() {
-  if (authState.loggedIn) updateChart(parseInt($('chartRange').value) || 7, 'app');
+  if (authState.loggedIn) updateChart(perfDays, 'app');
 }
 
 document.getElementById('langSelect').addEventListener('change', (e) => {
@@ -791,8 +783,6 @@ document.getElementById('themeSelect').addEventListener('change', (e) => {
 let authMode = 'login';
 let lpHash = null, lpAppHash = null, lpAppList = null, lpAppTs = 0;
 const authState = { token: localStorage.getItem('mde:token') || null, loggedIn: false, profile: null };
-let chartInstanceApp = null;
-let chartInstanceLanding = null;
 let historyFixtures = [];
 
 function cssVar(name, fallback) {
@@ -811,6 +801,8 @@ function localDateStr(d) {
 function updateAuthUI() {
   document.getElementById('loginBtn').classList.toggle('hidden', authState.loggedIn);
   document.getElementById('profileBtn').classList.toggle('hidden', !authState.loggedIn);
+  document.getElementById('notifBtn').classList.toggle('hidden', !authState.loggedIn);
+  if (!authState.loggedIn) document.getElementById('notifPanel').classList.add('hidden'); else if (window.ntBadgeSafe) window.ntBadgeSafe();
   document.getElementById('menuBtn').classList.toggle('hidden', !authState.loggedIn);
   if (!authState.loggedIn) { closeMenu(); if (window.DemoArena) window.DemoArena.reset(); }
   document.body.classList.toggle('has-side', authState.loggedIn);
@@ -827,9 +819,6 @@ function updateAuthUI() {
 
   if (authState.loggedIn) {
     loadHistory();
-    if (chartInstanceApp) setTimeout(() => chartInstanceApp.resize(), 60);
-  } else {
-    if (chartInstanceLanding) setTimeout(() => chartInstanceLanding.resize(), 60);
   }
 }
 
@@ -1810,7 +1799,7 @@ function __doSwitch(tab) {
   if (tab === 'standings') setTimeout(() => { if (view.classList.contains('active')) renderStandings(); }, 60);
   if (tab === 'leagues') setTimeout(() => { if (view.classList.contains('active')) renderLeagues(); }, 60);
   if (tab === 'upcoming') setTimeout(() => { if (view.classList.contains('active')) renderUpcoming(); }, 60);
-  if (tab === 'performance') requestAnimationFrame(() => updateChart(parseInt($('chartRange').value) || 7, 'app'));
+  if (tab === 'performance') requestAnimationFrame(() => updateChart(perfDays, 'app'));
 }
 
 // Result row from the pick the server froze BEFORE kickoff. Legacy rows (saved before this change) fall back to the
@@ -2242,17 +2231,11 @@ function renderHistory() {
   }
   if (!finished.length) {
     $('history-list').innerHTML = `<div class="empty-state"><strong>${t.no_finished}</strong><p>Results and the win rate of our picks show up here once matches are over.</p></div>`;
-    $('perf-winrate').textContent = '0%';
-    $('perf-bar').style.width = '0%';
-    $('perf-wins').textContent = 0;
-    $('perf-losses').textContent = 0;
-    $('perf-total').textContent = 0;
+    renderPerfKpis();
     return;
   }
 
   // Today's numbers follow the sliders; past days come from mde:frozen_history (see getDailyTotals).
-  const todayTot = getDailyTotals(finished)[localDateStr(new Date())] || { wins: 0, losses: 0 };
-  const wins = todayTot.wins, losses = todayTot.losses;
 
   if (listed.length) $('history-list').innerHTML = listed.slice(0, histShown).map(r => {
     const fx = r.fx, hs = fx.homeScore, as = fx.awayScore;
@@ -2278,13 +2261,7 @@ function renderHistory() {
     </div>`;
   }).join('') + (listed.length > histShown ? `<button type="button" class="hist-more" onclick="histMore()">${esc((t.show_more || 'Show more'))} <small>(${listed.length - histShown})</small></button>` : '');
 
-  const total = wins + losses;
-  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
-  $('perf-winrate').textContent = winRate + '%';
-  $('perf-bar').style.width = winRate + '%';
-  $('perf-wins').textContent = wins;
-  $('perf-losses').textContent = losses;
-  $('perf-total').textContent = total;
+  renderPerfKpis();
 }
 
 async function loadHistory() {
@@ -2296,87 +2273,16 @@ async function loadHistory() {
     
     renderHistory();
     refreshCharts();
+    notifSync();
 
     if (document.getElementById('view-performance').classList.contains('active')) {
       setTimeout(() => {
-        updateChart(parseInt($('chartRange').value) || 7, 'app');
+        updateChart(perfDays, 'app');
       }, 100);
     }
   } catch(e) { /* silent */ }
 }
 
-document.getElementById('chartRange').onchange = (e) => updateChart(parseInt(e.target.value) || 7, 'app');
-
-function updateChart(days, target) {
-  if (target !== 'app') return;
-  const isApp = true;
-  const ids = isApp ? { w: 'chartTotalWins', l: 'chartTotalLosses', c: 'perfChart' } : { w: 'landingTotalWins', l: 'landingTotalLosses', c: 'landingChart' };
-
-  // Past days = frozen numbers (mde:frozen_history); today = live numbers from the current sliders.
-  const totals = getDailyTotals();
-  const now = new Date();
-  const dateMap = {};
-  let totalW = 0, totalL = 0;
-
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
-    const key = localDateStr(d), tt = totals[key] || { wins: 0, losses: 0 };
-    dateMap[key] = { wins: tt.wins, losses: tt.losses };
-    totalW += tt.wins; totalL += tt.losses;
-  }
-
-  $(ids.w).textContent = totalW;
-  $(ids.l).textContent = totalL;
-
-  const daysArray = Object.keys(dateMap).sort();
-  const labels = daysArray.map(d => {
-    const [y, m, day] = d.split('-').map(Number);
-    return new Date(y, m - 1, day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  });
-  const winsArray = daysArray.map(d => dateMap[d].wins);
-  const lossesArray = daysArray.map(d => dateMap[d].losses);
-
-  const canvas = document.getElementById(ids.c);
-  if (!canvas) return;
-  if (isApp && !document.getElementById('view-performance').classList.contains('active')) return;
-  if (typeof Chart === 'undefined') { loadChartLib().then(() => updateChart(days, target)).catch(() => {}); return; }
-  const ctx = canvas.getContext('2d');
-
-  const __sig = days + '|' + (document.documentElement.getAttribute('data-theme') || '') + '|' + (localStorage.getItem('mde:lang') || '') + '|' + st.mw + '|' + st.mev + '|' + JSON.stringify([labels, winsArray, lossesArray]);
-  if (isApp && chartInstanceApp && window.__chartSig === __sig) { chartInstanceApp.resize(); return; }
-  if (isApp) window.__chartSig = __sig;
-  if (isApp) { if (chartInstanceApp) chartInstanceApp.destroy(); chartInstanceApp = null; } else { if (chartInstanceLanding) chartInstanceLanding.destroy(); chartInstanceLanding = null; }
-
-  const lang = localStorage.getItem('mde:lang') || 'en';
-  const t = translations[lang] || translations.en;
-
-  const inkColor  = cssVar('--ink',   '#F3F2FB');
-  const ink3Color = cssVar('--ink-3', '#7A7896');
-  const lineColor = cssVar('--line',  '#2A2843');
-
-  const inst = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        { label: t.wins, data: winsArray, backgroundColor: '#10B981', borderRadius: 4 },
-        { label: t.losses, data: lossesArray, backgroundColor: '#E11D48', borderRadius: 4 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { color: ink3Color, font: { size: 10 } } },
-        y: { stacked: true, grid: { color: lineColor }, ticks: { color: ink3Color, stepSize: 1 } }
-      },
-      plugins: {
-        legend: { labels: { color: inkColor, font: { family: 'Plus Jakarta Sans', weight: 'bold' } } }
-      }
-    }
-  });
-  if (isApp) chartInstanceApp = inst; else chartInstanceLanding = inst;
-}
 
 st.gate = st.gate || new Map();
 function applyServerPred(r, sp) {
@@ -2430,7 +2336,7 @@ async function loadGate() {
     st.results = applyGate(st.results || []);
     renderSignals();
     renderHistory();   // today's Performance rows use the same server ingredients as the cards
-    { const pv = document.getElementById('view-performance'); if (pv && pv.classList.contains('active')) updateChart(parseInt($('chartRange').value) || 7, 'app'); }
+    { const pv = document.getElementById('view-performance'); if (pv && pv.classList.contains('active')) updateChart(perfDays, 'app'); }
     if (typeof updateFilterPreview === 'function') updateFilterPreview();
   } catch (e) { /* gate unavailable */ }
 }
@@ -2439,7 +2345,7 @@ function renderAll() {
   renderSignals();
   renderHistory();
   const pv = document.getElementById('view-performance');
-  if (authState.loggedIn && pv && pv.classList.contains('active')) updateChart(parseInt($('chartRange').value) || 7, 'app');
+  if (authState.loggedIn && pv && pv.classList.contains('active')) updateChart(perfDays, 'app');
   updateFilterPreview();
 }
 let _sliderRaf = 0, _sliderTimer = 0;
@@ -2538,9 +2444,10 @@ async function pollFeedInner() {
     if (newHash !== lastHash) {
       st.fixtures = data.fixtures;
       renderAll();
+      notifSync();
       loadGate();
       
-      if (document.getElementById('view-performance').classList.contains('active')) updateChart(parseInt($('chartRange').value) || 7, 'app');
+      if (document.getElementById('view-performance').classList.contains('active')) updateChart(perfDays, 'app');
       
       lastHash = newHash;
       $('live-status').className = 'live-status is-live';
@@ -2585,8 +2492,8 @@ function renderAdmin() {
   const q = ($('adminSearch').value || '').trim().toLowerCase();
   const fmt = ms => ms ? new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const rows = adminUsers.filter(u => !q || u.email.toLowerCase().includes(q));
-  const rowHTML = (u, i) => `<tr><td>${i + 1}</td><td>${esc(u.email)}${u.verified ? '' : ' <small style="color:var(--ink-3)">(unverified)</small>'}</td>
-    <td><span class="adm-pill ${u.plan === 'pro' ? 'adm-pro' : 'adm-free'}">${u.plan === 'pro' ? 'Pro' : 'Free'}</span>${u.expired ? ' <small style="color:var(--ink-3)">expired</small>' : ''}</td>
+  const rowHTML = (u, i) => `<tr><td class="db-muted">${i + 1}</td><td><span class="db-user"><span class="db-av">${esc((u.email || '?')[0].toUpperCase())}</span><span>${esc(u.email)}${u.verified ? '' : ' <small class="db-muted">(unverified)</small>'}</span></span></td>
+    <td><span class="db-tag plan-${admPlanOf(u)}">${ADM_PLAN[admPlanOf(u)][0]}</span></td>
     <td>${u.plan === 'pro' ? (u.lifetime ? 'Lifetime' : fmt(u.planUntil)) : '—'}</td><td>${fmt(u.createdAt)}</td></tr>`;
   const tok = renderAdmin._t = (renderAdmin._t || 0) + 1, tb = $('adminRows');
   if (!rows.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-3)">No users</td></tr>'; return; }
@@ -2602,22 +2509,13 @@ async function loadAdmin() {
       fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + authState.token } }),
       fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + authState.token } })
     ]);
-
-    if (sRes.ok) {
-      const sData = await sRes.json();
-      $('siteStats').innerHTML = `
-        <div class="perf-card"><div class="perf-val" style="color:var(--good)">${sData.liveUsers}</div><div class="perf-lbl">Users Online Now</div></div>
-        <div class="perf-card"><div class="perf-val" style="color:var(--brand)">${sData.totalVisits}</div><div class="perf-lbl">Total Site Visits</div></div>
-      `;
-    }
-
+    adminLive = sRes.ok ? await sRes.json().catch(() => null) : null;
     if (!uRes.ok) throw new Error('HTTP ' + uRes.status);
     const d = await uRes.json();
     adminUsers = d.users || [];
-    $('adminStats').innerHTML = [['Total users', d.total, 'var(--ink-2)'], ['Pro', d.pro, 'var(--good)'], ['Free', d.free, 'var(--ink-3)']]
-      .map(([l, v, c]) => `<div class="perf-card"><div class="perf-val" style="color:${c}">${Number(v) || 0}</div><div class="perf-lbl">${l}</div></div>`).join('');
+    renderAdminDash();
     renderAdmin();
-  } catch (e) { $('adminMsg').textContent = 'Could not load admin data (' + e.message + ').'; }
+  } catch (e) { renderAdminDash(); $('adminMsg').textContent = 'Could not load admin data (' + e.message + ').'; }
 }
 const trkMark = (w) => w == null ? '' : w ? '✅' : '❌';
 const fadeDec = str => String(str).replace(/(\d+)(\.\d+)/, '$1<span class="dec">$2</span>');
@@ -2656,6 +2554,300 @@ function renderFreeSignals() {
   else { $('cards').innerHTML = ''; loadPublicFixtures('app'); }
 }
 
+// ── Dashboard parts, shared by Performance, Agent stats and Admin ──
+const DB_ICONS = {
+  rate: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+  win: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
+  loss: '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
+  picks: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.8.8 2.8 2.6 3 5.2"/>',
+  pro: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  live: '<path d="M2 12h4l3-8 4 16 3-8h6"/>',
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
+};
+const dbIcon = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${DB_ICONS[k] || ''}</svg>`;
+const dbNum = v => Number.isFinite(v) ? v.toLocaleString('en-US') : String(v);
+// KPI card. delta {v, unit, upGood (true / false / null = neutral), title}: shown only when there is something to compare with.
+function dbKpi(o) {
+  let chip = '';
+  if (o.delta && Number.isFinite(o.delta.v)) {
+    const v = Math.round(o.delta.v * 10) / 10, up = v > 0;
+    const cls = v === 0 ? 'flat' : o.delta.upGood == null ? 'neutral' : (up === o.delta.upGood ? 'good' : 'bad');
+    const arrow = v === 0 ? '' : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${up ? 'M12 19V5M6 11l6-6 6 6' : 'M12 5v14M6 13l6 6 6-6'}"/></svg>`;
+    chip = `<span class="db-delta ${cls}" title="${esc(o.delta.title || '')}">${arrow}${up ? '+' : ''}${v}${esc(o.delta.unit || '')}</span>`;
+  } else if (o.note) chip = `<span class="db-delta flat">${esc(o.note)}</span>`;
+  return `<div class="db-kpi tone-${o.tone || 'ink'}"><div class="db-kpi-top"><span class="db-ico">${dbIcon(o.icon)}</span>${chip}</div><div class="db-kpi-v">${o.value}</div><div class="db-kpi-l">${esc(o.label)}</div>${o.delta && o.delta.title && Number.isFinite(o.delta.v) ? `<div class="db-kpi-s">${esc(o.delta.title)}</div>` : ''}</div>`;
+}
+function dbNiceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x > 0 ? x : 1))), f = x / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+// Smooth path through points [[x,y]...] (Catmull-Rom as cubic Béziers, control points kept inside the box so the curve never dips below 0).
+function dbCurve(pts) {
+  if (pts.length === 1) return `M${pts[0][0]},${pts[0][1]}`;
+  const c = v => Math.max(0, Math.min(100, v));
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    d += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(2)},${c(p1[1] + (p2[1] - p0[1]) / 6).toFixed(2)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(2)},${c(p2[1] - (p3[1] - p1[1]) / 6).toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
+  }
+  return d;
+}
+// Line chart. series [{name, data:[number|null], color, area}], labels [string], opts {max, int, suffix}.
+// Lines live in a stretched 0..100 SVG with non-scaling strokes; dots and all text are HTML so they stay crisp at any width.
+function dbLine(series, labels, opts = {}) {
+  const n = labels.length; if (!n) return '';
+  const vals = series.flatMap(s => s.data).filter(Number.isFinite);
+  let max = opts.max, step;
+  if (max == null) {
+    const top = Math.max(1, ...vals);
+    step = opts.int ? Math.max(1, dbNiceStep(top / 4)) : dbNiceStep(top / 4);
+    max = Math.ceil(top / step) * step;
+  } else step = max / 4;
+  const ticks = []; for (let v = 0; v <= max + 1e-9; v += step) ticks.push(v);
+  const X = i => n === 1 ? 50 : i / (n - 1) * 100, Y = v => 100 - v / max * 100;
+  const sfx = opts.suffix || '';
+  let svg = '', dots = '';
+  series.forEach(s => {
+    const segs = []; let cur = [];
+    s.data.forEach((v, i) => { if (Number.isFinite(v)) cur.push([X(i), Y(v)]); else if (cur.length) { segs.push(cur); cur = []; } });
+    if (cur.length) segs.push(cur);
+    segs.forEach(p => {
+      const line = dbCurve(p);
+      if (s.area && p.length > 1) svg += `<path d="${line} L${p[p.length - 1][0]},100 L${p[0][0]},100 Z" style="fill:${s.color};fill-opacity:.12;stroke:none"/>`;
+      svg += `<path d="${line}" vector-effect="non-scaling-stroke" style="fill:none;stroke:${s.color};stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round"/>`;
+    });
+    if (n <= 14) s.data.forEach((v, i) => { if (Number.isFinite(v)) dots += `<i class="db-dot" style="left:${X(i)}%;top:${Y(v)}%;--c:${s.color}" title="${esc(labels[i] + ' · ' + s.name + ': ' + v + sfx)}"></i>`; });
+  });
+  // At most 7 short labels (5 when they are longer than a weekday); the one just before the last is dropped if it would touch it.
+  const every = Math.max(1, Math.ceil(n / (labels.some(l => String(l).length > 4) ? 5 : 7)));
+  const xl = labels.map((l, i) => (i % every === 0 || i === n - 1) && !(i !== n - 1 && n - 1 - i < every) ? `<span class="${i === 0 ? 'first' : i === n - 1 ? 'last' : ''}" style="left:${X(i)}%">${esc(l)}</span>` : '').join('');
+  const fmt = v => (Number.isInteger(v) ? v : v.toFixed(1)) + sfx;
+  return `<div class="db-chart">
+      <div class="db-y" aria-hidden="true">${ticks.map(v => `<span style="top:${Y(v)}%">${fmt(v)}</span>`).join('')}</div>
+      <div class="db-plot"><div class="db-grid" aria-hidden="true">${ticks.map(v => `<i style="top:${Y(v)}%"></i>`).join('')}</div>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${svg}</svg>${dots}</div>
+      <div class="db-x" aria-hidden="true">${xl}</div>
+    </div>
+    <div class="db-legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>`;
+}
+// Ring chart. parts [{name, value, color}], centre {value, label}.
+function dbDonut(parts, centre) {
+  const total = parts.reduce((a, p) => a + (p.value || 0), 0), live = parts.filter(p => p.value > 0).length;
+  const gap = live > 1 ? 0.8 : 0;
+  let acc = 0, rings = '';
+  if (total) parts.forEach(p => {
+    if (!(p.value > 0)) return;
+    const len = p.value / total * 100;
+    rings += `<circle r="15.915" cx="21" cy="21" fill="none" stroke-width="4.6" style="stroke:${p.color}" stroke-dasharray="${Math.max(0, len - gap).toFixed(3)} ${(100 - len + gap).toFixed(3)}" stroke-dashoffset="${(25 - acc).toFixed(3)}"/>`;
+    acc += len;
+  });
+  const legend = parts.map(p => `<li><i style="background:${p.color}"></i><span>${esc(p.name)}</span><b>${dbNum(p.value || 0)}</b><em>${total ? Math.round((p.value || 0) / total * 100) + '%' : '—'}</em></li>`).join('');
+  return `<div class="db-donut"><div class="db-ring"><svg viewBox="0 0 42 42" aria-hidden="true"><circle r="15.915" cx="21" cy="21" fill="none" stroke-width="4.6" style="stroke:var(--line)"/>${rings}</svg>
+      <div class="db-ring-c"><b>${esc(String(centre.value))}</b><span>${esc(centre.label || '')}</span></div></div>
+    <ul class="db-dl">${legend}</ul></div>`;
+}
+// Segmented control state lives in the markup: the button with .on is the current one.
+function dbSegSet(wrap, btn) {
+  wrap.querySelectorAll('button').forEach(b => { const on = b === btn; b.classList.toggle('on', on); b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+}
+const utcDayOff = off => { const n = new Date(); return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + off)); };
+const dbShortDay = key => { const [y, m, d] = key.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }); };
+
+// ── Performance ──
+// Today's numbers; the win rate is compared with yesterday's (counts are not: today is not over yet).
+function renderPerfKpis() {
+  const el = document.getElementById('perfKpis'); if (!el) return;
+  const t = tNow(), totals = getDailyTotals();
+  const day = off => totals[localDateStr(utcDayOff(off))] || { wins: 0, losses: 0 };
+  const a = day(0), b = day(-1), na = a.wins + a.losses, nb = b.wins + b.losses;
+  const ra = na ? Math.round(a.wins / na * 100) : 0, rb = nb ? Math.round(b.wins / nb * 100) : null;
+  el.innerHTML =
+    dbKpi({ icon: 'rate', tone: 'brand', value: ra + '%', label: t.win_rate_today, delta: na && rb != null ? { v: ra - rb, unit: ' pts', upGood: true, title: t.vs_yesterday || 'vs yesterday' } : null })
+    + dbKpi({ icon: 'win', tone: 'good', value: a.wins, label: t.wins })
+    + dbKpi({ icon: 'loss', tone: 'bad', value: a.losses, label: t.losses })
+    + dbKpi({ icon: 'picks', tone: 'ink', value: na, label: t.total_picks });
+}
+var perfDays = 7;
+function updateChart(days, target) {
+  if (target !== 'app') return;
+  const totals = getDailyTotals(), keys = [];
+  for (let i = days - 1; i >= 0; i--) keys.push(localDateStr(utcDayOff(-i)));
+  const W = keys.map(k => (totals[k] || {}).wins || 0), L = keys.map(k => (totals[k] || {}).losses || 0);
+  const tw = W.reduce((a, b) => a + b, 0), tl = L.reduce((a, b) => a + b, 0);
+  $('chartTotalWins').textContent = tw;
+  $('chartTotalLosses').textContent = tl;
+  if (!document.getElementById('view-performance').classList.contains('active')) return;
+  const t = tNow(), sig = [days, localStorage.getItem('mde:lang') || '', keys.join(), W.join(), L.join()].join('|');
+  if (updateChart._sig === sig && $('perfChart').firstChild) return;
+  updateChart._sig = sig;
+  const lab = days === 7 ? keys.map(k => new Date(k + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })) : keys.map(dbShortDay);
+  $('perfChart').innerHTML = dbLine([{ name: t.wins, data: W, color: 'var(--good)', area: true }, { name: t.losses, data: L, color: 'var(--bad)' }], lab, { int: true });
+  const n = tw + tl;
+  $('perfDonut').innerHTML = dbDonut([{ name: t.wins, value: tw, color: 'var(--good)' }, { name: t.losses, value: tl, color: 'var(--bad)' }],
+    { value: n ? Math.round(tw / n * 100) + '%' : '—', label: days === 7 ? t.last_7 : t.last_30 });
+}
+(function () {
+  const wrap = document.getElementById('perfRange'); if (!wrap) return;
+  wrap.addEventListener('click', e => {
+    const b = e.target.closest('button[data-days]'); if (!b) return;
+    dbSegSet(wrap, b); perfDays = parseInt(b.dataset.days, 10) || 7; updateChart(perfDays, 'app');
+  });
+})();
+
+// ── Admin ──
+let adminLive = null, adminRange = '7d';
+const ADM_DAY = 864e5;
+function admPlanOf(u) { return u.plan === 'pro' ? (u.lifetime ? 'lifetime' : 'pro') : (u.expired ? 'expired' : 'free'); }
+const ADM_PLAN = { pro: ['Pro', 'var(--brand)'], lifetime: ['Lifetime', 'var(--p-away)'], free: ['Free', 'var(--ink-3)'], expired: ['Expired', 'var(--warn)'] };
+function renderAdminDash() {
+  const U = adminUsers || [], now = Date.now();
+  const total = U.length, pro = U.filter(u => u.plan === 'pro').length;
+  const new7 = U.filter(u => u.createdAt && now - u.createdAt < 7 * ADM_DAY).length;
+  $('admKpis').innerHTML =
+    dbKpi({ icon: 'users', tone: 'brand', value: dbNum(total), label: 'Total users', delta: { v: new7, upGood: true, title: 'new in the last 7 days' } })
+    + dbKpi({ icon: 'pro', tone: 'good', value: dbNum(pro), label: 'Pro users', note: total ? Math.round(pro / total * 100) + '% of users' : '' })
+    + dbKpi({ icon: 'live', tone: 'warn', value: adminLive ? dbNum(adminLive.liveUsers) : '—', label: 'Online now' })
+    + dbKpi({ icon: 'eye', tone: 'ink', value: adminLive ? dbNum(adminLive.totalVisits) : '—', label: 'Total site visits' });
+  // Sign-ups per day (7 / 30 days) or per month (12 months), with how many of them are on Pro now.
+  const buckets = [];
+  if (adminRange === '12m') for (let m = 11; m >= 0; m--) { const d = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - m, 1)); buckets.push({ key: d.toISOString().slice(0, 7), label: d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }) }); }
+  else { const n = adminRange === '7d' ? 7 : 30; for (let i = n - 1; i >= 0; i--) { const d = utcDayOff(-i), k = d.toISOString().slice(0, 10); buckets.push({ key: k, label: adminRange === '7d' ? d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' }) : dbShortDay(k) }); } }
+  const klen = adminRange === '12m' ? 7 : 10, idx = new Map(buckets.map((b, i) => [b.key, i]));
+  const all = buckets.map(() => 0), nowPro = buckets.map(() => 0);
+  U.forEach(u => { if (!u.createdAt) return; const i = idx.get(new Date(u.createdAt).toISOString().slice(0, klen)); if (i == null) return; all[i]++; if (u.plan === 'pro') nowPro[i]++; });
+  $('admChart').innerHTML = dbLine([{ name: 'Sign-ups', data: all, color: 'var(--brand)', area: true }, { name: 'On Pro now', data: nowPro, color: 'var(--good)' }], buckets.map(b => b.label), { int: true });
+  const cnt = { pro: 0, lifetime: 0, free: 0, expired: 0 }; U.forEach(u => cnt[admPlanOf(u)]++);
+  $('admDonut').innerHTML = dbDonut(Object.keys(ADM_PLAN).map(k => ({ name: ADM_PLAN[k][0], value: cnt[k], color: ADM_PLAN[k][1] })), { value: dbNum(total), label: 'users' });
+  // Dated Pro plans that end within 14 days: the renewals to follow up.
+  const soon = U.filter(u => u.plan === 'pro' && !u.lifetime && u.planUntil && u.planUntil > now && u.planUntil - now <= 14 * ADM_DAY).sort((a, b) => a.planUntil - b.planUntil);
+  $('admExpiring').innerHTML = soon.length ? `<ul class="db-list">${soon.slice(0, 8).map(u => {
+    const days = Math.max(1, Math.ceil((u.planUntil - now) / ADM_DAY));
+    return `<li><span class="db-av">${esc((u.email || '?')[0].toUpperCase())}</span><span class="db-li-main"><b>${esc(u.email)}</b><small>${new Date(u.planUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</small></span><span class="db-tag ${days <= 3 ? 'bad' : 'warn'}">${days} ${days === 1 ? 'day' : 'days'}</span></li>`;
+  }).join('')}</ul>${soon.length > 8 ? `<p class="db-more">+${soon.length - 8} more</p>` : ''}` : '<p class="db-empty">No Pro plan ends in the next 14 days.</p>';
+}
+(function () {
+  const wrap = document.getElementById('admRange'); if (!wrap) return;
+  wrap.addEventListener('click', e => { const b = e.target.closest('button[data-r]'); if (!b) return; dbSegSet(wrap, b); adminRange = b.dataset.r; renderAdminDash(); });
+})();
+
+// ── Notifications (bell next to the profile) ──
+// Built in the browser from data the page already has: big matches from the match list, and the win rate of the last
+// finished week / month from the same daily totals as Performance and Agent stats. Stored per device in localStorage.
+const NT_KEY = 'mde:notifs';
+function ntRead() {
+  try { const o = JSON.parse(localStorage.getItem(NT_KEY) || 'null'); if (o && Array.isArray(o.items)) return { items: o.items, seen: o.seen && typeof o.seen === 'object' ? o.seen : {}, fresh: false }; } catch (e) {}
+  return { items: [], seen: {}, fresh: true };
+}
+function ntWrite(s) {
+  s.items = s.items.filter(n => n && n.id).sort((a, b) => b.ts - a.ts).slice(0, 40);
+  const keys = Object.keys(s.seen);
+  if (keys.length > 400) keys.sort((a, b) => s.seen[a] - s.seen[b]).slice(0, keys.length - 400).forEach(k => delete s.seen[k]);
+  try { localStorage.setItem(NT_KEY, JSON.stringify({ items: s.items, seen: s.seen })); } catch (e) {}
+}
+// Big match = both teams on this list (famous clubs and rivalries, plus the strongest national teams). Names are compared
+// after removing accents, punctuation and a leading/trailing "FC" / "CF" / "AFC" / "SC".
+const NT_BIG = [
+  /^real madrid$/, /^barcelona$/, /^atletico( de)? madrid$/, /^manchester city$/, /^manchester united$|^man united$|^man utd$/, /^liverpool$/,
+  /^arsenal$/, /^chelsea$/, /^tottenham( hotspur)?$/, /^bayern( munchen| munich)?$/, /^(borussia )?dortmund$/, /^juventus$/,
+  /^inter( milan)?$|^internazionale( milano)?$/, /^(ac )?milan$/, /^(ssc )?napoli$/, /^(as )?roma$/, /^(ss )?lazio$/,
+  /^paris saint germain$|^paris sg$|^psg$/, /^(olympique( de)? )?marseille$/, /^ajax( amsterdam)?$/, /^feyenoord$/, /^psv( eindhoven)?$/,
+  /^porto$/, /^(sl )?benfica$/, /^sporting( cp| lisbon)?$/, /^celtic$/, /^rangers$/, /^galatasaray$/, /^fenerbahce$/, /^besiktas$/,
+  /^boca juniors$/, /^river plate$/, /^flamengo$/, /^palmeiras$/, /^corinthians$/,
+  /^wydad( ac| casablanca| athletic club)?$/, /^raja( ca| casablanca| club athletic)?$/, /^al ahly( sc)?$/, /^zamalek( sc)?$/, /^al hilal$/, /^al nassr$/,
+  /^morocco$/, /^argentina$/, /^brazil$/, /^france$/, /^england$/, /^spain$/, /^germany$/, /^portugal$/, /^italy$/, /^netherlands$/, /^belgium$/, /^croatia$/, /^uruguay$/
+];
+function ntNorm(name) {
+  let s = String(name || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  s = s.replace(/^(fc|cf|afc|sc) /, '').replace(/ (fc|cf|afc|sc)$/, '');
+  return s;
+}
+const ntIsBig = fx => !!(fx && fx.home && fx.away) && [fx.home.name, fx.away.name].every(n => { const k = ntNorm(n); return NT_BIG.some(re => re.test(k)); });
+function notifSync() {
+  if (!authState.loggedIn) return;
+  const s = ntRead(), fresh = [], add = n => { if (s.seen[n.id]) return; s.seen[n.id] = Date.now(); s.items.push(Object.assign({ read: false }, n)); fresh.push(n); };
+  const now = Date.now();
+  // Big matches starting within the next 24 hours.
+  const list = (st.fixtures && st.fixtures.length ? st.fixtures : lpAppList) || [];
+  list.forEach(fx => {
+    if (!fx || fx.status !== 'notstarted' || !ntIsBig(fx)) return;
+    const ko = fxDateTime(fx).getTime();
+    if (!(ko > now && ko - now <= 24 * 3600e3)) return;
+    add({ id: 'big:' + fx.id, type: 'big', ts: now, d: { id: String(fx.id), h: teamDisp(fx.home, fx), a: teamDisp(fx.away, fx), lg: leagueDisp(fx), ko } });
+  });
+  // Win rate of the last finished week (Monday–Sunday) and month, once results are loaded and those days have no match left to finish.
+  if (historyFixtures && historyFixtures.length) {
+    const totals = getDailyTotals(), today = utcDayOff(0), dow = (today.getUTCDay() + 6) % 7;
+    const mon = new Date(today.getTime() - (dow + 7) * 864e5), sun = new Date(mon.getTime() + 6 * 864e5);
+    if (!dayHasOpenMatch(localDateStr(sun))) {
+      let w = 0, l = 0; for (let i = 0; i < 7; i++) { const x = totals[localDateStr(new Date(mon.getTime() + i * 864e5))]; if (x) { w += x.wins; l += x.losses; } }
+      if (w + l) add({ id: 'week:' + localDateStr(mon), type: 'week', ts: mon.getTime() + 7 * 864e5, d: { from: localDateStr(mon), to: localDateStr(sun), w, l } });
+    }
+    const m0 = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1)), mk = m0.toISOString().slice(0, 7);
+    const lastDay = localDateStr(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 0)));
+    if (!dayHasOpenMatch(lastDay)) {
+      let w = 0, l = 0; for (const k in totals) if (k.slice(0, 7) === mk) { w += totals[k].wins; l += totals[k].losses; }
+      if (w + l) add({ id: 'month:' + mk, type: 'month', ts: Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1), d: { m: mk, w, l } });
+    }
+  }
+  if (!fresh.length && !s.fresh) { ntBadge(s); return; }
+  ntWrite(s); ntBadge(s);
+  if (!$('notifPanel').classList.contains('hidden')) ntRender(s);
+  // Phone / desktop alert, only if the visitor already allowed notifications (e.g. with a match bell). Not on the very first run.
+  try {
+    if (!s.fresh && 'Notification' in window && Notification.permission === 'granted')
+      fresh.slice(0, 2).forEach(n => { const v = ntView(n); new Notification(v.title, { body: v.body, icon: 'logo.png', tag: 'mde-n-' + n.id }); });
+  } catch (e) {}
+}
+function ntView(n) {
+  const t = tNow(), d = n.d || {}, lang = localStorage.getItem('mde:lang') || 'en', loc = lang === 'ar' ? 'ar' : lang === 'fr' ? 'fr-FR' : 'en-GB';
+  const rate = (w, l) => (w + l ? Math.round(w / (w + l) * 100) : 0) + '%';
+  if (n.type === 'big') {
+    const ko = new Date(d.ko), sameDay = ko.toDateString() === new Date().toDateString();
+    const when = (sameDay ? (t.nt_today || 'Today') : ko.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' })) + ' · ' + ko.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+    return { icon: 'pro', tone: 'warn', title: t.nt_big || 'Big match', body: `${d.h} vs ${d.a}`, meta: `${d.lg} · ${when}`, go: `ntGo('signals','${esc(d.id)}')` };
+  }
+  if (n.type === 'week') return { icon: 'rate', tone: 'brand', title: t.nt_week || 'Weekly win rate', body: `${rate(d.w, d.l)} · ${d.w} ${t.wins} / ${d.l} ${t.losses}`, meta: `${dbShortDay(d.from)} – ${dbShortDay(d.to)}`, go: "ntGo('weekly')" };
+  const [y, m] = String(d.m).split('-').map(Number);
+  return { icon: 'picks', tone: 'good', title: t.nt_month || 'Monthly win rate', body: `${rate(d.w, d.l)} · ${d.w} ${t.wins} / ${d.l} ${t.losses}`, meta: new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(loc, { month: 'long', year: 'numeric', timeZone: 'UTC' }), go: "ntGo('weekly')" };
+}
+function ntAgo(ts) {
+  const lang = localStorage.getItem('mde:lang') || 'en', s = Math.round((ts - Date.now()) / 1000);
+  let rtf; try { rtf = new Intl.RelativeTimeFormat(lang === 'ar' ? 'ar' : lang === 'fr' ? 'fr' : 'en', { numeric: 'auto', style: 'short' }); } catch (e) { return ''; }
+  const a = Math.abs(s);
+  return a < 60 ? rtf.format(0, 'second') : a < 3600 ? rtf.format(Math.round(s / 60), 'minute') : a < 86400 ? rtf.format(Math.round(s / 3600), 'hour') : rtf.format(Math.round(s / 86400), 'day');
+}
+function ntBadge(s) {
+  s = s || ntRead();
+  const n = s.items.filter(x => !x.read).length, el = $('notifCount');
+  el.textContent = n > 9 ? '9+' : String(n); el.classList.toggle('hidden', !n);
+  $('notifBtn').setAttribute('aria-label', (tNow().nt_title || 'Notifications') + (n ? ` (${n})` : ''));
+}
+function ntRender(s) {
+  s = s || ntRead();
+  const t = tNow();
+  $('notifList').innerHTML = s.items.length ? s.items.map(n => {
+    const v = ntView(n);
+    return `<button type="button" class="nt-item${n.read ? '' : ' unread'}" onclick="${v.go}"><span class="db-ico tone-${v.tone}">${dbIcon(v.icon)}</span><span class="nt-main"><span class="nt-top"><b>${esc(v.title)}</b><small>${esc(ntAgo(n.ts))}</small></span><span class="nt-body">${esc(v.body)}</span><span class="nt-meta">${esc(v.meta)}</span></span></button>`;
+  }).join('') : `<p class="db-empty">${esc(t.nt_empty || 'No notifications yet. Big matches and the weekly and monthly win rate show up here.')}</p>`;
+}
+window.ntGo = function (tab, fxId) {
+  animHide($('notifPanel')); $('notifBtn').setAttribute('aria-expanded', 'false');
+  switchTab(tab);
+  if (fxId) setTimeout(() => { const c = document.querySelector(`[data-fx="${CSS.escape(fxId)}"]`); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 160);
+};
+$('notifBtn').onclick = e => {
+  e.stopPropagation();
+  const p = $('notifPanel');
+  if (!p.classList.contains('hidden')) { animHide(p); $('notifBtn').setAttribute('aria-expanded', 'false'); return; }
+  animHide($('profileMenu'));
+  const s = ntRead(); ntRender(s);
+  p.classList.remove('closing'); p.classList.remove('hidden'); $('notifBtn').setAttribute('aria-expanded', 'true');
+  if (s.items.some(x => !x.read)) { s.items.forEach(x => { x.read = true; }); ntWrite(s); }   // seen now; the dots stay until the panel is opened again
+  ntBadge(s);
+};
+$('notifClear').onclick = e => { e.stopPropagation(); const s = ntRead(); s.items = []; ntWrite(s); ntRender(s); ntBadge(s); };
+document.addEventListener('click', e => { const p = $('notifPanel'); if (!p.classList.contains('hidden') && !p.contains(e.target)) { animHide(p); $('notifBtn').setAttribute('aria-expanded', 'false'); } });
+
+window.ntBadgeSafe = () => { try { ntBadge(); notifSync(); } catch (e) {} };
+
 let agentRange = '7d';
 function agentBuckets(range) {
   const totals = getDailyTotals(), now = new Date();
@@ -2665,7 +2857,7 @@ function agentBuckets(range) {
   if (range === '7d') {
     for (let i = 0; i < 7; i++) {
       const d = utcDay(-i), tt = dayTot(localDateStr(d));
-      out.push({ label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), w: tt.wins, l: tt.losses });
+      out.push({ label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }), short: d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' }), w: tt.wins, l: tt.losses });
     }
   } else if (range === '30d') {
     // last ~5 weeks, one card per 7-day block
@@ -2676,8 +2868,8 @@ function agentBuckets(range) {
         w += tt.wins; l += tt.losses;
         if (j === 0) end = d; if (j === 6) start = d;
       }
-      const f = x => x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      out.push({ label: `${f(start)} – ${f(end)}`, w, l });
+      const f = x => x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+      out.push({ label: `${f(start)} – ${f(end)}`, short: f(start), w, l });
     }
   } else { // 12m — one card per month
     for (let m = 0; m < 12; m++) {
@@ -2688,23 +2880,44 @@ function agentBuckets(range) {
         const dt = new Date(k + 'T00:00:00Z');
         if (!isNaN(dt) && dt.getUTCFullYear() === y && dt.getUTCMonth() === mo) { w += totals[k].wins; l += totals[k].losses; }
       }
-      out.push({ label: d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }), w, l });
+      out.push({ label: d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }), short: d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }), w, l });
     }
   }
   return out;
 }
+// Totals of the period just before the selected one (for the KPI comparisons). 7 days → the 7 days before;
+// last month → the 35 days before the 5 weekly blocks; 12 months → the 12 months before.
+// Returns null when the stored results do not reach back to the start of that earlier period (a partial period would make a fake comparison).
+function agentPrev(range) {
+  const totals = getDailyTotals(), keys = Object.keys(totals).sort();
+  const now = new Date(), start = range === '12m' ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 23, 1)) : utcDayOff(-(range === '7d' ? 13 : 69));
+  if (!keys.length || keys[0] > localDateStr(start)) return null;
+  let w = 0, l = 0;
+  if (range === '12m') {
+    const now = new Date(), from = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 23, 1), to = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1);
+    for (const k in totals) { const ms = Date.parse(k + 'T00:00:00Z'); if (ms >= from && ms < to) { w += totals[k].wins; l += totals[k].losses; } }
+  } else {
+    const len = range === '7d' ? 7 : 35;
+    for (let i = len; i < 2 * len; i++) { const x = totals[localDateStr(utcDayOff(-i))]; if (x) { w += x.wins; l += x.losses; } }
+  }
+  return { w, l };
+}
 function renderWeekly() {
   const t = tNow(), range = agentRange, buckets = agentBuckets(range);
-  const unit = range === '7d' ? (t.total_picks || 'picks') : (t.total_picks || 'picks');
   const W = buckets.reduce((a, d) => a + d.w, 0), L = buckets.reduce((a, d) => a + d.l, 0), tot = W + L, rate = tot ? Math.round(W / tot * 100) : 0;
-  $('weeklyTop').innerHTML = `<div class="perf-card hero"><div class="perf-val" style="color:var(--good)">${rate}%</div><div class="perf-lbl">${t.win_rate}</div><div class="perf-track"><div class="perf-fill" style="width:${rate}%"></div></div></div>
-    <div class="perf-card"><div class="perf-val" style="color:var(--good)">${W}</div><div class="perf-lbl">${t.wins}</div></div>
-    <div class="perf-card"><div class="perf-val" style="color:var(--bad)">${L}</div><div class="perf-lbl">${t.losses}</div></div>
-    <div class="perf-card"><div class="perf-val" style="color:var(--ink-2)">${tot}</div><div class="perf-lbl">${t.total_picks}</div></div>`;
+  const p = agentPrev(range), pn = p ? p.w + p.l : 0, prate = pn ? Math.round(p.w / pn * 100) : null;
+  const vs = range === '7d' ? (t.vs_prev_7 || 'vs the 7 days before') : range === '30d' ? (t.vs_prev_30 || 'vs the month before') : (t.vs_prev_12 || 'vs the 12 months before');
+  $('weeklyTop').innerHTML =
+    dbKpi({ icon: 'rate', tone: 'brand', value: rate + '%', label: t.win_rate, delta: tot && prate != null ? { v: rate - prate, unit: ' pts', upGood: true, title: vs } : null })
+    + dbKpi({ icon: 'win', tone: 'good', value: W, label: t.wins })
+    + dbKpi({ icon: 'loss', tone: 'bad', value: L, label: t.losses })
+    + dbKpi({ icon: 'picks', tone: 'ink', value: tot, label: t.total_picks, delta: pn ? { v: tot - pn, upGood: null, title: vs } : null });
+  // Trend, oldest period first; a period without finished picks leaves a gap instead of a fake 0%.
+  const asc = buckets.slice().reverse();
+  $('weeklyChart').innerHTML = dbLine([{ name: t.win_rate, data: asc.map(d => d.w + d.l ? Math.round(d.w / (d.w + d.l) * 100) : null), color: 'var(--brand)', area: true }], asc.map(d => d.short), { max: 100, suffix: '%' });
   $('weeklyDays').innerHTML = buckets.map(d => {
-    const n = d.w + d.l, pc = n ? Math.round(d.w / n * 100) : 0;
-    return `<div class="hc-card"><div class="hc-header"><span>${esc(d.label)}</span><span>${n} ${unit}</span></div>
-      <div class="hc-footer"><span><strong>${d.w}</strong> ${t.wins} · <strong>${d.l}</strong> ${t.losses}</span>${n ? `<span class="${pc >= 50 ? 'badge-win' : 'badge-loss'}">${pc}%</span>` : '<span>—</span>'}</div></div>`;
+    const n = d.w + d.l, pc = n ? Math.round(d.w / n * 100) : null;
+    return `<tr><td>${esc(d.label)}</td><td class="num">${n}</td><td class="num good">${d.w}</td><td class="num bad">${d.l}</td><td class="num">${pc == null ? '<span class="db-muted">—</span>' : `<span class="db-tag ${pc >= 50 ? 'good' : 'bad'}">${pc}%</span>`}</td></tr>`;
   }).join('');
 }
 (function () {
@@ -2712,7 +2925,7 @@ function renderWeekly() {
   wrap.addEventListener('click', e => {
     const b = e.target.closest('.range-tab'); if (!b) return;
     agentRange = b.dataset.range;
-    wrap.querySelectorAll('.range-tab').forEach(x => { const on = x === b; x.classList.toggle('active', on); x.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    dbSegSet(wrap, b);
     renderWeekly();
   });
 })();
@@ -2738,7 +2951,7 @@ function setLang(l) {
   if (act && act.id === 'view-weekly') renderWeekly();
 }
 
-$('profileBtn').onclick = e => { e.stopPropagation(); const m = $('profileMenu'); if (m.classList.contains('hidden')) { m.classList.remove('closing'); m.classList.remove('hidden'); } else animHide(m); renderProfile(); };
+$('profileBtn').onclick = e => { e.stopPropagation(); animHide($('notifPanel')); $('notifBtn').setAttribute('aria-expanded', 'false'); const m = $('profileMenu'); if (m.classList.contains('hidden')) { m.classList.remove('closing'); m.classList.remove('hidden'); } else animHide(m); renderProfile(); };
 document.addEventListener('click', e => { const m = $('profileMenu'); if (!m.classList.contains('hidden') && !m.contains(e.target)) animHide(m); });
 $('profileMenu').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -2797,7 +3010,7 @@ async function loadPublicFixtures(mode) {
     if (app ? (!authState.loggedIn || isPro()) : authState.loggedIn) return;
     const list = (data.fixtures || []).sort((a, b) => (Number(b.status === 'started') - Number(a.status === 'started')) || (fxDateTime(a) - fxDateTime(b)));
     const h = JSON.stringify(list.map(f => [f.id, f.status, f.homeScore, f.awayScore, f.home.logo, f.away.logo]));
-    if (app) { lpAppList = list; if (h !== lpAppHash) { lpAppHash = h; renderLanding(list, 'cards', "switchTab('unlock')"); } }
+    if (app) { lpAppList = list; notifSync(); if (h !== lpAppHash) { lpAppHash = h; renderLanding(list, 'cards', "switchTab('unlock')"); } }
     else if (h !== lpHash) { lpHash = h; renderLanding(list); }
   } catch (e) { /* silent */ }
 }
