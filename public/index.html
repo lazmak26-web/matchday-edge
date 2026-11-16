@@ -121,6 +121,11 @@
 
     <div id="view-signals" class="tab-view active">
       <div class="stat-strip" id="stats"></div>
+      <label class="stat-search" id="inlineSearch" role="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        <input id="inlineSearchInput" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search a team" data-i18n-ph="search_team" aria-label="Search a team">
+        <button type="button" class="ss-clear" id="inlineSearchClear" aria-label="Clear search" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </label>
       <section>
         <div class="section-head">
           <div>
@@ -894,6 +899,18 @@ document.getElementById('openFilterBtn').onclick = openFilterModal;
   }
   window.__closeSearch = close;
   window.__openSearch = open;
+  // Search field on the dashboard: you type in place, the match list filters as you type.
+  const ii = document.getElementById('inlineSearchInput'), ic = document.getElementById('inlineSearchClear');
+  if (ii) {
+    let it = 0;
+    const run = () => { st.queryRaw = ii.value.trim(); st.query = normQ(ii.value); ic.hidden = !ii.value; renderSignals(); };
+    ii.addEventListener('input', () => { ic.hidden = !ii.value; clearTimeout(it); it = setTimeout(run, 120); });
+    ii.addEventListener('keydown', e => { if (e.key === 'Escape' && ii.value) { ii.value = ''; run(); } if (e.key === 'Enter') ii.blur(); });
+    ic.addEventListener('click', () => { ii.value = ''; run(); ii.focus(); });
+    // Anything that used to open the floating search box now just focuses this field.
+    window.__openSearch = () => { if (typeof switchTab === 'function') switchTab('signals'); setTimeout(() => ii.focus(), 60); };
+    window.__closeSearch = () => { close(); if (ii.value) { ii.value = ''; ic.hidden = true; } };
+  }
   if (btn) btn.addEventListener('click', () => (bar.hidden || !bar.classList.contains('open')) ? open() : close());
   cls.addEventListener('click', close);
   inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(apply, 120); });
@@ -2077,10 +2094,6 @@ function renderSignals() {
         </div>
       </div>
     </div>
-    <button class="stat-search" type="button" aria-label="${esc(t.search_team||'Search a team')}" onclick="window.__openSearch&&window.__openSearch()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
-      <span>${esc(t.search_team||'Search a team')}</span>
-    </button>
   `;
 
 
