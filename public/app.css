@@ -1734,3 +1734,28 @@ body.is-free #inlineSearch{display:none}
   .lb-stats{gap:16px}
   .lb-stat b{font-size:21px}
 }
+
+/* ── Landing responsive hardening + brand button (2026-11, pass 1b) ── */
+html,body{max-width:100%;overflow-x:clip}
+#landingPage{max-width:100%}
+#landingPage>*{min-width:0;max-width:100%}
+.landing-left,.landing-right{max-width:100%}
+.lb-edge,.lb-chart{max-width:100%}
+.lb-chips{min-width:0}
+.lb-chip{min-width:0;overflow:hidden}
+#landingPage .hero-title{overflow-wrap:break-word;word-break:normal}
+#landingPage .hero-subtitle{overflow-wrap:break-word}
+/* primary CTA follows the blue brand identity, not the legacy violet */
+[data-theme="midnight"] .btn-main{background:linear-gradient(135deg,#0A84FF,#2997FF);color:#fff}
+@media (max-width:860px){
+  #landingPage .hero-subtitle{max-width:100%}
+  .lb-stats{gap:14px;row-gap:14px}
+  .lb-edge{padding:14px}
+}
+@media (max-width:400px){
+  #landingPage .hero-title{font-size:clamp(28px,8.4vw,36px)}
+  #landingPage .hero-subtitle{font-size:14.5px}
+  .lb-stat b{font-size:19px}
+  .lb-stats{gap:10px}
+  .lb-badge{font-size:12px}
+}
