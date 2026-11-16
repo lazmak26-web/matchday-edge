@@ -1381,6 +1381,22 @@ const CSP = [
   `form-action 'self' ${APPLE_ORIGIN}`,
   "frame-ancestors 'none'"
 ].join('; ');
+// ── Load shedding: bound the number of requests in flight at once so a burst flood (or a slow upstream data feed)
+// cannot pile up, exhaust the event loop and memory, and take the whole process down. The ceiling sits well above
+// real traffic; past it we shed with a cheap 503 + Retry-After instead of degrading for everyone. ──
+const MAX_INFLIGHT = Math.max(50, parseInt(process.env.MAX_INFLIGHT, 10) || 300);
+let inFlight = 0;
+app.use((req, res, next) => {
+  if (inFlight >= MAX_INFLIGHT) {
+    res.setHeader('Retry-After', '2');
+    return res.status(503).json({ error: 'Server is busy. Please try again in a moment.' });
+  }
+  inFlight++;
+  let released = false;
+  const release = () => { if (!released) { released = true; inFlight--; } };
+  res.on('finish', release); res.on('close', release);
+  next();
+});
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', CSP);
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -1527,10 +1543,17 @@ const TERMS_VERSION = '2026-11-01';
 const SCRYPT_MAX = 3, SCRYPT_QUEUE = 40;
 let scryptActive = 0;
 const scryptWait = [];
-const scryptAsync = (pw, salt) => new Promise((ok, no) => {
+// Password KDF cost: N = 2^SCRYPT_COST. Default 15 (32 MiB/hash) — above Node's 2^14 default and stronger against
+// offline cracking if the user store ever leaks, while staying safe at SCRYPT_MAX concurrency on a small container.
+// Every hash now stores the N it was made with (u.n); hashes written before this change have no u.n and are treated
+// as the legacy 2^14, then transparently re-hashed to the current cost on the owner's next successful login.
+const SCRYPT_COST = Math.max(14, Math.min(20, parseInt(process.env.SCRYPT_COST, 10) || 15));
+const CUR_N = 2 ** SCRYPT_COST, SCRYPT_R = 8, SCRYPT_P = 1, SCRYPT_KEYLEN = 64, LEGACY_N = 16384;
+const scryptMaxmem = N => 256 * N * SCRYPT_R;   // headroom over scrypt's 128*N*r need, so raising the cost never throws
+const scryptAsync = (pw, salt, N = CUR_N) => new Promise((ok, no) => {
   const run = () => {
     scryptActive++;
-    crypto.scrypt(pw, salt, 64, (e, k) => {
+    crypto.scrypt(pw, salt, SCRYPT_KEYLEN, { N, r: SCRYPT_R, p: SCRYPT_P, maxmem: scryptMaxmem(N) }, (e, k) => {
       scryptActive--;
       const next = scryptWait.shift(); if (next) next();
       e ? no(e) : ok(k);
@@ -1541,6 +1564,23 @@ const scryptAsync = (pw, salt) => new Promise((ok, no) => {
   else no(Object.assign(new Error('busy'), { busy: true }));
 });
 const DUMMY_SALT = crypto.randomBytes(16);
+// Verify a plaintext password against a stored user record, at that record's own cost. Returns { ok, stale };
+// stale = the stored hash is below the current cost and should be upgraded while we still hold the plaintext.
+async function verifyPassword(u, password) {
+  const N = u && Number.isInteger(u.n) ? u.n : LEGACY_N;
+  const dk = await scryptAsync(password, Buffer.from(u.salt, 'hex'), N);
+  const ok = crypto.timingSafeEqual(dk, Buffer.from(u.hash, 'hex'));
+  return { ok, stale: ok && N < CUR_N };
+}
+// Re-hash an already-authenticated user's password at the current cost. Fire-and-forget: a failure keeps the old hash.
+async function upgradeHash(u, password) {
+  try {
+    const salt = crypto.randomBytes(16);
+    const hash = await scryptAsync(password, salt, CUR_N);
+    u.salt = salt.toString('hex'); u.hash = hash.toString('hex'); u.n = CUR_N;
+    saveUsersSoon();
+  } catch (e) { /* non-fatal */ }
+}
 
 /* ═══════════════════════════════════════════════════════════
    EMAIL OTP
@@ -1669,8 +1709,14 @@ async function localLogin(res, email, password, uKey) {
   const u = users.get(email);
   let ok = false;
   try {
-    const dk = await scryptAsync(password, u ? Buffer.from(u.salt, 'hex') : DUMMY_SALT);
-    ok = !!u && crypto.timingSafeEqual(dk, Buffer.from(u.hash, 'hex'));
+    if (u) {
+      const r = await verifyPassword(u, password);
+      ok = r.ok;
+      if (r.ok && r.stale) upgradeHash(u, password);   // transparently raise this account to the current KDF cost
+    } else {
+      await scryptAsync(password, DUMMY_SALT);          // dummy work for unknown users: no timing oracle
+      ok = false;
+    }
   } catch (e) {
     if (e && e.busy) return res.status(503).json({ error: 'Server is busy. Please try again in a moment.' });
     ok = false;
@@ -1702,7 +1748,7 @@ app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) =
   // could re-register the address with THEIR password and the real owner, typing the code from their inbox, would verify an
   // account whose password the other person chose. Same password = the same person retrying -> just (re)send the code.
   const pendingSignup = () => { const u = users.get(email), o = otps.get(email); return OTP_ENABLED && u && u.verified === false && o && Date.now() < o.exp ? u : null; };
-  const samePassword = async u => { const dk = await scryptAsync(password, Buffer.from(u.salt, 'hex')); return crypto.timingSafeEqual(dk, Buffer.from(u.hash, 'hex')); };
+  const samePassword = async u => (await verifyPassword(u, password)).ok;
   const PENDING_MSG = 'A sign-up for this email is already waiting for its verification code. Check your inbox, or try again in 10 minutes.';
   try {
     const pend = pendingSignup();
@@ -1717,10 +1763,10 @@ app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) =
     const cur = users.get(email);
     if (taken(cur)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
     if (pendingSignup()) return res.status(409).json({ error: PENDING_MSG, code: 'signup_pending' });   // a parallel sign-up won the race
-    if (cur) { cur.salt = salt.toString('hex'); cur.hash = hash.toString('hex'); otps.delete(email); }
+    if (cur) { cur.salt = salt.toString('hex'); cur.hash = hash.toString('hex'); cur.n = CUR_N; otps.delete(email); }
     else {
       const seq = [...users.values()].reduce((m, u) => Math.max(m, u.seq || 0), 0) + 1;
-      users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: !OTP_ENABLED, consentAt: Date.now(), termsVersion: TERMS_VERSION });
+      users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), n: CUR_N, plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: !OTP_ENABLED, consentAt: Date.now(), termsVersion: TERMS_VERSION });
     }
     saveUsersSoon();
     if (!OTP_ENABLED) return startSession(res, { kind: 'local', username: email });
@@ -2262,6 +2308,10 @@ server.headersTimeout = 15 * 1000;
 server.requestTimeout = 20 * 1000;
 server.keepAliveTimeout = 65 * 1000;
 server.maxHeadersCount = 60;
+// Bound the socket count so a connection flood (e.g. many half-open sockets) cannot exhaust file descriptors / memory,
+// and drop sockets that go idle or stall mid-exchange — defence in depth alongside the per-request timeouts above.
+server.maxConnections = Math.max(64, parseInt(process.env.MAX_CONNECTIONS, 10) || 1024);
+server.timeout = 30 * 1000;
 
 setInterval(() => {
   const now = Date.now(); let n = 0;
