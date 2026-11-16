@@ -1678,6 +1678,31 @@ async function sendMail(to, subject, text, html) {
   if (!r.ok) throw new Error(`Mail API HTTP ${r.status}: ${(await r.text().catch(() => '')).slice(0, 200)}`);
 }
 
+// Branded OTP email (dark LuciBet identity). Absolute logo URL so it loads in email clients.
+const MAIL_BASE = (process.env.PUBLIC_BASE_URL || 'https://1uciferxyz.com').replace(/\/+$/, '');
+const MAIL_SUPPORT = process.env.SUPPORT_EMAIL || 'lucibetsupport@gmail.com';
+function otpEmailText(code) {
+  return `Your LuciBet login code is ${code}.\n\nUse it to sign in to your dashboard. It is valid for 10 minutes.\nDid not request it? You can safely ignore this email. Never share this code with anyone.\n\n${MAIL_BASE} · Need help? ${MAIL_SUPPORT}\n18+ only. Predictions are statistical estimates, not guaranteed outcomes. Bet responsibly.`;
+}
+function otpEmailHtml(code) {
+  const C = String(code);
+  return `<!DOCTYPE html><html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"><title>Your LuciBet login code</title><style>body{margin:0;padding:0;width:100%!important;background:#060608}a{text-decoration:none}@media (max-width:520px){.card{width:100%!important;border-radius:0!important;border-left:0!important;border-right:0!important}.px{padding-left:24px!important;padding-right:24px!important}.code{font-size:34px!important;letter-spacing:10px!important}}</style></head>
+<body style="margin:0;padding:0;background:#060608;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#060608;font-size:1px;line-height:1px;">Your LuciBet login code — valid for 10 minutes. Never share it with anyone.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#060608;"><tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" class="card" width="480" cellpadding="0" cellspacing="0" border="0" style="width:480px;max-width:480px;background:#111113;border:1px solid #232327;border-radius:20px;overflow:hidden;">
+<tr><td class="px" style="padding:26px 32px 20px;border-bottom:1px solid #1d1d21;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td width="44" style="padding-right:12px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="44" height="44" align="center" valign="middle" style="width:44px;height:44px;background:#17171a;border:1px solid #2a2a2f;border-radius:12px;"><img src="${MAIL_BASE}/logo.png" width="26" height="30" alt="LuciBet" style="display:block;border:0;width:26px;height:auto;"></td></tr></table></td>
+<td valign="middle"><div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:17px;font-weight:700;color:#F5F5F7;letter-spacing:-.02em;line-height:1;">LuciBet</div><div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#8E8E99;line-height:1.3;margin-top:3px;">Football value intelligence</div></td>
+</tr></table></td></tr>
+<tr><td class="px" style="padding:30px 32px 8px;"><h1 style="margin:0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:21px;font-weight:700;color:#F5F5F7;letter-spacing:-.02em;">Your login code</h1><p style="margin:12px 0 0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.6;color:#B0B0B8;">Use the code below to sign in to your LuciBet dashboard. It's valid for the next 10 minutes.</p></td></tr>
+<tr><td class="px" style="padding:22px 32px 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="background:#0c0c0e;border:1px solid #2997FF;border-radius:14px;padding:22px 16px;"><div class="code" style="font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:38px;font-weight:700;letter-spacing:12px;color:#ffffff;line-height:1;padding-left:12px;">${C}</div><div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#2997FF;font-weight:600;margin-top:12px;letter-spacing:.02em;">&#9679; Expires in 10 minutes</div></td></tr></table></td></tr>
+<tr><td class="px" style="padding:18px 32px 4px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#1C1C1F;border-radius:12px;padding:14px 16px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;line-height:1.55;color:#8E8E99;">Didn't try to sign in? You can safely ignore this email — no one can access your account without this code. <span style="color:#B0B0B8;">For your security, never share it with anyone, including LuciBet staff.</span></td></tr></table></td></tr>
+<tr><td class="px" style="padding:24px 32px 28px;"><div style="height:1px;background:#1d1d21;line-height:1px;font-size:1px;">&nbsp;</div><p style="margin:18px 0 0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6c6c76;"><a href="${MAIL_BASE}" style="color:#B0B0B8;font-weight:600;">${MAIL_BASE.replace(/^https?:\/\//, '')}</a> &#183; Need help? <a href="mailto:${MAIL_SUPPORT}" style="color:#2997FF;">${MAIL_SUPPORT}</a></p><p style="margin:10px 0 0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;line-height:1.6;color:#54545c;">18+ only. Predictions are statistical estimates, not guaranteed outcomes. Bet responsibly.<br>&#169; 2026 LuciBet &#183; This is a transactional security email.</p></td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 async function sendOtp(email, extra) {
   const now = Date.now();
   const prev = otps.get(email);
@@ -1693,9 +1718,7 @@ async function sendOtp(email, extra) {
   otps.set(email, { hash: otpHash(email, code), exp: now + OTP_TTL, tries: 0, sentAt: now, ...(extra || {}) });
   cap.n++; otpSends.set(email, cap);
   try {
-    await sendMail(email, 'Your LuciBet login code',
-      `Your LuciBet verification code is ${code}. It expires in 10 minutes. If you did not request it, you can ignore this email.`,
-      `<div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:24px"><h2 style="margin:0 0 12px">LuciBet</h2><p>Your verification code is:</p><p style="font-size:32px;letter-spacing:6px;font-weight:800;margin:12px 0">${code}</p><p style="color:#666">It expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`);
+    await sendMail(email, 'Your LuciBet login code', otpEmailText(code), otpEmailHtml(code));
   } catch (e) {
     console.error('OTP mail error:', e.message);
     if (prev) otps.set(email, prev); else otps.delete(email);   // nothing was delivered: give the slot (and the send allowance) back
