@@ -39,7 +39,7 @@
     try {
       const r = await fetch('/api/demo' + path, {
         method: opts.method || 'GET', cache: 'no-store',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: opts.body ? JSON.stringify(opts.body) : undefined
       });
       const json = await r.json().catch(() => null);

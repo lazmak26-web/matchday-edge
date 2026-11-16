@@ -782,7 +782,15 @@ document.getElementById('themeSelect').addEventListener('change', (e) => {
 
 let authMode = 'login';
 let lpHash = null, lpAppHash = null, lpAppList = null, lpAppTs = 0;
-const authState = { token: localStorage.getItem('mde:token') || null, loggedIn: false, profile: null };
+// Sessions now live in an HttpOnly cookie the browser sends automatically; the token is never stored in JS/localStorage
+// (an XSS can no longer read it). `token` is kept only for backward compatibility and stays null in normal use.
+const authState = { token: null, loggedIn: false, profile: null };
+// One-time cleanup of the old localStorage token from before the cookie migration.
+try { localStorage.removeItem('mde:token'); } catch (e) {}
+// Double-submit CSRF: read the JS-readable csrf cookie and echo it on state-changing requests.
+function readCookie(name) { const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)')); return m ? decodeURIComponent(m[1]) : ''; }
+function csrfHeaders() { const t = readCookie('mde_csrf'); return t ? { 'X-CSRF-Token': t } : {}; }
+window.csrfHeaders = csrfHeaders;
 let historyFixtures = [];
 
 function cssVar(name, fallback) {
@@ -853,7 +861,7 @@ async function activateLicense() {
   if (btn.disabled) return;
   msg.style.color = ''; msg.textContent = '';
   if (!key) return;
-  if (!authState.token) { msg.textContent = t.lic_login; return; }
+  if (!authState.loggedIn) { msg.textContent = t.lic_login; return; }
   btn.disabled = true; btn.classList.add('loading'); btn.textContent = t.lic_doing; licUI('loading', t.lic_doing, t.lic_checking);
   msg.style.color = 'var(--ink-3)'; msg.textContent = t.lic_checking;
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 20000);
@@ -861,7 +869,7 @@ async function activateLicense() {
   try {
     const r = await fetch('/api/license/activate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token },
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
       body: JSON.stringify({ key }), signal: ctl.signal
     });
     const data = await r.json().catch(() => ({}));
@@ -924,7 +932,7 @@ document.getElementById('openFilterBtn').onclick = openFilterModal;
 })();
 
 document.getElementById('logoutBtn').onclick = async () => {
-  try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token } }); } catch(e) {}
+  try { await fetch('/api/auth/logout', { method: 'POST', headers: { ...csrfHeaders() } }); } catch(e) {}
   authState.token = null;
   authState.loggedIn = false;
   authState.profile = null;
@@ -947,10 +955,10 @@ function getDeviceHWID() {
 ['loginUser'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click(); }));
 
 function finishLogin(data) {
-  authState.token = data.token;
+  // The server set the HttpOnly session cookie; nothing to store here. Track login state from the profile only.
+  authState.token = null;
   authState.profile = data.profile || null;
   authState.loggedIn = true;
-  localStorage.setItem('mde:token', data.token);
   closeAuthModal();
   updateAuthUI();
   pollFeed();
@@ -1140,17 +1148,16 @@ async function authSubmit() {
 document.getElementById('loginSubmitBtn').onclick = authSubmit;
 
 async function checkAuth() {
-  if (!authState.token) { updateAuthUI(); return; }
+  // The HttpOnly session cookie (if any) is sent automatically; verify restores the session on page load.
   try {
-    const r = await fetch('/api/auth/verify', { headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/auth/verify');
     if (r.ok) {
       try { authState.profile = await r.json(); } catch (e) {}
       authState.loggedIn = true;
       updateAuthUI();
       pollFeed();
     } else {
-      authState.token = null;
-      localStorage.removeItem('mde:token');
+      authState.loggedIn = false;
       updateAuthUI();
     }
   } catch(e) { updateAuthUI(); }
@@ -1588,7 +1595,7 @@ function infoHTML(id) {
 async function miFetch(id, force) {
   const c = MI.cache[id];
   if (!force && c && Date.now() - c.ts < MI_TTL) return c.data;
-  const r = await fetch('/api/match/' + encodeURIComponent(id) + '/info', { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + (authState.token || '') } });
+  const r = await fetch('/api/match/' + encodeURIComponent(id) + '/info', { cache: 'no-store', headers: { ...csrfHeaders() } });
   const d = await r.json().catch(() => ({}));
   if (r.status === 401) throw new Error(tNow().mi_login || 'Please log in again.');
   if (r.status === 403) throw new Error(tNow().mi_pro || 'Match info is part of the Pro plan.');
@@ -2326,7 +2333,7 @@ async function loadGate() {
   if (!authState.loggedIn || !isPro()) return;
   const seq = ++_gateSeq;
   try {
-    const r = await fetch('/api/engine/predictions?mw=' + encodeURIComponent(st.mw) + '&mev=' + encodeURIComponent(st.mev), { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/engine/predictions?mw=' + encodeURIComponent(st.mw) + '&mev=' + encodeURIComponent(st.mev), { cache: 'no-store', headers: { ...csrfHeaders() } });
     if (!r.ok) return;
     const d = await r.json(), m = new Map(), tm = new Map();
     if (seq !== _gateSeq) return; // a newer request is already on its way
@@ -2420,7 +2427,7 @@ async function pollFeedInner() {
   try {
     const r = await fetch('/api/fixtures?t=' + Date.now(), {
       cache: 'no-store',
-      headers: { 'Authorization': 'Bearer ' + authState.token }
+      headers: { ...csrfHeaders() }
     });
 
     if (r.status === 401) {
@@ -2506,8 +2513,8 @@ async function loadAdmin() {
   $('adminMsg').textContent = '';
   try {
     const [uRes, sRes] = await Promise.all([
-      fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + authState.token } }),
-      fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + authState.token } })
+      fetch('/api/admin/users', { headers: { ...csrfHeaders() } }),
+      fetch('/api/admin/stats', { headers: { ...csrfHeaders() } })
     ]);
     adminLive = sRes.ok ? await sRes.json().catch(() => null) : null;
     if (!uRes.ok) throw new Error('HTTP ' + uRes.status);
@@ -2524,7 +2531,7 @@ async function loadTracking() {
   if (!isAdmin()) return;
   const note = $('trkNote'); note.textContent = 'Loading…';
   try {
-    const r = await fetch('/api/admin/tracking', { headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/admin/tracking', { headers: { ...csrfHeaders() } });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     const card = (lbl, t, hero) => `<div class="perf-card${hero ? ' hero' : ''}"><div class="perf-val" style="color:${t.win >= t.loss ? 'var(--good)' : 'var(--bad, #f87171)'}">${t.win}W / ${t.loss}L</div><div class="wl-bar${(t.win + t.loss) ? '' : ' empty'}" role="img" aria-label="${t.win} wins, ${t.loss} losses"><i style="width:${(t.win + t.loss) ? (t.win / (t.win + t.loss) * 100).toFixed(1) : 0}%"></i></div><div class="perf-lbl">${lbl} · ${t.winRate == null ? '—' : fadeDec((t.winRate * 100).toFixed(1)) + '%'} · ${fadeDec(trkUnits(t.units))}u${t.roi == null ? '' : ' (ROI ' + fadeDec((t.roi * 100).toFixed(1)) + '%)'}</div></div>`;
@@ -3024,7 +3031,7 @@ async function loadDiscover() {
   if (postForm) postForm.classList.toggle('hidden', !isAdmin());
 
   try {
-    const r = await fetch('/api/discover', { headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/discover', { headers: { ...csrfHeaders() } });
     if (!r.ok) return;
     const data = await r.json();
     const posts = data.posts || [];
@@ -3122,7 +3129,7 @@ async function submitPost() {
       
       const upRes = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + authState.token },
+        headers: { ...csrfHeaders() },
         body: fd
       });
       
@@ -3137,7 +3144,7 @@ async function submitPost() {
     btn.textContent = 'Saving post...';
     const r = await fetch('/api/discover', {
       method: 'POST', 
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token },
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
       body: JSON.stringify({ text, image: imageUrl })
     });
     
@@ -3185,7 +3192,7 @@ async function shareMatch(id, btn) {
   if (!isAdmin() || (btn && btn.disabled)) return;
   if (btn) btn.disabled = true;
   try {
-    const r = await fetch('/api/discover', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token }, body: JSON.stringify({ matchId: id }) });
+    const r = await fetch('/api/discover', { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, body: JSON.stringify({ matchId: id }) });
     const e = r.ok ? {} : await r.json().catch(() => ({}));
     if (r.ok || r.status === 409) {
       sharedIds.add(String(id));
@@ -3202,7 +3209,7 @@ async function shareMatch(id, btn) {
 async function deletePost(id) {
   if (!isAdmin() || !confirm('Delete this post?')) return;
   try {
-    const r = await fetch('/api/discover/' + encodeURIComponent(id) + '/delete', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token } });
+    const r = await fetch('/api/discover/' + encodeURIComponent(id) + '/delete', { method: 'POST', headers: { ...csrfHeaders() } });
     if (r.ok) { loadDiscover(); return; }
     const e = await r.json().catch(() => ({}));
     alert(e.error || 'Delete failed');
@@ -3213,7 +3220,7 @@ async function likePost(id, action) {
   if (!authState.loggedIn) return;
   try {
     const r = await fetch('/api/discover/' + id + '/' + action, {
-      method: 'POST', headers: { 'Authorization': 'Bearer ' + authState.token }
+      method: 'POST', headers: { ...csrfHeaders() }
     });
     if (r.ok) {
       const data = await r.json();
@@ -3240,7 +3247,7 @@ async function addComment(id) {
   inp.disabled = true;
   try {
     const r = await fetch('/api/discover/' + id + '/comment', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authState.token },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
       body: JSON.stringify({ text })
     });
     if (r.ok) {
