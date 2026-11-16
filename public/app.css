@@ -1759,3 +1759,28 @@ html,body{max-width:100%;overflow-x:clip}
   .lb-stats{gap:10px}
   .lb-badge{font-size:12px}
 }
+
+/* ── Unified header pill (Thumbsy-style): logo | nav tabs | actions in one capsule ── */
+/* The 3 nav tabs now live inside .app-header. Desktop: centered inside the pill. Mobile: stays a bottom bar. */
+@media (min-width:960px){
+  .app-header{background:color-mix(in srgb,var(--card) 86%,transparent);justify-content:space-between}
+  #bottomNav.bottom-nav{position:fixed;left:50%;right:auto;bottom:auto;
+    top:calc(10px + env(safe-area-inset-top,0px));height:58px;
+    display:flex;align-items:center;justify-content:center;
+    width:auto;max-width:none;transform:translateX(-50%);
+    margin:0;padding:0;gap:2px;background:transparent;border:0;box-shadow:none;
+    -webkit-backdrop-filter:none;backdrop-filter:none;z-index:51}
+  #bottomNav .nav-item{flex:0 0 auto;flex-direction:row;align-items:center;gap:8px;
+    width:auto;padding:8px 16px;border-radius:999px;color:var(--ink-2);
+    font-weight:600;box-shadow:none;white-space:nowrap;transition:background .2s,color .2s}
+  #bottomNav .nav-item svg{width:18px;height:18px}
+  #bottomNav .nav-item:hover{color:var(--ink);background:color-mix(in srgb,var(--soft) 70%,transparent)}
+  #bottomNav .nav-item.active{color:var(--ink);background:var(--soft)}
+  /* keep brand + actions above the absolutely-centered nav if they ever meet */
+  .app-header .brand,.app-header .header-actions{position:relative;z-index:2}
+}
+/* Mobile: ensure the nav returns to a floating bottom bar even though it's now a header child */
+@media (max-width:959.98px){
+  #bottomNav.bottom-nav{position:fixed;left:50%;right:auto;top:auto;
+    bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%)}
+}
