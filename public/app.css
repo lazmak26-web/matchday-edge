@@ -1486,8 +1486,12 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .match.is-locked .mx-top,.match.is-locked .m-teams{filter:blur(7px);opacity:.7;pointer-events:none;user-select:none;-webkit-user-select:none}
 .vb{border-radius:0}
 /* Card header: league in small caps, data quality as three bars + the word, plain icon buttons */
-.mx-top{display:flex;align-items:center;gap:10px;min-height:28px}
-.mx-comp{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.mx-top{display:flex;align-items:flex-start;gap:10px;min-height:28px}
+/* The full league name is shown; a long one wraps onto more lines at the same small size, the quality bars and buttons keep their place on the first line */
+.mx-comp{flex:1;min-width:0;padding-top:7px;overflow-wrap:break-word;hyphens:none;font-size:var(--fs-xs);font-weight:600;line-height:1.35;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.mx-top>.mx-q{margin-top:7px}
+/* Very narrow phones: too little room next to the controls for a whole word, so the league takes the first line and the controls sit under it, right-aligned */
+@media (max-width:340px){.mx-top{flex-wrap:wrap;row-gap:2px}.mx-comp{flex-basis:100%;padding-top:4px}.mx-top>.mx-q{margin-top:0;margin-inline-start:auto}}
 .mx-q{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:600;color:var(--ink-2)}
 .mx-q-bars{display:inline-flex;align-items:flex-end;gap:2px;height:11px}
 .mx-q-bars i{width:3px;border-radius:1px;background:var(--line-2)}
