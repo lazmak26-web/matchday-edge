@@ -777,8 +777,7 @@ document.getElementById('themeSelect').addEventListener('change', (e) => {
 
 let authMode = 'login';
 let lpHash = null, lpAppHash = null, lpAppList = null, lpAppTs = 0;
-// Sessions now live in an HttpOnly cookie the browser sends automatically; the token is never stored in JS/localStorage
-// (an XSS can no longer read it). `token` is kept only for backward compatibility and stays null in normal use.
+// Session rides an HttpOnly cookie (XSS can't read it); token is never stored in JS. `token` stays null, kept for compat.
 const authState = { token: null, loggedIn: false, profile: null };
 // One-time cleanup of the old localStorage token from before the cookie migration.
 try { localStorage.removeItem('mde:token'); } catch (e) {}
@@ -787,9 +786,7 @@ function readCookie(name) { const m = document.cookie.match(new RegExp('(?:^|; )
 function csrfHeaders() { const t = readCookie('mde_csrf'); return t ? { 'X-CSRF-Token': t } : {}; }
 window.csrfHeaders = csrfHeaders;
 
-/* ── CSP-safe event delegation (replaces inline on* handlers so 'unsafe-inline' can be dropped from script-src) ──
-   Static controls carry data-act="<key>" (+ data-* args); dynamically-built controls that need a closure carry
-   data-run="<token>" minted by act(). Two document-level listeners dispatch clicks and Enter keys. */
+// Event delegation (no inline handlers). Static controls: data-act="<key>" (+ data-*); dynamic: data-run="<token>" from act().
 const _actReg = new Map(); let _actSeq = 0;
 function act(fn) { const id = 'r' + (++_actSeq); _actReg.set(id, fn); if (_actReg.size > 600) _actReg.delete(_actReg.keys().next().value); return id; }
 const ACT = {

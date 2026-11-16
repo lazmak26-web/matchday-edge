@@ -1346,11 +1346,7 @@ const verifyAppleIdToken  = makeOidcVerifier({ name: 'apple',  jwksUrl: 'https:/
 /* ═══════════════════════════════════════════════════════════
    AUTH MIDDLEWARE & ENDPOINTS
    ═══════════════════════════════════════════════════════════ */
-// Cookie-based sessions (HttpOnly) + double-submit CSRF.
-// The session token lives in an HttpOnly cookie so no page script — and therefore no XSS — can read it. A second,
-// JS-readable cookie carries a CSRF token; a cookie-authenticated state-changing call must echo it in X-CSRF-Token.
-// The Authorization: Bearer header still works for API clients and tests (header auth is not sent cross-site, so it
-// is not CSRF-prone and is exempt from the CSRF check).
+// HttpOnly session cookie + double-submit CSRF. Bearer header still works for API clients (exempt from CSRF).
 const COOKIE_SESS = 'mde_sess', COOKIE_CSRF = 'mde_csrf';
 function parseCookies(req) {
   const out = {}, h = req.headers.cookie;
@@ -1404,10 +1400,7 @@ app.disable('x-powered-by');
 const GSI_ORIGIN = 'https://accounts.google.com';
 const APPLE_SDK = 'https://appleid.cdn-apple.com';
 const APPLE_ORIGIN = 'https://appleid.apple.com';
-// script-src no longer allows 'unsafe-inline': the HTML page carries a per-request nonce on its inline <script> blocks
-// (see sendIndex) and every inline on* handler was moved to delegated listeners. An injected <script> without the nonce
-// cannot execute. style-src keeps 'unsafe-inline' (inline styles are pervasive and far lower risk). A nonce is only
-// meaningful on the HTML document; other responses (JSON/assets) use the no-nonce form, which also forbids inline scripts.
+// No 'unsafe-inline' in script-src: the HTML page nonces its inline <script> blocks (sendIndex); handlers are delegated.
 function cspHeader(nonce) {
   const script = nonce
     ? `script-src 'self' 'nonce-${nonce}' ${GSI_ORIGIN} ${APPLE_SDK}`
@@ -1427,9 +1420,7 @@ function cspHeader(nonce) {
   ].join('; ');
 }
 const CSP = cspHeader(null);
-// ── Load shedding: bound the number of requests in flight at once so a burst flood (or a slow upstream data feed)
-// cannot pile up, exhaust the event loop and memory, and take the whole process down. The ceiling sits well above
-// real traffic; past it we shed with a cheap 503 + Retry-After instead of degrading for everyone. ──
+// Load shedding: cap concurrent requests; over the ceiling, shed with 503 instead of exhausting the event loop.
 const MAX_INFLIGHT = Math.max(50, parseInt(process.env.MAX_INFLIGHT, 10) || 300);
 let inFlight = 0;
 app.use((req, res, next) => {
@@ -1529,8 +1520,7 @@ app.use((req, res, next) => {
   }
   next();
 });
-// Serve index.html ourselves (before express.static) so each load gets a fresh CSP nonce on its inline <script> blocks.
-// The file is read once at startup (the container ships a fixed build); the nonce makes the response uncacheable.
+// Serve index.html ourselves (before express.static) to stamp a fresh CSP nonce per load. Read once at startup; no-store.
 const INDEX_PATH = path.join(__dirname, 'public', 'index.html');
 let INDEX_HTML = '';
 try { INDEX_HTML = fs.readFileSync(INDEX_PATH, 'utf8'); } catch (e) { console.error('index.html read error:', e.message); }
@@ -1603,10 +1593,8 @@ const TERMS_VERSION = '2026-11-01';
 const SCRYPT_MAX = 3, SCRYPT_QUEUE = 40;
 let scryptActive = 0;
 const scryptWait = [];
-// Password KDF cost: N = 2^SCRYPT_COST. Default 15 (32 MiB/hash) — above Node's 2^14 default and stronger against
-// offline cracking if the user store ever leaks, while staying safe at SCRYPT_MAX concurrency on a small container.
-// Every hash now stores the N it was made with (u.n); hashes written before this change have no u.n and are treated
-// as the legacy 2^14, then transparently re-hashed to the current cost on the owner's next successful login.
+// Password KDF cost N = 2^SCRYPT_COST (default 15 / 32 MiB). Each hash stores its N (u.n); legacy hashes (no u.n) are
+// treated as 2^14 and re-hashed to the current cost on next login.
 const SCRYPT_COST = Math.max(14, Math.min(20, parseInt(process.env.SCRYPT_COST, 10) || 15));
 const CUR_N = 2 ** SCRYPT_COST, SCRYPT_R = 8, SCRYPT_P = 1, SCRYPT_KEYLEN = 64, LEGACY_N = 16384;
 const scryptMaxmem = N => 256 * N * SCRYPT_R;   // headroom over scrypt's 128*N*r need, so raising the cost never throws
@@ -1624,8 +1612,7 @@ const scryptAsync = (pw, salt, N = CUR_N) => new Promise((ok, no) => {
   else no(Object.assign(new Error('busy'), { busy: true }));
 });
 const DUMMY_SALT = crypto.randomBytes(16);
-// Verify a plaintext password against a stored user record, at that record's own cost. Returns { ok, stale };
-// stale = the stored hash is below the current cost and should be upgraded while we still hold the plaintext.
+// Verify a password at the record's own cost. stale = hash is below the current cost (upgrade it while we hold the plaintext).
 async function verifyPassword(u, password) {
   const N = u && Number.isInteger(u.n) ? u.n : LEGACY_N;
   const dk = await scryptAsync(password, Buffer.from(u.salt, 'hex'), N);
@@ -2371,8 +2358,7 @@ server.headersTimeout = 15 * 1000;
 server.requestTimeout = 20 * 1000;
 server.keepAliveTimeout = 65 * 1000;
 server.maxHeadersCount = 60;
-// Bound the socket count so a connection flood (e.g. many half-open sockets) cannot exhaust file descriptors / memory,
-// and drop sockets that go idle or stall mid-exchange — defence in depth alongside the per-request timeouts above.
+// Cap open sockets and drop idle/stalled ones (connection-flood defence, alongside the per-request timeouts above).
 server.maxConnections = Math.max(64, parseInt(process.env.MAX_CONNECTIONS, 10) || 1024);
 server.timeout = 30 * 1000;
 
