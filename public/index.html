@@ -97,12 +97,36 @@
 
   <div id="landingPage">
     <div class="landing-left">
+      <span class="lb-badge"><span class="lb-dot"></span><span data-i18n="hero_badge">Live Odds · +EV Scanner</span></span>
       <h1 class="hero-title" data-i18n="hero_title">Match analytics.<br>The decision is yours.</h1>
       <p class="hero-subtitle adapt-ink" data-i18n="hero_sub">Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.</p>
-
+      <div class="lb-stats">
+        <div class="lb-stat"><b class="g" id="lbWinRate">—</b><span data-i18n="lb_winrate">Recent win rate</span></div>
+        <div class="lb-sdiv"></div>
+        <div class="lb-stat"><b id="lbModel">Poisson</b><span data-i18n="lb_model">Model</span></div>
+        <div class="lb-sdiv"></div>
+        <div class="lb-stat"><b id="lbLeagues">—</b><span data-i18n="lb_leagues">Leagues</span></div>
+      </div>
     </div>
 
     <div class="landing-right">
+      <div class="lb-edge">
+        <div class="lb-edge-head">
+          <div><div class="lb-edge-t" data-i18n="lb_edge_title">Picks win rate · recent</div><div class="lb-edge-v" id="lbEdgeRate">—</div></div>
+          <span class="lb-edge-chg" id="lbEdgeChip" data-i18n="tick_1">Live Odds</span>
+        </div>
+        <svg class="lb-chart" viewBox="0 0 320 110" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="lbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--brand)" stop-opacity=".26"/><stop offset="1" stop-color="var(--brand)" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,80 L28,74 L56,82 L84,60 L112,66 L140,48 L168,54 L196,36 L224,44 L252,26 L280,32 L320,18 L320,110 L0,110 Z" fill="url(#lbg)"/>
+          <path d="M0,80 L28,74 L56,82 L84,60 L112,66 L140,48 L168,54 L196,36 L224,44 L252,26 L280,32 L320,18" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="320" cy="18" r="3.5" fill="var(--brand)"/>
+        </svg>
+        <div class="lb-chips">
+          <div class="lb-chip"><b id="lbPicks">—</b><span data-i18n="lb_picks">Picks</span></div>
+          <div class="lb-chip"><b class="g" id="lbWon">—</b><span data-i18n="lb_won">Won</span></div>
+          <div class="lb-chip"><b id="lbRoi">+EV</b><span data-i18n="lb_edge_short">Edge</span></div>
+        </div>
+      </div>
       <div class="cta-box">
         <div class="cta-title" data-i18n="get_started">Get Started Now</div>
         <div class="cta-desc adapt-ink" data-i18n="cta_desc">Enter your email to get a login code and open today's value bets.</div>
@@ -3030,6 +3054,22 @@ function renderLanding(list, elId = 'lpCards', unlockCall = () => openAuthModal(
       </div>
     </article>`;
   }).join('');
+  if (elId === 'lpCards') updateLandingStats(list);
+}
+
+// Fills the landing hero stats + edge panel with the app's own recent numbers (never placeholders once data is in).
+function updateLandingStats(list) {
+  try {
+    const set = (id, v) => { const e = document.getElementById(id); if (e && v != null) e.textContent = v; };
+    const totals = getDailyTotals();
+    let wins = 0, losses = 0;
+    for (let i = 0; i < 30; i++) { const d = totals[localDateStr(utcDayOff(-i))]; if (d) { wins += d.wins || 0; losses += d.losses || 0; } }
+    const n = wins + losses, rate = n ? Math.round(wins / n * 100) + '%' : null;
+    set('lbWinRate', rate); set('lbEdgeRate', rate);
+    set('lbPicks', n || null); set('lbWon', n ? wins : null);
+    const leagues = new Set((list || []).map(f => f.league).filter(Boolean));
+    if (leagues.size) set('lbLeagues', leagues.size);
+  } catch (e) { /* non-critical */ }
 }
 
 async function loadPublicFixtures(mode) {
