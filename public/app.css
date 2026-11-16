@@ -1670,3 +1670,15 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
   --bad:#FF4757;--bad-dim:rgba(255,71,87,.16);
   --grad:linear-gradient(#1F8BFF,#1F8BFF);
 }
+
+/* Dashboard search: a real input in place (no floating box) */
+.stat-search{cursor:text;margin-top:var(--s-4);padding:0 6px 0 14px}
+.stat-search:focus-within{border-color:var(--brand);color:var(--ink-2)}
+.stat-search input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:16px;padding:0}
+.stat-search input::placeholder{color:var(--ink-3);opacity:1}
+.stat-search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.ss-clear{flex:none;display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--ink-3);cursor:pointer}
+.ss-clear:hover{background:var(--soft);color:var(--ink)}
+.ss-clear[hidden]{display:none}
+.ss-clear svg{width:16px;height:16px}
+body.is-free #inlineSearch{display:none}
