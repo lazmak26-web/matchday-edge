@@ -973,12 +973,15 @@ body::before,body::after,.aurora{display:none!important}
 /* ───────── hero: the header and the match counter are one green shape ───────── */
 .wrap{padding-top:var(--hdr-h)}
 .app-header{
-  top:0;left:0;right:0;height:var(--hdr-h);
-  padding:env(safe-area-inset-top,0px) max(16px,calc((100vw - 1180px)/2 + 20px)) 0;
-  background:var(--hero);border:0;border-radius:0 0 var(--r-lg) var(--r-lg);box-shadow:none;
-  -webkit-backdrop-filter:none;backdrop-filter:none;transition:border-radius .25s,box-shadow .25s}
-.app-header.scrolled{border:0;box-shadow:0 14px 30px -18px rgba(0,0,0,.55)}
-body:has(#view-signals.active) .app-header:not(.scrolled){border-radius:0}   /* flows into the counter below */
+  top:calc(10px + env(safe-area-inset-top,0px));
+  left:max(10px,calc((100vw - 1180px)/2));
+  right:max(10px,calc((100vw - 1180px)/2));
+  height:58px;
+  padding:0 10px 0 14px;
+  background:color-mix(in srgb,var(--card) 84%,transparent);border:1px solid var(--glass-line);border-radius:16px;
+  box-shadow:inset 0 1px 0 var(--hi),0 12px 34px -16px rgba(0,0,0,.6);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);transition:box-shadow .25s,transform .25s}
+.app-header.scrolled{box-shadow:0 16px 38px -16px rgba(0,0,0,.65)}
 .app-header .brand-name{color:var(--hero-on)}
 .app-header .brand-sub{color:var(--hero-on-2)}
 .app-header .brand-mark{background:var(--hero-tile);box-shadow:none}
@@ -1305,13 +1308,17 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .empty-state{border:1px dashed var(--line-2);border-radius:var(--r-lg);background:transparent;box-shadow:none;color:var(--ink-3)}
 .empty-state strong{color:var(--ink)}
 
-/* ── Header: a quiet bar, not a banner ── */
+/* ── Header: a floating rounded pill, detached from the edges ── */
 .app-header,.app-header.scrolled{
-  top:0;left:0;right:0;height:var(--hdr-h);border-radius:0;border:0;border-bottom:1px solid var(--line);
-  padding:env(safe-area-inset-top,0px) max(16px,calc((100vw - 1180px)/2 + 20px)) 0;
-  background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:none;
+  top:calc(10px + env(safe-area-inset-top,0px));
+  left:max(10px,calc((100vw - 1180px)/2));
+  right:max(10px,calc((100vw - 1180px)/2));
+  height:58px;border-radius:16px;border:1px solid var(--line);
+  padding:0 10px 0 14px;
+  background:color-mix(in srgb,var(--card) 85%,transparent);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  box-shadow:inset 0 1px 0 var(--hi),0 12px 34px -16px rgba(0,0,0,.6);
 }
-.app-header.scrolled{border-bottom-color:var(--line-2)}
+.app-header.scrolled{border-color:var(--line-2);box-shadow:inset 0 1px 0 var(--hi),0 18px 40px -16px rgba(0,0,0,.7)}
 .app-header .brand{gap:10px}
 .app-header .brand-mark,.app-header .brand-mark.is-dark{width:30px;height:30px;border-radius:var(--r-sm);box-shadow:none}
 .app-header .brand-name{color:var(--ink);font-size:var(--fs-md);font-weight:700;letter-spacing:-.02em;line-height:1.15}
@@ -1783,4 +1790,25 @@ html,body{max-width:100%;overflow-x:clip}
 @media (max-width:959.98px){
   #bottomNav.bottom-nav{position:fixed;left:50%;right:auto;top:auto;
     bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%)}
+}
+
+/* ── Card deal-in: staggered 3D entrance for match cards (Thumbsy-style load motion) ── */
+@keyframes cardDeal{
+  0%{opacity:0;transform:perspective(1400px) rotateX(15deg) translateY(46px) scale(.94)}
+  100%{opacity:1;transform:perspective(1400px) rotateX(0deg) translateY(0) scale(1)}
+}
+@media (prefers-reduced-motion:no-preference){
+  #cards .match,#lpCards .match,.match-grid .match{
+    animation:cardDeal .55s cubic-bezier(.22,.72,.18,1) both;
+    transform-origin:50% 90%;will-change:transform,opacity}
+  #cards .match:nth-child(1),#lpCards .match:nth-child(1),.match-grid .match:nth-child(1){animation-delay:.03s}
+  #cards .match:nth-child(2),#lpCards .match:nth-child(2),.match-grid .match:nth-child(2){animation-delay:.09s}
+  #cards .match:nth-child(3),#lpCards .match:nth-child(3),.match-grid .match:nth-child(3){animation-delay:.15s}
+  #cards .match:nth-child(4),#lpCards .match:nth-child(4),.match-grid .match:nth-child(4){animation-delay:.21s}
+  #cards .match:nth-child(5),#lpCards .match:nth-child(5),.match-grid .match:nth-child(5){animation-delay:.27s}
+  #cards .match:nth-child(6),#lpCards .match:nth-child(6),.match-grid .match:nth-child(6){animation-delay:.33s}
+  #cards .match:nth-child(7),#lpCards .match:nth-child(7),.match-grid .match:nth-child(7){animation-delay:.38s}
+  #cards .match:nth-child(8),#lpCards .match:nth-child(8),.match-grid .match:nth-child(8){animation-delay:.43s}
+  #cards .match:nth-child(9),#lpCards .match:nth-child(9),.match-grid .match:nth-child(9){animation-delay:.47s}
+  #cards .match:nth-child(n+10),#lpCards .match:nth-child(n+10),.match-grid .match:nth-child(n+10){animation-delay:.5s}
 }
