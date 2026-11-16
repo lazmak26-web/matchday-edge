@@ -1365,9 +1365,10 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .mx-prob{display:flex;flex-direction:column;gap:10px}
 .mx-bar{display:flex;gap:2px;height:8px}
 .mx-bar i{display:block;min-width:3px;border-radius:2px}
-.mx-bar i.h{background:var(--p-home);border-radius:4px 2px 2px 4px}
+.mx-bar i.h{border-radius:4px 2px 2px 4px}
 .mx-bar i.d{background:var(--p-draw)}
-.mx-bar i.a{background:var(--p-away);border-radius:2px 4px 4px 2px}
+.mx-bar i.a{border-radius:2px 4px 4px 2px}
+.mx-bar i.pw{background:var(--p-win)}.mx-bar i.pl{background:var(--p-lose)}
 .mx-bar.is-empty{background:var(--line);border-radius:4px}
 
 /* The most likely outcome: outlined in its own colour, number at full strength */
@@ -1459,8 +1460,8 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
    Large rounded card, league name with the data-quality pill and round action buttons, crests above the team names with the
    score or kickoff between them, three Home / Draw / Away tiles (the most likely one filled blue), then the picks.
    A bar above the tiles shows the same three probabilities, one colour per outcome, in the same order as the tiles. */
-/* Probability bar: home win green, draw orange, away win red (read from the home side: win / draw / loss) */
-:root{--p-home:var(--good);--p-draw:#F5953B;--p-away:var(--bad);--p-violet:#9B8CFF;--r-card:30px;--r-tile:22px}
+/* Probability bar: green for the favourite, red for the other team, orange for the draw */
+:root{--p-win:var(--good);--p-draw:#FF9500;--p-lose:var(--bad);--p-violet:#A78BFF;--r-card:30px;--r-tile:22px}
 .match{padding:20px;gap:16px;border-radius:var(--r-card)}
 .match.is-live-card{border-color:transparent;box-shadow:0 0 0 1.5px #7FC1FF,0 0 34px -12px rgba(41,152,255,.55)}
 .match.is-value{border-color:transparent;box-shadow:0 0 0 1.5px var(--good-line)}
@@ -1478,8 +1479,8 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .match .tile{padding:13px 6px;border-radius:var(--r-tile);background:var(--soft);border:1px solid var(--line);box-shadow:none}
 .match .tile i{display:block;font-style:normal;font-size:var(--fs-sm);color:var(--ink-3);opacity:1}
 .match .tile b{display:block;margin-top:2px;font-size:var(--fs-lg);font-weight:700;letter-spacing:-.02em;color:var(--ink)}
-.match .tile.top{border-color:transparent;background:linear-gradient(180deg,#7DB9FF,#3A8CF6);box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}
-.match .tile.top i{color:#16324F}
+.match .tile.top{border-color:transparent;background:linear-gradient(180deg,#5AAEFF,#1A7CFF);box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}
+.match .tile.top i{color:#0C2A52}
 .match .tile.top b{color:#0A1626}
 .match .kv{gap:10px;font-size:var(--fs-sm);border:0;padding:0}
 .match .kv-row{padding:0;border:0}
@@ -1660,3 +1661,12 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .db-card .adm-table:has(#adminRows) td{white-space:normal}
 .db-card .adm-table:has(#adminRows) thead th{position:sticky;top:0;z-index:1;background:var(--card)}
 @media (min-width:960px){.db-chart{grid-template-rows:280px auto}}
+
+/* Vivid palette (Midnight): stronger, cleaner accent colours */
+[data-theme="midnight"]{
+  --brand:#1F8BFF;--brand-2:#0A6CF0;--brand-dim:rgba(31,139,255,.18);--info:#1F8BFF;--info-dim:rgba(31,139,255,.16);
+  --good:#00D98B;--good-dim:rgba(0,217,139,.16);--good-line:rgba(0,217,139,.5);
+  --warn:#FFB21E;--warn-dim:rgba(255,178,30,.16);
+  --bad:#FF4757;--bad-dim:rgba(255,71,87,.16);
+  --grad:linear-gradient(#1F8BFF,#1F8BFF);
+}

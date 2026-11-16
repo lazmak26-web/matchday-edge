@@ -2126,13 +2126,14 @@ function mxTeams(fx, started) {
     : `<span class="m-time">${esc(fxLocalTime(fx))}</span><span class="m-date">${esc(fxDateLabel(fx))}</span><span class="m-vs">VS</span>`;
   return `<div class="m-teams"><div class="team home">${crestHTML(fx.home)}<div class="t-name">${esc(teamDisp(fx.home, fx))}</div></div><div class="m-mid">${mid}</div><div class="team away">${crestHTML(fx.away)}<div class="t-name">${esc(teamDisp(fx.away, fx))}</div></div></div>`;
 }
-// Home / draw / away: a bar cut in three (one colour per outcome, in the same left-to-right order as the tiles) above the three tiles.
+// Home / draw / away: a bar cut in three, in the same left-to-right order as the tiles: green for the team more likely to win, red for the other, orange for the draw.
 function mxProb(p, t) {
   const tile = (label, val, top) => `<div class="tile${top ? ' top' : ''}"><i>${label}</i><b>${p ? pct1(val) : '—'}</b></div>`;
   if (!p) return `<div class="mx-prob"><div class="mx-bar is-empty"></div><div class="tiles">${tile(t.home, 0)}${tile(t.draw, 0)}${tile(t.away, 0)}</div></div>`;
   const mx = Math.max(p.h, p.d, p.a), w = x => (x * 100).toFixed(1);
+  const hw = p.h >= p.a;   // the team the model gives the better chance gets the green part, the other team the red part; the draw stays orange
   return `<div class="mx-prob" role="group" aria-label="${esc(t.home)} ${pct1(p.h)}, ${esc(t.draw)} ${pct1(p.d)}, ${esc(t.away)} ${pct1(p.a)}">
-        <div class="mx-bar" aria-hidden="true"><i class="h" style="width:${w(p.h)}%"></i><i class="d" style="width:${w(p.d)}%"></i><i class="a" style="width:${w(p.a)}%"></i></div>
+        <div class="mx-bar" aria-hidden="true"><i class="h ${hw ? 'pw' : 'pl'}" style="width:${w(p.h)}%"></i><i class="d" style="width:${w(p.d)}%"></i><i class="a ${hw ? 'pl' : 'pw'}" style="width:${w(p.a)}%"></i></div>
         <div class="tiles">${tile(t.home, p.h, p.h === mx)}${tile(t.draw, p.d, p.d === mx && p.h !== mx)}${tile(t.away, p.a, p.a === mx && p.h !== mx && p.d !== mx)}</div>
       </div>`;
 }
