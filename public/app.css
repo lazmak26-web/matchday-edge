@@ -1966,6 +1966,25 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-chip.prob i{background:#fbbf24;box-shadow:0 0 7px rgba(251,191,36,.85)}
 /* a probable XI gets an amber inner edge so it's never mistaken for a confirmed line-up */
 .fp-turf.fp-prob{box-shadow:inset 0 0 0 3px rgba(251,191,36,.55),inset 0 0 90px rgba(2,24,10,.6),inset 0 3px 2px rgba(255,255,255,.14)}
+.fp-chip.proj{color:#bcd0ff;border-color:rgba(109,124,255,.45)}
+.fp-chip.proj i{background:#6d7cff;box-shadow:0 0 7px rgba(109,124,255,.85)}
+.fp-chip.squad{color:#cbd5e1;border-color:rgba(148,163,184,.4)}
+.fp-chip.squad i{background:#94a3b8;box-shadow:0 0 6px rgba(148,163,184,.7)}
+/* a projected (editorial) XI gets a blue inner edge */
+.fp-turf.fp-proj{box-shadow:inset 0 0 0 3px rgba(109,124,255,.5),inset 0 0 90px rgba(2,24,10,.6),inset 0 3px 2px rgba(255,255,255,.14)}
+/* squad faces: an honest grid of head-shots (no tactical layout), counter-tilted upright over the turf */
+.fp-squadwrap{display:flex;align-items:center;justify-content:center}
+.sq-grid{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(6px,2.2vw,12px);
+  width:92%;max-height:94%;overflow:auto;padding:10px 6px;transform:rotateX(calc(-1 * var(--fp-tilt) - 6deg))}
+.sqf{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.sqf-pic{width:clamp(34px,11vw,52px);height:clamp(34px,11vw,52px);border-radius:50%;overflow:hidden;background:#0b0b10;
+  border:2px solid rgba(255,255,255,.9);box-shadow:0 4px 8px rgba(0,0,0,.6);display:grid;place-items:center}
+.sqf-img{width:100%;height:100%;object-fit:cover}
+.sqf-ph{width:100%;height:100%;display:grid;place-items:center;font-size:13px;font-weight:800;color:#cbd5e1;
+  background:linear-gradient(160deg,#2b3350,#161a2b)}
+.sqf-nm{max-width:74px;font-size:clamp(9px,2.4vw,11px);font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+@media (max-width:620px){.sq-grid{grid-template-columns:repeat(3,1fr)}}
 /* empty / pre-lineup state */
 .fp-empty{display:grid;place-items:center}
 .fp-emptymsg{position:relative;z-index:2;max-width:78%;text-align:center;color:rgba(255,255,255,.96);

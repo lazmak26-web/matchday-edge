@@ -138,6 +138,17 @@ test('far from kick-off with no prior line-up: says when line-ups come', async (
   assert.ok(d.lineups.expectedFrom);
 });
 
+test('no API line-up but a curated team → projected XI from the seed', async () => {
+  const far = new Date(Date.now() + 5 * 864e5), day = far.toISOString().slice(0, 10);
+  ROUTES[`/fixtures?date=${day}`] = () => ({ response: [fxRow(960, [5000, 'Argentina'], [5001, 'Random FC'], far.toISOString())] });
+  ROUTES['/injuries?fixture=960'] = () => ({ response: [] });
+  const d = await mi.getMatchInfo(Object.assign({}, fx, { id: 'af_960', date: day, kickoff: far.toISOString().slice(11, 16), home: { name: 'Argentina', logo: null }, away: { name: 'Random FC', logo: null } }), { match: teamsMatchAny });
+  assert.strictEqual(d.lineups.status, 'projected');
+  assert.strictEqual(d.lineups.home.formation, '4-3-3');
+  assert.strictEqual(d.lineups.home.xi.length, 11);
+  assert.strictEqual(d.lineups.home.projectedFrom.editorial, true);
+});
+
 test('dump/load round-trips the Map-based line-ups', () => {
   const arr = JSON.parse(JSON.stringify(mi.dump()));
   mi._cache.clear();

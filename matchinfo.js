@@ -17,9 +17,10 @@
    Without a key, the server passes what it already has (Bzzoiro head-to-head totals, football-data.org tables). */
 
 const af = require('./apifootball');
+const local = require('./lineups-local');
 
 const H = 3600e3, D = 24 * H;
-const TTL = { lineupsFound: 12 * H, lineupsNotYet: 8 * 60e3, injuries: 6 * H, h2h: D, table: 6 * H, teamLeague: 7 * D, lastFx: 12 * H, oldLineup: 7 * D, fail: 5 * 60e3 };
+const TTL = { lineupsFound: 12 * H, lineupsNotYet: 8 * 60e3, injuries: 6 * H, h2h: D, table: 6 * H, teamLeague: 7 * D, lastFx: 12 * H, oldLineup: 7 * D, squad: 7 * D, fail: 5 * 60e3 };
 const LINEUP_WINDOW_MIN = 75;      // providers publish line-ups ~60 min before kick-off
 const ROTATION_MIN_BUDGET = 12;    // the "changes vs last match" comparison (4 calls) only runs above this many calls left
 const MAX_KEYS = 1500;
@@ -178,6 +179,24 @@ const prevLineup = (tid, beforeTs) => cached(`prev:${tid}:${new Date(beforeTs).t
   return mine ? { xi: mine.xi, formation: mine.formation || null, colors: mine.colors || null, date: String(prev.fixture.date).slice(0, 10), vs: s(String(prev.teams.home.id) === String(tid) ? prev.teams.away.name : prev.teams.home.name, 60) } : null;
 });
 
+const SQUAD_POS = { G: 'GK', D: 'DF', M: 'MF', A: 'FW' };
+// Current squad (faces only) from /players/squads — the last-resort tier when there's no
+// line-up and nothing to project from. Cached a week; a squad barely moves mid-season.
+const squad = tid => cached('sq:' + tid, () => TTL.squad, async () => {
+  const res = (await af.get(`/players/squads?team=${tid}`)).response || [];
+  const players = (res[0] && res[0].players) || [];
+  const xi = players.map(p => ({ id: n(p.id), name: s(p.name, 60), number: n(p.number), pos: SQUAD_POS[String(p.position || '')[0]] || null, grid: null })).filter(p => p.name);
+  return xi.length ? { xi } : null;
+});
+
+// Match curated XI names to the real API squad to borrow each player's id (→ head-shot).
+const nameKey = x => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z\s]/g, ' ').trim().split(/\s+/).pop() || '';
+function attachPortraits(xi, squadXi) {
+  const byLast = new Map();
+  for (const sp of squadXi) { if (!sp.id) continue; const k = nameKey(sp.name); byLast.set(k, byLast.has(k) ? null : sp.id); }   // drop ambiguous last names
+  for (const p of xi) { if (p.id || p.img) continue; const id = byLast.get(nameKey(p.name)); if (id) p.id = id; }
+}
+
 async function standingFor(teamId, fxLeague) {
   if (fxLeague && fxLeague.id != null && fxLeague.season != null && !/friendl|cup|copa|coupe|pokal|coppa|taça|trophy|shield|super/i.test(fxLeague.name || '')) {
     const row = tableRow(await table(fxLeague.id, fxLeague.season), teamId);
@@ -245,11 +264,30 @@ async function getMatchInfo(fx, { match, fallback = {} } = {}) {
   const probLu = pv => (pv && pv.xi && pv.xi.length)
     ? { formation: pv.formation || null, coach: null, colors: pv.colors || null, xi: pv.xi, subs: [], probableFrom: { date: pv.date, vs: pv.vs } }
     : null;
-  const lineups = (luH || luA)
-    ? { status: 'confirmed', home: luH || null, away: luA || null }
-    : (probLu(prevH) || probLu(prevA))
-      ? { status: 'probable', home: probLu(prevH), away: probLu(prevA) }
-      : { status: started ? 'unavailable' : 'not_yet', expectedFrom: new Date(row.ts - 60 * 60e3).toISOString() };
+  // Fallback chain: confirmed → probable (last real XI) → projected (curated) → squad faces → none.
+  let lineups;
+  if (luH || luA) {
+    lineups = { status: 'confirmed', home: luH || null, away: luA || null };
+  } else if (probLu(prevH) || probLu(prevA)) {
+    lineups = { status: 'probable', home: probLu(prevH), away: probLu(prevA) };
+  } else {
+    const curH = local.projected(fx.home.name), curA = local.projected(fx.away.name);   // editorial, overridden by any API line-up above
+    if (curH || curA) {
+      // give curated names real head-shots by matching them to the team's API squad (id → /portraits/{id}.png)
+      if (budgetLeft() > ROTATION_MIN_BUDGET) {
+        const [sqH, sqA] = await Promise.all([curH ? squad(hid).catch(() => null) : null, curA ? squad(aid).catch(() => null) : null]);
+        if (curH && sqH) attachPortraits(curH.xi, sqH.xi);
+        if (curA && sqA) attachPortraits(curA.xi, sqA.xi);
+      }
+      lineups = { status: 'projected', home: curH, away: curA };
+    } else {
+      let sqH = null, sqA = null;                                                        // real squad faces where the provider has them
+      if (budgetLeft() > ROTATION_MIN_BUDGET) [sqH, sqA] = await Promise.all([squad(hid).catch(() => null), squad(aid).catch(() => null)]);
+      lineups = ((sqH && sqH.xi.length) || (sqA && sqA.xi.length))
+        ? { status: 'squad', home: sqH, away: sqA }
+        : { status: started ? 'unavailable' : 'not_yet', expectedFrom: new Date(row.ts - 60 * 60e3).toISOString() };
+    }
+  }
   const absH = inj ? inj.get(String(hid)) || [] : null, absA = inj ? inj.get(String(aid)) || [] : null;
   const h2h = h2r ? parseH2H(h2r, hid, aid) : bzz;
 

@@ -1,0 +1,23 @@
+{
+  "_doc": "Curated projected starting XIs (editorial). Used ONLY when API-Football has no confirmed line-up and no previous real line-up. Any API line-up overrides this automatically. Keyed by team name (normalized internally). player fields: name (required), number, pos (GK|DF|MF|FW), id (API-Football player id -> /portraits/{id}.png), img (file in public/portraits-local -> /portraits-local/{img}), grid (row:col). Head-shots are auto-attached by matching these names to the team's real API squad, so ids are optional. Order xi GK -> DF -> MF -> FW to match the formation. updated = YYYY-MM-DD.",
+  "teams": {
+    "Argentina": {
+      "team": "Argentina",
+      "formation": "4-3-3",
+      "updated": "2026-11-17",
+      "xi": [
+        { "name": "Walter Benítez", "number": 12, "pos": "GK" },
+        { "name": "Nahuel Molina", "number": 26, "pos": "DF" },
+        { "name": "Cristian Romero", "number": 13, "pos": "DF" },
+        { "name": "Nicolás Otamendi", "number": 19, "pos": "DF" },
+        { "name": "Nicolás Tagliafico", "number": 3, "pos": "DF" },
+        { "name": "Enzo Fernández", "number": 24, "pos": "MF" },
+        { "name": "Alexis Mac Allister", "number": 20, "pos": "MF" },
+        { "name": "Giovani Lo Celso", "number": 18, "pos": "MF" },
+        { "name": "Ángel Di María", "number": 11, "pos": "FW" },
+        { "name": "Julián Álvarez", "number": 9, "pos": "FW" },
+        { "name": "Alejandro Garnacho", "number": 17, "pos": "FW" }
+      ]
+    }
+  }
+}
