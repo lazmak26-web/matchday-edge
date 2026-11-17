@@ -1094,7 +1094,8 @@ body{background:transparent!important}
 .info-btn svg{fill:none!important}
 .mi-box{width:min(100%,560px);padding:10px 16px 16px;border-radius:var(--r-lg)}
 /* Nothing but the pitch: a clean solid backdrop hides the page behind it, no card frame, no header. */
-#miModal.modal-overlay{background:#070a10;background-image:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+/* No backdrop of its own: the pitch floats as a piece on top of the live site content behind it. */
+#miModal.modal-overlay{background:transparent;background-image:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 #miModal .modal-box.mi-box{background:transparent!important;border:0;box-shadow:none;overflow-x:visible;overflow-y:auto}
 #miModal .mi-head{display:none}
 .mi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:40px}
