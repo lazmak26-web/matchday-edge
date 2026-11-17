@@ -1092,7 +1092,11 @@ body{background:transparent!important}
 .fb-lg-lead{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--ink-2);padding-top:10px;border-top:1px solid var(--line)}
 /* ── Match info (card button, modal, Match Center tab) ── */
 .info-btn svg{fill:none!important}
-.mi-box{width:min(100%,720px);padding:22px 20px 20px;border-radius:var(--r-lg)}
+.mi-box{width:min(100%,560px);padding:14px 16px 18px;border-radius:var(--r-lg)}
+/* The pitch is the hero: no dark card frame around it, just the dimmed backdrop. */
+#miModal .modal-box.mi-box{background:transparent!important;border:0;box-shadow:none;overflow-x:visible;overflow-y:auto}
+#miModal .mi-head{margin-bottom:2px}
+#miModal .mi-head .section-label{opacity:.72;font-size:11px;letter-spacing:.14em}
 .mi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:40px}
 .mi-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin:14px 0 6px;text-align:center}
 .mi-team{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
@@ -1858,47 +1862,74 @@ html,body{max-width:100%;overflow-x:clip}
   .sx::after{width:104px;height:104px;right:-40px;opacity:.8}
 }
 
-/* ── Full-pitch line-up (terrain with player photos / jersey fallback) ── */
-.fp-wrap,.fp-shell{display:flex;flex-direction:column;gap:10px;margin-top:4px;perspective:1150px;perspective-origin:50% 34%}
-.fp-badge{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;color:var(--ink)}
-.fp-badge .crest{width:24px;height:24px;min-width:24px;font-size:9px;border-radius:7px}
-.fp-badge .crest img{width:100%;height:100%}
-.fp-form{margin-inline-start:auto;font-size:12px;font-weight:800;color:var(--ink);background:var(--soft);border:1px solid var(--line);padding:3px 10px;border-radius:999px;letter-spacing:.02em}
-.fp-field{position:relative;width:100%;aspect-ratio:10/10.5;max-height:50vh;margin:2px auto 36px;border-radius:14px;
-  transform:rotateX(43deg);transform-style:preserve-3d;transform-origin:center 54%;
-  background:url("/pitch.svg") center/100% 100% no-repeat,
-    repeating-linear-gradient(0deg,#1f7a44 0 8.33%,#1c6f3d 8.33% 16.66%),
-    linear-gradient(#227f47,#14512f);
-  border:1px solid rgba(0,0,0,.5);box-shadow:0 30px 50px -20px rgba(0,0,0,.75),inset 0 0 70px rgba(0,0,0,.4);
-  display:flex;flex-direction:column;justify-content:space-around;padding:14px 6px}
-.fp-ava.fp-away .fp-shirt{fill:#ec4152}
-.fp-toggle{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:12px 16px;
-  border-radius:14px;border:1px solid var(--line-2);background:var(--card);color:var(--ink);font-weight:700;font-size:14px;
-  cursor:pointer;transition:background .18s,border-color .18s,transform .12s}
-.fp-toggle:hover{background:var(--soft);border-color:var(--brand-line)}
-.fp-toggle:active{transform:scale(.98)}
-.fp-toggle .crest{width:22px;height:22px;min-width:22px;font-size:9px;border-radius:6px}
+/* ── 3D tactical pitch (realistic grass, perspective camera, player billboards) ── */
+.fp-shell{display:flex;flex-direction:column;gap:14px;margin:2px 0 4px}
+.fp-stage{position:relative;width:100%;aspect-ratio:10/12;max-height:62vh;
+  perspective:900px;perspective-origin:50% 42%;isolation:isolate}
+.fp-field{position:absolute;inset:0;transform-style:preserve-3d;
+  transform:rotateX(51deg) scale(1.04) translateY(-3%);transition:transform .55s cubic-bezier(.22,.9,.26,1),opacity .35s ease}
+.fp-turf{position:absolute;inset:0;border-radius:10px;overflow:hidden;
+  border:1px solid rgba(0,0,0,.45);
+  box-shadow:0 36px 60px -26px rgba(0,0,0,.8),0 10px 24px -14px rgba(0,0,0,.6),inset 0 0 80px rgba(2,28,12,.55),inset 0 2px 0 rgba(255,255,255,.08);
+  background:
+    radial-gradient(130% 70% at 50% -8%, rgba(220,255,230,.22), rgba(255,255,255,0) 58%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.055) 0 8.33%, rgba(0,0,0,.055) 8.33% 16.66%),
+    linear-gradient(177deg,#35a95a 0%,#2a9150 46%,#1d6f3c 100%)}
+.fp-turf::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(90% 60% at 50% 120%, rgba(0,0,0,.42), rgba(0,0,0,0) 62%),
+    radial-gradient(120% 90% at 50% -20%, rgba(255,255,255,.1), rgba(0,0,0,0) 50%);
+  mix-blend-mode:multiply;opacity:.7}
+.fp-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.25))}
+.fp-players{position:absolute;inset:0;transform-style:preserve-3d}
+/* one player, placed at tactical (x,y); children build a grounded, standing figure */
+.fp-pl{position:absolute;transform:translate(-50%,-50%);transform-style:preserve-3d;
+  width:clamp(44px,13vw,72px);text-align:center}
+.fp-shadow{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);
+  width:62%;height:16%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.6),rgba(0,0,0,0));
+  filter:blur(1px)}
+.fp-stand{display:inline-flex;flex-direction:column;align-items:center;gap:3px;
+  transform:rotateX(-51deg);transform-origin:50% 100%;transform-style:preserve-3d}
+.fp-ava{position:relative;width:clamp(32px,9.6vw,48px);height:clamp(32px,9.6vw,48px);
+  display:grid;place-items:center;filter:drop-shadow(0 5px 7px rgba(0,0,0,.5))}
+.fp-shirt{position:absolute;inset:0;width:100%;height:100%}
+.fp-ava:not(.noimg) .fp-shirt{opacity:0}
+.fp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;
+  border:2px solid rgba(255,255,255,.92);background:#0b0b10;
+  box-shadow:0 3px 9px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.25)}
+.fp-num{position:absolute;bottom:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;
+  border-radius:999px;background:#0b0b10;color:#fff;font-size:10px;font-weight:800;
+  display:grid;place-items:center;border:1.5px solid rgba(255,255,255,.8)}
+.fp-ava.noimg .fp-num{display:none}
+.fp-nm{max-width:82px;font-size:clamp(9px,2.6vw,12px);font-weight:700;color:#fff;letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:1px 7px;border-radius:999px;background:rgba(8,12,20,.6);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  text-shadow:0 1px 2px rgba(0,0,0,.8);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+/* formation chip anchored to the near corner of the pitch */
+.fp-form{position:absolute;bottom:3%;left:10px;z-index:3;font-size:12px;font-weight:800;letter-spacing:.06em;
+  color:#fff;background:rgba(10,14,22,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;box-shadow:0 6px 16px -8px rgba(0,0,0,.75)}
+/* empty / pre-lineup state */
+.fp-empty{display:grid;place-items:center}
+.fp-emptymsg{position:relative;z-index:2;max-width:78%;text-align:center;color:rgba(255,255,255,.96);
+  font-weight:600;font-size:14px;line-height:1.5;transform:rotateX(-51deg);
+  text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.fp-emptymsg span{display:block;font-size:34px;margin-bottom:6px}
+/* team-swap transition */
+.fp-swapping .fp-field{opacity:0;transform:rotateX(51deg) scale(1.1) translateY(-6%)}
+/* bottom swap button */
+.fp-toggle{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;
+  border-radius:16px;border:1px solid var(--line-2);
+  background:linear-gradient(180deg,var(--soft),var(--card));color:var(--ink);font-weight:700;font-size:14px;
+  cursor:pointer;box-shadow:0 10px 22px -16px rgba(0,0,0,.7);
+  transition:background .18s,border-color .18s,transform .12s,box-shadow .18s}
+.fp-toggle:hover{border-color:var(--brand-line);box-shadow:0 14px 26px -16px rgba(0,0,0,.8)}
+.fp-toggle:active{transform:scale(.985)}
+.fp-toggle .crest{width:24px;height:24px;min-width:24px;font-size:9px;border-radius:7px}
 .fp-toggle .crest img{width:100%;height:100%}
-.fp-toggle .fp-tg-ic{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--brand-dim);color:var(--brand);flex:none}
+.fp-toggle .fp-tg-ic{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--brand-dim);color:var(--brand);flex:none}
 .fp-toggle .fp-tg-ic svg{width:15px;height:15px}
-.fp-toggle b{margin-inline-end:auto}
-.fp-away-half,.fp-home-half{flex:1;display:flex;justify-content:space-around;min-height:0}
-.fp-away-half{flex-direction:column}
-.fp-home-half{flex-direction:column-reverse}
-.fp-row{display:flex;justify-content:space-around;align-items:center;gap:2px}
-.fp-pl{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;flex:1;max-width:86px;
-  transform:rotateX(-46deg);transform-style:preserve-3d;transform-origin:center bottom}
-.fp-ava{position:relative;width:clamp(34px,10.5vw,50px);height:clamp(34px,10.5vw,50px);display:grid;place-items:center}
-.fp-shirt{width:100%;height:100%;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45));display:none}
-.fp-ava.noimg .fp-shirt{display:block}
-.fp-ava.fp-away .fp-shirt{fill:#eef1ff}
-.fp-ava.fp-home .fp-shirt{fill:#2997FF}
-.fp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;border:2px solid rgba(255,255,255,.88);background:#0b0b0d;box-shadow:0 2px 7px rgba(0,0,0,.55)}
-.fp-num{position:absolute;bottom:-3px;right:-4px;min-width:17px;height:17px;padding:0 3px;border-radius:999px;background:#0b0b0d;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;border:1.5px solid rgba(255,255,255,.75)}
-.fp-ava.noimg .fp-num{inset:auto auto -2px 50%;transform:translateX(-50%);background:rgba(8,8,16,.72);color:#fff}
-.fp-ava.noimg .fp-shirt{position:relative}
-.fp-nm{font-size:clamp(9px,2.5vw,12px);font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.95);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
-.fp-empty{align-items:center;justify-content:center}
-.fp-emptymsg{margin:auto;text-align:center;color:rgba(255,255,255,.92);font-weight:600;font-size:14px;max-width:82%;line-height:1.55}
-.fp-emptymsg span{display:block;font-size:36px;margin-bottom:8px}
-@media (max-width:620px){.fp-field{aspect-ratio:10/14}}
+.fp-toggle b{margin-inline-end:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:620px){.fp-stage{aspect-ratio:10/13;max-height:66vh;perspective:760px}}
+@media (prefers-reduced-motion:reduce){.fp-field,.fp-swapping .fp-field{transition:opacity .2s ease}}}

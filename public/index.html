@@ -1707,47 +1707,140 @@ function miPitch(lu, newIds) {
   const last = n => String(n || '').split(' ').slice(-1)[0];
   return `<div class="mi-pitch">${lines.map(ps => `<div class="mi-line">${ps.map(p => `<div class="mi-pl${newIds.has(p.name) ? ' new' : ''}" title="${esc(p.name)}"><i>${p.number ?? ''}</i><span>${esc(last(p.name))}</span></div>`).join('')}</div>`).join('')}</div>`;
 }
-// ── Full pitch: both line-ups on one terrain, player photos (API-Football) with jersey+name fallback ──
-function fpPlayer(p, side) {
-  const last = String(p.name || '').split(' ').slice(-1)[0];
+/* ── 3D tactical pitch ───────────────────────────────────────────────
+   One team at a time on a realistic, perspective (CSS-3D) grass pitch.
+   Players are positioned from the provider's real grid coordinates (or
+   the formation string as a fallback), stand up as billboards with a
+   ground shadow, and show the player's real photo → kit (real team
+   colours) → kit + name, in that order. The bottom button swaps teams. */
+
+// Real tactical coordinates (0..100). x: 0 = left touchline, 100 = right.
+// y: 0 = this team's own goal line (near camera), 100 = far goal (attack).
+function fpLayout(luT) {
+  const xi = luT.xi || [];
+  let rows;
+  if (xi.length && xi.every(p => p.grid)) {           // provider grid: group by line, order within line
+    const m = new Map();
+    xi.forEach(p => { const r = p.grid ? +p.grid.split(':')[0] : 1; if (!m.has(r)) m.set(r, []); m.get(r).push(p); });
+    rows = [...m.entries()].sort((a, b) => a[0] - b[0])
+      .map(([, ps]) => ps.sort((a, b) => (b.grid ? +b.grid.split(':')[1] : 0) - (a.grid ? +a.grid.split(':')[1] : 0)));
+  } else {                                            // derive lines from the formation string
+    const lines = (luT.formation || '4-4-2').split('-').map(Number).filter(n => n > 0);
+    rows = [[xi[0]].filter(Boolean)];
+    let i = 1;
+    for (const c of lines) { rows.push(xi.slice(i, i + c)); i += c; }
+    if (i < xi.length) rows.push(xi.slice(i));
+    rows = rows.filter(r => r.length);
+  }
+  const R = rows.length, yNear = 10, yFar = 91, out = [];
+  rows.forEach((ps, k) => {
+    const y = R === 1 ? 50 : yNear + (k / (R - 1)) * (yFar - yNear);
+    const C = ps.length;
+    ps.forEach((p, i) => out.push({ p, x: 11 + ((i + 0.5) / C) * 78, y, gk: k === 0 }));
+  });
+  return out;
+}
+
+// Readable text colour for a given kit fill.
+function fpInk(hex) {
+  const h = (hex || '').replace('#', ''); if (h.length !== 6) return '#fff';
+  const L = (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) / 255;
+  return L > 0.6 ? '#10121a' : '#ffffff';
+}
+// Kit (shirt) SVG in the team's real colours — the fallback when no photo exists.
+// `def` is a side-based default so two teams without provider colours still differ.
+function fpKit(p, kit, gk, def) {
+  const c = (gk ? (kit && kit.gk) : (kit && kit.player)) || (kit && kit.player) || {};
+  const base = c.primary || (gk ? '#2b2f3a' : (def || '#3340d8'));
+  const trim = c.border && c.border !== base ? c.border : 'rgba(0,0,0,.22)';
+  const num = c.number || fpInk(base);
+  const n = p.number != null ? String(p.number) : '';
+  return `<svg class="fp-shirt" viewBox="0 0 64 60" aria-hidden="true">`
+    + `<path d="M22 4 6 13l6 12 6-3v34h28V22l6 3 6-12L48 4l-6 5H28z" fill="${base}" stroke="${trim}" stroke-width="1.5"/>`
+    + `<path d="M28 4h8l-4 7z" fill="${trim}" opacity=".9"/>`
+    + (n ? `<text x="32" y="44" text-anchor="middle" font-size="22" font-weight="800" fill="${num}" font-family="'Plus Jakarta Sans',sans-serif">${esc(n)}</text>` : '')
+    + `</svg>`;
+}
+// A single player billboard positioned at tactical (x,y) on the pitch.
+function fpPlayer(pos, kit, def) {
+  const p = pos.p, last = String(p.name || '').split(' ').slice(-1)[0];
   const photo = p.id ? `https://media.api-sports.io/football/players/${p.id}.png` : '';
-  const img = photo ? `<img class="fp-img" src="${photo}" loading="lazy" alt="" referrerpolicy="no-referrer" onerror="var a=this.closest('.fp-ava');if(a)a.classList.add('noimg');this.remove()">` : '';
-  return `<div class="fp-pl"><div class="fp-ava fp-${side}${photo ? '' : ' noimg'}">`
-    + `<svg class="fp-shirt" viewBox="0 0 48 44" aria-hidden="true"><path d="M16 3 2 12l5 9 5-3v23h24V18l5 3 5-9L37 3l-4 4H20z"/></svg>`
-    + `${img}<span class="fp-num">${p.number ?? ''}</span></div>`
-    + `<span class="fp-nm" title="${esc(p.name)}">${esc(last)}</span></div>`;
+  const img = photo
+    ? `<img class="fp-img" src="${photo}" decoding="async" alt="" referrerpolicy="no-referrer">`
+    : '';
+  const num = p.number != null ? `<span class="fp-num">${esc(String(p.number))}</span>` : '';
+  return `<div class="fp-pl" style="left:${pos.x.toFixed(2)}%;top:${(100 - pos.y).toFixed(2)}%">`
+    + `<span class="fp-shadow"></span>`
+    + `<span class="fp-stand">`
+    + `<span class="fp-ava${photo ? '' : ' noimg'}">${fpKit(p, kit, pos.gk, def)}${img}${num}</span>`
+    + `<span class="fp-nm" title="${esc(p.name)}">${esc(last)}</span>`
+    + `</span></div>`;
 }
-function fpTeamRows(luT, side) {
-  const rows = new Map();
-  luT.xi.forEach((p, i) => { const r = p.grid ? +p.grid.split(':')[0] : (i === 0 ? 1 : 2 + Math.floor((i - 1) / 4)); if (!rows.has(r)) rows.set(r, []); rows.get(r).push(p); });
-  const ordered = [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, ps]) => ps.sort((a, b) => (a.grid ? +a.grid.split(':')[1] : 0) - (b.grid ? +b.grid.split(':')[1] : 0)));
-  return ordered.map(ps => `<div class="fp-row">${ps.map(p => fpPlayer(p, side)).join('')}</div>`).join('');
-}
-// One team on the pitch at a time; the button under it carries the OTHER team's name and swaps the view.
+// SVG line markings for a full pitch (viewBox 0 0 100 150, top = attacking end).
+const FP_LINES = `<svg class="fp-lines" viewBox="0 0 100 150" preserveAspectRatio="none" aria-hidden="true">
+<g fill="none" stroke="rgba(255,255,255,.72)" stroke-width=".6">
+<rect x="4" y="4" width="92" height="142" rx="0"/>
+<line x1="4" y1="75" x2="96" y2="75"/>
+<circle cx="50" cy="75" r="14"/><circle cx="50" cy="75" r="1.1" fill="rgba(255,255,255,.8)" stroke="none"/>
+<rect x="24" y="4" width="52" height="24"/><rect x="38" y="4" width="24" height="9"/>
+<circle cx="50" cy="20" r="1.1" fill="rgba(255,255,255,.8)" stroke="none"/><path d="M38 28a14 14 0 0 0 24 0"/>
+<rect x="24" y="122" width="52" height="24"/><rect x="38" y="137" width="24" height="9"/>
+<circle cx="50" cy="130" r="1.1" fill="rgba(255,255,255,.8)" stroke="none"/><path d="M38 122a14 14 0 0 1 24 0"/>
+<path d="M4 8a4 4 0 0 0 4-4"/><path d="M96 8a4 4 0 0 1-4-4"/><path d="M4 142a4 4 0 0 1 4 4"/><path d="M96 142a4 4 0 0 0-4 4"/>
+<rect x="43" y="1.4" width="14" height="2.6" stroke-width=".5"/><rect x="43" y="146" width="14" height="2.6" stroke-width=".5"/>
+</g></svg>`;
+
+// One team on the pitch; the button underneath carries the OTHER team and swaps the view.
 function teamPitch(d, side, uid) {
   const t = tNow(), lu = d.lineups || {};
-  const team = side === 'home' ? d.home : d.away, other = side === 'home' ? d.away : d.home, otherSide = side === 'home' ? 'away' : 'home';
+  const other = side === 'home' ? d.away : d.home, otherSide = side === 'home' ? 'away' : 'home';
   const luT = side === 'home' ? lu.home : lu.away;
-  const head = `<div class="fp-badge">${crestHTML(team)}<b>${esc(team.name)}</b>${luT && luT.formation ? `<span class="fp-form">${esc(luT.formation)}</span>` : ''}</div>`;
-  let field;
+  let field, form = '';
   if (lu.status !== 'confirmed' || !luT) {
     const msg = lu.status === 'not_yet'
       ? (t.mi_lu_soon || 'Line-ups are announced about 1 hour before kick-off ({time}).').replace('{time}', lu.expectedFrom ? new Date(lu.expectedFrom).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '')
       : (t.mi_lu_na || 'No line-up data for this match.');
-    field = `<div class="fp-field fp-empty fp-${side}"><div class="fp-emptymsg"><span>⚽</span>${esc(msg)}</div></div>`;
+    field = `<div class="fp-turf fp-empty">${FP_LINES}<div class="fp-emptymsg"><span>⚽</span>${esc(msg)}</div></div>`;
   } else {
-    field = `<div class="fp-field fp-${side}">${fpTeamRows(luT, side)}</div>`;
+    const def = side === 'home' ? '#6d5cff' : '#e0423f';   // side-based default kit when the provider gives no colours
+    const players = fpLayout(luT).map(pos => fpPlayer(pos, luT.colors, def)).join('');
+    field = `<div class="fp-turf">${FP_LINES}<div class="fp-players">${players}</div></div>`;
+    if (luT.formation) form = `<span class="fp-form" aria-label="${esc(t.mi_formation || 'Formation')}">${esc(luT.formation)}</span>`;
   }
   const toggle = `<button type="button" class="fp-toggle" data-act="fpToggle" data-side="${otherSide}" data-id="${esc(d.id)}" data-uid="${esc(uid)}" aria-label="${esc(other.name)}">`
     + `<span class="fp-tg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/></svg></span>`
     + `${crestHTML(other)}<b>${esc(other.name)}</b></button>`;
-  return `<div class="fp-shell" id="fpShell-${esc(uid)}">${head}${field}${toggle}</div>`;
+  return `<div class="fp-shell" id="fpShell-${esc(uid)}" data-side="${side}">`
+    + `<div class="fp-stage"><div class="fp-field">${field}</div>${form}</div>${toggle}</div>`;
 }
+// CSP blocks inline onerror= attributes, so the photo→kit fallback is wired from script:
+// reveal the kit when a player photo is missing. Covers images that already failed before
+// wiring (cached 404s) and ones that fail later. Call after any pitch is inserted.
+function fpKitFallback(img) {
+  const a = img.closest('.fp-ava'); if (a) a.classList.add('noimg');
+  img.remove();
+}
+window.fpMount = function (root) {
+  if (!root) return;
+  root.querySelectorAll('img.fp-img').forEach(img => {
+    if (img.complete && img.naturalWidth === 0) { fpKitFallback(img); return; }
+    img.addEventListener('error', () => fpKitFallback(img), { once: true });
+  });
+};
 window.fpToggle = function (el) {
   const id = el.dataset.id, side = el.dataset.side, uid = el.dataset.uid;
   const c = MI.cache[id], shell = document.getElementById('fpShell-' + uid);
-  if (!c || !shell) return;
-  shell.outerHTML = teamPitch(c.data, side, uid);
+  if (!c || !shell || shell.classList.contains('fp-swapping')) return;
+  shell.classList.add('fp-swapping');                 // fade/lift out, rebuild, settle in
+  setTimeout(() => {
+    const fresh = document.createElement('div');
+    fresh.innerHTML = teamPitch(c.data, side, uid);
+    const next = fresh.firstElementChild;
+    next.classList.add('fp-swapping');
+    shell.replaceWith(next);
+    fpMount(next);
+    requestAnimationFrame(() => requestAnimationFrame(() => next.classList.remove('fp-swapping')));
+  }, 200);
 };
 function miLineupCol(tm, lu) {
   const t = tNow();
@@ -1792,25 +1885,12 @@ function miAnalysis(id) {
   const r = (st.results || []).find(x => x && x.fx && String(x.fx.id) === String(id));
   return r && r.v ? mxAnalysis(r, tNow()) : '';
 }
+// The pitch is the whole view: no surrounding card, crests, score or match meta —
+// just the 3D tactical pitch, the team-swap button, and a small data credit.
 function miRender(d, uid) {
   const t = tNow();
-  const fx = miFx(d.id);
-  const ko = new Date(d.kickoff), koTxt = isNaN(ko) ? '' : ko.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  const meta = [d.league && [d.league.name, d.league.round].filter(Boolean).join(' · '), koTxt, d.venue && '🏟 ' + d.venue, d.referee && '🧑‍⚖️ ' + d.referee].filter(Boolean);
-  const lu = d.lineups || {};
-  const luPane = lu.status === 'confirmed'
-    ? `<div class="mi-grid">${miLineupCol(d.home, lu.home)}${miLineupCol(d.away, lu.away)}</div>`
-    : `<div class="mi-note">${lu.status === 'not_yet'
-        ? esc((t.mi_lu_soon || 'Line-ups are announced about 1 hour before kick-off ({time}).').replace('{time}', lu.expectedFrom ? new Date(lu.expectedFrom).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''))
-        : esc(t.mi_lu_na || 'No line-up data for this match.')}</div>`;
-  const ab = d.absences;
-  const tabs = [['ov', t.mi_t_overview || 'Overview'], ['lu', t.mi_t_lineups || 'Line-ups'], ['ab', t.mi_t_absences || 'Injuries'], ['h2h', t.mi_t_h2h || 'Head-to-head']];
-  const score = fx && (fx.status === 'started' || fx.status === 'finished') ? `<b>${esc(scoreTxt(fx))}</b>` : `<b>VS</b>`;
-  return `
-    <div class="mi-teams"><div class="mi-team">${crestHTML(d.home)}<b>${esc(d.home.name)}</b></div><div class="mi-vs">${score}</div><div class="mi-team">${crestHTML(d.away)}<b>${esc(d.away.name)}</b></div></div>
-    <div class="mi-meta">${meta.map(m => `<span>${esc(m)}</span>`).join('')}</div>
-    ${teamPitch(d, 'home', uid)}
-    <p class="mi-src">${esc(d.source === 'api-football' ? (t.mi_src || 'Data: API-Football') : (t.mi_src_basic || 'Line-ups and injuries are not available for this match.'))}</p>`;
+  return `${teamPitch(d, 'home', uid)}`
+    + `<p class="mi-src">${esc(d.source === 'api-football' ? (t.mi_src || 'Data: API-Football') : (t.mi_src_basic || 'Line-ups and injuries are not available for this match.'))}</p>`;
 }
 window.miTab = function (btn, uid) {
   const root = document.getElementById(uid); if (!root) return;
@@ -1819,9 +1899,9 @@ window.miTab = function (btn, uid) {
 };
 async function miLoadInto(id, el, uid) {
   const c = MI.cache[id];
-  if (c && Date.now() - c.ts < MI_TTL) { el.innerHTML = miRender(c.data, uid); return; }   // re-renders of the list do not flash
+  if (c && Date.now() - c.ts < MI_TTL) { el.innerHTML = miRender(c.data, uid); fpMount(el); return; }   // re-renders of the list do not flash
   el.innerHTML = fbSkel(5);
-  try { const d = await miFetch(id); if (el.isConnected) el.innerHTML = miRender(d, uid); }
+  try { const d = await miFetch(id); if (el.isConnected) { el.innerHTML = miRender(d, uid); fpMount(el); } }
   catch (e) {
     // A code fault (TypeError...) is logged for us and shown as a plain sentence; only messages written for people (login, Pro plan, network) are shown as they are.
     const bug = e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError;
