@@ -1821,3 +1821,39 @@ html,body{max-width:100%;overflow-x:clip}
   #cards .match:nth-child(9),#lpCards .match:nth-child(9),.match-grid .match:nth-child(9){animation-delay:.47s}
   #cards .match:nth-child(n+10),#lpCards .match:nth-child(n+10),.match-grid .match:nth-child(n+10){animation-delay:.5s}
 }
+
+/* ── Match-counter as a stadium hero banner (purple night + soccer ball) ── */
+.sx{
+  position:relative;overflow:hidden;
+  padding:18px 20px;border-radius:18px;border:1px solid rgba(125,108,224,.30);
+  background:
+    radial-gradient(120% 150% at 88% -35%, rgba(139,123,255,.40), transparent 55%),
+    radial-gradient(80% 120% at 6% 125%, rgba(41,151,255,.12), transparent 60%),
+    linear-gradient(135deg,#1b1642 0%,#241a4d 46%,#140f30 100%);
+}
+.sx::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(20,15,48,.86) 42%,rgba(20,15,48,.45) 72%,rgba(20,15,48,.12) 90%),
+    repeating-linear-gradient(90deg,transparent 0 22px,rgba(255,255,255,.015) 22px 23px);
+}
+.sx::after{
+  content:"";position:absolute;right:-24px;top:50%;transform:translateY(-50%);
+  width:148px;height:148px;z-index:0;pointer-events:none;
+  background:url("/ball.svg") center/contain no-repeat;
+  filter:drop-shadow(0 12px 26px rgba(0,0,0,.5));
+}
+.sx-lead,.sx-figs{position:relative;z-index:1}
+.sx-lead .stat-value{color:#fff}
+.sx-lead .stat-label{color:rgba(255,255,255,.62)}
+.sx-fig{border-inline-start-color:rgba(255,255,255,.16)}
+.sx-fig .stat-value{color:#fff}
+.sx-fig .stat-label{color:rgba(255,255,255,.58)}
+.sx-fig.is-on .stat-value{color:#a9c4ff}
+.sx-fig.is-up .stat-value{color:#5de394}
+.sx-meter{background:rgba(255,255,255,.2)}
+.sx-meter i{background:#fff}
+@media (max-width:620px){
+  .sx{padding:16px}
+  .sx::after{width:104px;height:104px;right:-40px;opacity:.8}
+}

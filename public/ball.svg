@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="sphere" cx="38%" cy="32%" r="78%">
+      <stop offset="0%" stop-color="#6b5bd6"/>
+      <stop offset="42%" stop-color="#4536a8"/>
+      <stop offset="78%" stop-color="#271b5e"/>
+      <stop offset="100%" stop-color="#160f3a"/>
+    </radialGradient>
+    <radialGradient id="gloss" cx="34%" cy="26%" r="40%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="ballClip"><circle cx="100" cy="100" r="92"/></clipPath>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="url(#sphere)"/>
+  <g clip-path="url(#ballClip)" fill="#140d33" stroke="#2f2470" stroke-width="2.5" stroke-linejoin="round">
+    <!-- center pentagon -->
+    <polygon points="100,74 123,91 114,118 86,118 77,91"/>
+    <!-- outer partial pentagons -->
+    <polygon points="100,74 77,91 58,74 72,48 100,52"/>
+    <polygon points="100,74 123,91 142,74 128,48 100,52"/>
+    <polygon points="123,91 114,118 136,134 158,112 142,74"/>
+    <polygon points="86,118 114,118 124,148 100,166 76,148"/>
+    <polygon points="77,91 86,118 64,134 42,112 58,74"/>
+  </g>
+  <!-- seams to edge -->
+  <g clip-path="url(#ballClip)" stroke="#2f2470" stroke-width="2.5" fill="none" opacity=".8">
+    <path d="M100,52 L100,36 M58,74 L44,64 M142,74 L156,64 M64,134 L50,150 M136,134 L150,150"/>
+  </g>
+  <circle cx="100" cy="100" r="92" fill="url(#gloss)"/>
+  <circle cx="100" cy="100" r="92" fill="none" stroke="#7d6ce0" stroke-width="1.5" stroke-opacity=".4"/>
+</svg>
