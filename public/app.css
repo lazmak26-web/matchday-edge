@@ -11,6 +11,8 @@
    Radius: sm 12 (buttons, inputs, tags) · lg 20 (cards, sheets) · pill (chips, round buttons)
    Use these variables instead of pixel values so every screen stays on the same scale. */
 :root{--fs-xs:12px;--fs-sm:14px;--fs-md:16px;--fs-lg:20px;--fs-xl:24px;--fs-2xl:32px;--fs-3xl:48px;--r-sm:12px;--r-lg:20px;--r-pill:999px}
+/* Spacing scale — one coherent rhythm for padding, gaps and margins across the app */
+:root{--sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-6:24px;--sp-8:32px;--sp-12:48px}
 /* Fixed brand colours that are not part of a theme */
 :root{--tg:#0F6F9E;--away:#F97316}
 
@@ -46,30 +48,33 @@
 
 [data-theme="light"]{
   color-scheme: light;
-  --bg: #F8FAFC;
-  --card: #FFFFFF;
-  --soft: #F1F5F9;
-  --ink: #0F172A;
-  --ink-2: #334155;
-  --ink-3: #64748B;
-  --line: #E2E8F0;
-  --line-2: #CBD5E1;
-  --brand: #10B981;
-  --brand-2: #34D399;
-  --brand-dim: rgba(16,185,129,.15);
-  --grad: linear-gradient(135deg,#10B981,#059669);
-  --good: #10B981;
-  --good-dim: rgba(16,185,129,.1);
-  --good-line: rgba(16,185,129,.3);
-  --warn: #D97706;
-  --warn-dim: rgba(217,119,6,.1);
-  --bad: #E11D48;
-  --bad-dim: rgba(225,29,72,.1);
-  --info: #0284C7;
-  --info-dim: rgba(2,132,199,.1);
-  --text-main: #0F172A;
-  --text-sub: #64748B;
-  --shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  /* Premium warm ivory — not aggressive pure white; keeps LuciBet's blue identity */
+  --bg: #F5F4EF;            /* soft warm off-white */
+  --card: #FFFFFF;          /* clean solid light surface */
+  --soft: #ECEAE2;          /* secondary warm surface */
+  --ink: #1C1B18;           /* deep warm charcoal */
+  --ink-2: #4A4842;         /* secondary text */
+  --ink-3: #807C72;         /* muted metadata */
+  --line: #E4E1D8;          /* subtle warm gray border */
+  --line-2: #D5D1C5;
+  --brand: #2997FF;
+  --brand-2: #5EB0FF;
+  --brand-dim: rgba(41,151,255,.12);
+  --grad: linear-gradient(135deg,#0A84FF,#2997FF);
+  --good: #1AA06A;
+  --good-dim: rgba(26,160,106,.12);
+  --good-line: rgba(26,160,106,.32);
+  --warn: #C27803;
+  --warn-dim: rgba(194,120,3,.12);
+  --bad: #E0414F;
+  --bad-dim: rgba(224,65,79,.1);
+  --info: #2684D4;
+  --info-dim: rgba(38,132,212,.12);
+  --text-main: #1C1B18;
+  --text-sub: #4A4842;
+  --on-brand: #fff;
+  /* layered, warm-tinted depth for solid premium cards */
+  --shadow: 0 1px 2px rgba(28,27,24,.04), 0 8px 24px -12px rgba(28,27,24,.16);
 }
 
 [data-theme="fintech"]{ color-scheme:light; --bg:#F7F9F8; --card:#FFFFFF; --soft:#F1F5F3; --ink:#0B1F17; --ink-2:#4A5D55; --ink-3:#82938B; --line:#E4EBE7; --line-2:#D3DDD8; --brand:#12A150; --brand-2:#2DBE6C; --brand-dim:rgba(18,161,80,.1); --grad:linear-gradient(135deg,#17B15A,#0E8A43); --good:#12A150; --warn:#B7791F; --bad:#D6455D; --info:#2C7FB8; --deep:#0B3B2C; --lime:#C6F432; --shadow:0 1px 2px rgba(11,59,44,.04),0 10px 28px -16px rgba(11,59,44,.18); --good-dim:rgba(18,161,80,.12); --good-line:rgba(18,161,80,.35); --warn-dim:rgba(183,121,31,.13); --bad-dim:rgba(214,69,93,.11); --info-dim:rgba(44,127,184,.12); --text-main:var(--ink); --text-sub:var(--ink-2); --on-brand:#fff; --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Arabic',sans-serif; }
@@ -97,6 +102,20 @@ button,select,input{font:inherit;color:inherit}
 .brand-name{font-weight:700;font-size:var(--fs-md);letter-spacing:-.02em;line-height:1.1;color:var(--text-main)}
 .brand-sub{font-size:var(--fs-xs);color:var(--text-sub);line-height:1.2}
 .header-actions{display:flex;align-items:center;gap:8px}
+/* Premium sun/moon theme switcher: two slots, a sliding solid knob under the active one */
+.theme-pill{position:relative;flex:none;display:inline-flex;align-items:center;width:64px;height:34px;padding:3px;border-radius:var(--r-pill);background:var(--soft);border:1px solid var(--line);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .25s,border-color .25s}
+.theme-pill:hover{border-color:var(--line-2)}
+.theme-pill:active{transform:scale(.97)}
+.theme-pill .tp-opt{position:relative;z-index:2;flex:1;height:28px;display:grid;place-items:center;color:var(--ink-3);transition:color .25s}
+.theme-pill .tp-opt svg{width:15px;height:15px}
+.theme-pill .tp-knob{position:absolute;z-index:1;top:3px;left:3px;width:29px;height:28px;border-radius:var(--r-pill);background:linear-gradient(135deg,#2a2d3a,#15171f);border:1px solid rgba(255,255,255,.08);box-shadow:0 2px 7px rgba(0,0,0,.45);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.theme-pill .tp-knob{transform:translateX(29px)}                               /* dark themes: knob under the moon (right) */
+.theme-pill .tp-moon{color:#fff}
+[data-theme="light"] .theme-pill .tp-knob{transform:translateX(0)}             /* light: knob under the sun (left) */
+[data-theme="light"] .theme-pill .tp-knob{background:#1b1a17;border-color:transparent}
+[data-theme="light"] .theme-pill .tp-moon{color:var(--ink-3)}
+[data-theme="light"] .theme-pill .tp-sun{color:#fff}
+@media (prefers-reduced-motion:reduce){.theme-pill .tp-knob{transition:none}}
 .icon-btn{width:38px;height:38px;border-radius:50%;display:inline-grid;place-items:center;background:var(--card);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;padding:0;transition:transform .2s,background .2s}
 .icon-btn:hover{background:var(--soft);color:var(--ink)}
 .icon-btn:active{transform:scale(.92)}
