@@ -1094,7 +1094,7 @@ body{background:transparent!important}
 .info-btn svg{fill:none!important}
 .mi-box{width:min(100%,560px);padding:10px 16px 16px;border-radius:var(--r-lg)}
 /* Nothing but the pitch: a clean solid backdrop hides the page behind it, no card frame, no header. */
-#miModal.modal-overlay{background:#070a10;background-image:radial-gradient(circle at 50% 42%,rgba(22,163,74,.14),rgba(7,10,16,0) 60%),radial-gradient(circle at 50% 12%,rgba(0,77,152,.16),transparent 55%);-webkit-backdrop-filter:none;backdrop-filter:none}
+#miModal.modal-overlay{background:#070a10;background-image:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 #miModal .modal-box.mi-box{background:transparent!important;border:0;box-shadow:none;overflow-x:visible;overflow-y:auto}
 #miModal .mi-head{display:none}
 .mi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:40px}
@@ -1863,11 +1863,11 @@ html,body{max-width:100%;overflow-x:clip}
 }
 
 /* ── 3D tactical pitch: raised stadium block with upright standing kits/photos ── */
-.fp-shell{display:flex;flex-direction:column;gap:14px;margin:2px 0 4px;--fp-tilt:52deg}
-.fp-stage{position:relative;width:100%;aspect-ratio:10/12;max-height:62vh;
-  perspective:1000px;perspective-origin:50% 40%;isolation:isolate}
-.fp-field{position:absolute;inset:7% 4%;transform-style:preserve-3d;
-  transform:rotateX(var(--fp-tilt)) scale(1.02);transition:transform .55s cubic-bezier(.22,.9,.26,1),opacity .4s ease}
+.fp-shell{display:flex;flex-direction:column;gap:14px;margin:2px 0 4px;--fp-tilt:49deg}
+.fp-stage{position:relative;width:100%;aspect-ratio:10/11.5;max-height:58vh;
+  perspective:1180px;perspective-origin:50% 44%;isolation:isolate}
+.fp-field{position:absolute;inset:7% 11%;transform-style:preserve-3d;
+  transform:rotateX(var(--fp-tilt)) scale(.92);transition:transform .55s cubic-bezier(.22,.9,.26,1),opacity .4s ease}
 /* deep floating shadow + dark architectural plinth under the turf */
 .fp-field::before{content:"";position:absolute;inset:-5%;border-radius:18px;background:rgba(0,0,0,.85);
   filter:blur(22px);transform:translateZ(-40px);pointer-events:none}
@@ -1948,7 +1948,7 @@ html,body{max-width:100%;overflow-x:clip}
   font-weight:600;font-size:14px;line-height:1.5;transform:rotateX(calc(-1 * var(--fp-tilt) - 6deg));text-shadow:0 2px 8px rgba(0,0,0,.7)}
 .fp-emptymsg span{display:block;font-size:34px;margin-bottom:6px}
 /* team-swap transition */
-.fp-swapping .fp-field{opacity:0;transform:rotateX(var(--fp-tilt)) scale(1.08) translateY(-6%)}
+.fp-swapping .fp-field{opacity:0;transform:rotateX(var(--fp-tilt)) scale(.86) translateY(-6%)}
 /* bottom swap button */
 .fp-toggle{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;
   border-radius:16px;border:1px solid var(--line-2);background:linear-gradient(180deg,var(--soft),var(--card));
@@ -1961,5 +1961,5 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-toggle .fp-tg-ic{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--brand-dim);color:var(--brand);flex:none}
 .fp-toggle .fp-tg-ic svg{width:15px;height:15px}
 .fp-toggle b{margin-inline-end:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:620px){.fp-shell{--fp-tilt:54deg}.fp-stage{aspect-ratio:10/13;max-height:66vh;perspective:820px}}
+@media (max-width:620px){.fp-shell{--fp-tilt:50deg}.fp-stage{aspect-ratio:10/12.5;max-height:62vh;perspective:1040px}}
 @media (prefers-reduced-motion:reduce){.fp-field,.fp-swapping .fp-field{transition:opacity .2s ease}}
