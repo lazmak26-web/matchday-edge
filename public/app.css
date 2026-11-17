@@ -2006,3 +2006,110 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-toggle b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
 @media (max-width:620px){.fp-shell{--fp-tilt:50deg}.fp-stage{aspect-ratio:10/12.5;max-height:62vh;perspective:1040px}}
 @media (prefers-reduced-motion:reduce){.fp-field,.fp-swapping .fp-field{transition:opacity .2s ease}}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ELITE 3D PITCH — premium elevation layer (GSAP-driven motion + refined CSS)
+   Overrides the base .fp-* rules above via source order. Data/markup unchanged.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Deeper stadium stage: longer perspective, a soft arena glow behind the turf */
+.fp-stage{perspective:1260px;perspective-origin:50% 42%}
+.fp-stage::before{content:"";position:absolute;inset:-2% -4% -8%;z-index:0;pointer-events:none;
+  background:radial-gradient(70% 60% at 50% 30%,rgba(45,212,110,.14),rgba(45,212,110,0) 62%);
+  filter:blur(6px);opacity:.9}
+
+/* Richer emerald turf: multi-shade grass, crisp mowing stripes, pro stadium light */
+.fp-turf{
+  box-shadow:
+    inset 0 0 0 3px rgba(96,232,146,.95),
+    inset 0 0 120px rgba(1,18,8,.72),
+    inset 0 4px 3px rgba(255,255,255,.16),
+    inset 0 -30px 60px rgba(1,14,6,.55);
+  background:
+    radial-gradient(130% 66% at 50% -8%, rgba(236,255,241,.30), rgba(255,255,255,0) 54%),
+    radial-gradient(90% 70% at 18% 8%, rgba(120,255,175,.10), rgba(0,0,0,0) 46%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 12.5%, rgba(0,0,0,.05) 12.5% 25%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.09) 0 8.33%, rgba(3,40,20,.12) 8.33% 16.66%),
+    linear-gradient(177deg,#42c56d 0%,#2e9f57 46%,#176a39 82%,#0f5530 100%)}
+/* brighter, tighter stadium key-light + cooler corners for real depth */
+.fp-turf::after{background:
+    radial-gradient(64% 50% at 50% 30%, rgba(255,255,255,.17), rgba(255,255,255,0) 60%),
+    radial-gradient(100% 76% at 50% 124%, rgba(0,0,0,.58), rgba(0,0,0,0) 58%),
+    radial-gradient(130% 92% at 50% -18%, rgba(190,255,214,.14), rgba(0,0,0,0) 46%),
+    radial-gradient(60% 60% at 12% 100%, rgba(0,0,0,.4), rgba(0,0,0,0) 55%),
+    radial-gradient(60% 60% at 88% 100%, rgba(0,0,0,.4), rgba(0,0,0,0) 55%);
+  opacity:.92}
+/* crisper white markings with a faint chalk glow */
+.fp-lines{filter:drop-shadow(0 0 1px rgba(255,255,255,.35)) drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+
+/* ── Interactive players: the figures opt back into pointer events; turf stays inert ── */
+.fp-players{pointer-events:none}
+.fp-pl{pointer-events:none}
+.fp-stand{pointer-events:auto;cursor:pointer;
+  transition:transform .34s cubic-bezier(.22,.9,.26,1),filter .3s ease}
+.fp-fig{transition:transform .34s cubic-bezier(.34,1.56,.5,1),filter .3s ease}
+.fp-img,.fp-kit{transition:box-shadow .3s ease,border-color .25s ease}
+.fp-nm{transition:transform .3s ease,background .25s ease,border-color .25s ease,box-shadow .3s ease}
+
+/* glowing pedestal — brighter, with an emerald rim that lights on hover/select */
+.fp-ped{background:radial-gradient(circle,rgba(0,0,0,.82) 22%,rgba(0,0,0,0) 72%);
+  border:1.5px solid rgba(132,245,170,.5);box-shadow:0 0 12px rgba(0,0,0,.55);
+  transition:border-color .3s ease,box-shadow .35s ease,transform .35s ease}
+
+/* hover (pointer-fine) elevation + lift of the figure */
+@media (hover:hover) and (pointer:fine){
+  .fp-stand:hover{transform:translateZ(2px) rotateX(calc(-1 * var(--fp-tilt) - 6deg)) translateY(-6px) scale(1.06);filter:drop-shadow(0 10px 14px rgba(0,0,0,.6))}
+  .fp-stand:hover .fp-fig{filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+  .fp-stand:hover .fp-img{box-shadow:0 8px 16px rgba(0,0,0,.7),0 0 0 2px rgba(96,232,146,.9),0 0 18px rgba(45,212,110,.5)}
+  .fp-stand:hover .fp-nm{transform:translateZ(3px) translateY(1px);background:rgba(12,18,28,.98);border-color:rgba(96,232,146,.55)}
+  .fp-stand:hover .fp-ped{border-color:rgba(132,245,170,.9);box-shadow:0 0 18px rgba(45,212,110,.55)}
+}
+
+/* selected player — persistent glowing indicator */
+.fp-pl.is-sel{z-index:20}
+.fp-pl.is-sel .fp-stand{transform:translateZ(3px) rotateX(calc(-1 * var(--fp-tilt) - 6deg)) translateY(-7px) scale(1.09)}
+.fp-pl.is-sel .fp-img{box-shadow:0 10px 18px rgba(0,0,0,.75),0 0 0 2.5px #60e892,0 0 24px rgba(45,212,110,.7)}
+.fp-pl.is-sel .fp-fig:not(.noimg) .fp-knum,.fp-pl.is-sel .fp-np{box-shadow:0 0 0 1.5px rgba(96,232,146,.9)}
+.fp-pl.is-sel .fp-nm{background:rgba(10,20,14,.98);border-color:#60e892;box-shadow:0 6px 16px rgba(0,0,0,.8),0 0 14px rgba(45,212,110,.45)}
+.fp-pl.is-sel .fp-ped{border-color:#8af5aa;box-shadow:0 0 22px rgba(45,212,110,.75),0 0 40px rgba(45,212,110,.35)}
+
+/* ── Glass close (X) button, integrated into the pitch top bar beside the swap pill ── */
+#miModal .fb-x{position:absolute;top:0;right:0;z-index:8;width:40px;height:40px;border-radius:50%;
+  background:rgba(14,19,30,.82);border:1px solid rgba(255,255,255,.16);color:#e8edf6;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 8px 20px -10px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.08);
+  font-size:16px;line-height:1;transition:transform .16s cubic-bezier(.34,1.56,.5,1),background .2s,border-color .2s,box-shadow .2s}
+#miModal .fb-x:hover{background:rgba(220,56,52,.92);border-color:rgba(255,120,116,.7);color:#fff;
+  transform:rotate(90deg) scale(1.06);box-shadow:0 10px 24px -8px rgba(180,20,16,.8)}
+#miModal .fb-x:active{transform:rotate(90deg) scale(.9)}
+#miModal .fb-x:focus-visible{outline:2px solid #60e892;outline-offset:2px}
+
+/* ── Refined swap pill: subtle glass sheen, emerald hover rim ── */
+.fp-toggle{background:linear-gradient(180deg,rgba(20,27,40,.95),rgba(11,16,26,.95));
+  border-color:rgba(255,255,255,.16);box-shadow:0 8px 20px -10px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.07);position:relative;overflow:hidden}
+.fp-toggle::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(115deg,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);opacity:.8}
+.fp-toggle:hover{border-color:rgba(96,232,146,.6);box-shadow:0 12px 26px -10px rgba(0,0,0,.95),0 0 0 1px rgba(96,232,146,.25)}
+.fp-toggle .fp-tg-ic{background:rgba(45,212,110,.18);color:#6ee89a}
+.fp-toggle:active{transform:scale(.95)}
+
+/* status chip + formation: a touch more glass + emerald identity */
+.fp-chip{background:rgba(9,14,22,.86);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.fp-form{background:rgba(8,13,21,.78);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-color:rgba(96,232,146,.22)}
+
+/* Motion hooks: these keep layout stable while GSAP animates transforms/opacity. */
+.fp-field,.fp-pl,.fp-chip,.fp-form,.fp-stand,.fp-fig{will-change:transform,opacity}
+.fp-players.fp-anim .fp-pl{backface-visibility:hidden}
+
+/* Reduced motion: no transforms on hover/select, instant swaps, no arena pulse */
+@media (prefers-reduced-motion:reduce){
+  .fp-stage::before{display:none}
+  .fp-stand,.fp-fig,.fp-img,.fp-kit,.fp-nm,.fp-ped{transition:none!important}
+  @media (hover:hover) and (pointer:fine){
+    .fp-stand:hover{transform:translateZ(2px) rotateX(calc(-1 * var(--fp-tilt) - 6deg))}
+  }
+  .fp-pl.is-sel .fp-stand{transform:translateZ(3px) rotateX(calc(-1 * var(--fp-tilt) - 6deg))}
+  #miModal .fb-x:hover{transform:none}
+}
+/* GSAP owns the pitch-modal entrance/exit, so disable the base keyframe here */
+#miModal .modal-box.mi-box{animation:none}
