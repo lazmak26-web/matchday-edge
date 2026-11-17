@@ -36,6 +36,15 @@ function parsePlayer(x) {
   if (!p.name) return null;
   return { id: n(p.id), name: s(p.name, 60), number: n(p.number), pos: POS[p.pos] || s(p.pos, 3), grid: /^\d{1,2}:\d{1,2}$/.test(p.grid || '') ? p.grid : null };
 }
+// one #rrggbb from an API-Football colour field ("5badff" | "5BADFF" | null) -> "#5badff" | null
+const hex6 = c => (typeof c === 'string' && /^#?[0-9a-fA-F]{6}$/.test(c)) ? '#' + c.replace(/^#/, '').toLowerCase() : null;
+// team.colors (real home/away kit) from a lineup row -> { player:{primary,number,border}, gk:{...} } | null
+function parseKit(col) {
+  if (!col || typeof col !== 'object') return null;
+  const set = c => { const o = { primary: hex6(c && c.primary), number: hex6(c && c.number), border: hex6(c && c.border) }; return o.primary ? o : null; };
+  const player = set(col.player), gk = set(col.goalkeeper);
+  return (player || gk) ? { player, gk } : null;
+}
 // lineups array (from /fixtures?id= or /fixtures/lineups) -> Map(teamId -> lineup)
 function parseLineups(arr) {
   const out = new Map();
@@ -46,6 +55,7 @@ function parseLineups(arr) {
     out.set(String(l.team.id), {
       formation: /^\d(-\d){1,4}$/.test(l.formation || '') ? l.formation : null,
       coach: l.coach && l.coach.name ? s(l.coach.name, 60) : null,
+      colors: parseKit(l.team.colors),
       xi, subs: (l.substitutes || []).map(parsePlayer).filter(Boolean)
     });
   }
