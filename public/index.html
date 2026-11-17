@@ -1828,11 +1828,13 @@ function teamPitch(d, side, uid) {
     field = `${FP_CHROME}<div class="fp-turf">${FP_LINES}</div>${FP_PROPS}<div class="fp-players">${players}</div>`;
     if (luT.formation) form = `<span class="fp-form" aria-label="${esc(t.mi_formation || 'Formation')}">${esc(luT.formation)}</span>`;
   }
-  const toggle = `<button type="button" class="fp-toggle" data-act="fpToggle" data-side="${otherSide}" data-id="${esc(d.id)}" data-uid="${esc(uid)}" aria-label="${esc(other.name)}">`
+  // Compact swap control that sits in the top bar, beside the close (X) button.
+  const toggle = `<button type="button" class="fp-toggle" data-act="fpToggle" data-side="${otherSide}" data-id="${esc(d.id)}" data-uid="${esc(uid)}" title="${esc(other.name)}" aria-label="${esc(other.name)}">`
     + `<span class="fp-tg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/></svg></span>`
     + `${crestHTML(other)}<b>${esc(other.name)}</b></button>`;
   return `<div class="fp-shell" id="fpShell-${esc(uid)}" data-side="${side}">`
-    + `<div class="fp-stage"><div class="fp-field">${field}</div>${form}</div>${toggle}</div>`;
+    + `<div class="fp-top">${toggle}</div>`
+    + `<div class="fp-stage"><div class="fp-field">${field}</div>${form}</div></div>`;
 }
 // CSP blocks inline onerror= attributes, so the photo→kit fallback is wired from script:
 // reveal the kit when a player photo is missing. Covers images that already failed before
