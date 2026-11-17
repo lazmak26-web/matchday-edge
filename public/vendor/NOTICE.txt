@@ -1,4 +1,4 @@
-GSAP 3.13.0 - gsap.com (GreenSock standard license, free to use), gsap.min.js from the npm package. Drives the 3D tactical-pitch motion (entrance, team-swap, modal, player interactions) in index.html.
+GSAP 3.15 - gsap.com (GreenSock standard license, free to use)
 Lenis - darkroom.engineering (MIT)
 Barlow - Jeremy Tribby (SIL OFL 1.1), see public/fonts
 

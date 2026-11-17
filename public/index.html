@@ -1879,89 +1879,6 @@ function fpEnsureDefs() {
     + '<stop offset="1" stop-color="#000000" stop-opacity=".4"/>'
     + '</linearGradient></defs></svg>');
 }
-/* ── GSAP motion for the 3D tactical pitch ──────────────────────────────────
-   Entrance, team-swap, modal open/close and player selection. Every effect
-   degrades to a no-op without GSAP or under prefers-reduced-motion, so the
-   pitch stays fully functional (just without motion) in either case. GSAP is
-   self-hosted (vendor/gsap.min.js) because the CSP allows our origin only. */
-const fpMotion = (() => {
-  const G = () => window.gsap;
-  const reduce = () => matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const live = () => !!G() && !reduce();                 // animate only when both hold
-  const shellOf = root => !root ? null : (root.matches && root.matches('.fp-shell') ? root : root.querySelector('.fp-shell'));
-
-  // Staggered entrance for a freshly-mounted pitch: turf fades up, players stand
-  // up from the grass (centre-out), lines + status chips settle in.
-  function enter(root, delay) {
-    const gsap = G(); if (!live() || !gsap) return;
-    const shell = shellOf(root); if (!shell) return;
-    const field = shell.querySelector('.fp-field');
-    const players = shell.querySelectorAll('.fp-pl, .sqf');
-    const chrome = shell.querySelectorAll('.fp-plinth, .fp-wall, .fp-props');
-    const chips = shell.querySelectorAll('.fp-chip, .fp-form');
-    const lines = shell.querySelector('.fp-lines');
-    const stage = shell.querySelector('.fp-players'); if (stage) stage.classList.add('fp-anim');
-    const tl = gsap.timeline({ defaults: { ease: 'power3.out' }, delay: delay || 0 });
-    if (field) tl.from(field, { opacity: 0, duration: 0.5, clearProps: 'opacity' }, 0);
-    if (chrome.length) tl.from(chrome, { opacity: 0, duration: 0.45, clearProps: 'opacity' }, 0.08);
-    if (lines) tl.from(lines, { opacity: 0, duration: 0.5, clearProps: 'opacity' }, 0.16);
-    if (players.length) tl.from(players, {
-      opacity: 0, y: 16, scale: 0.5, transformOrigin: '50% 100%',
-      duration: 0.52, ease: 'back.out(1.6)', clearProps: 'opacity,transform',
-      stagger: { each: 0.042, from: 'center' }
-    }, 0.22);
-    if (chips.length) tl.from(chips, { opacity: 0, y: -7, duration: 0.4, stagger: 0.08, clearProps: 'opacity,transform' }, 0.3);
-    return tl;
-  }
-
-  // Lift the current team's pitch out, then hand control back to rebuild + enter.
-  function swapOut(shell, done) {
-    const gsap = G();
-    if (!live() || !gsap || !shell) { done(); return; }
-    const field = shell.querySelector('.fp-field');
-    const players = shell.querySelectorAll('.fp-pl, .sqf');
-    const chips = shell.querySelectorAll('.fp-chip, .fp-form');
-    const tl = gsap.timeline({ onComplete: done, defaults: { ease: 'power2.in' } });
-    if (players.length) tl.to(players, { opacity: 0, y: -12, scale: 0.6, duration: 0.26, stagger: { each: 0.018, from: 'edges' } }, 0);
-    if (chips.length) tl.to(chips, { opacity: 0, y: -6, duration: 0.2 }, 0);
-    if (field) tl.to(field, { opacity: 0, duration: 0.3 }, 0.08);
-    else if (!players.length) done();
-  }
-
-  // Pitch-overlay open: backdrop fades, the box rises into place.
-  function modalOpen(box, overlay) {
-    const gsap = G(); if (!live() || !gsap) return;
-    if (overlay) gsap.from(overlay, { opacity: 0, duration: 0.28, ease: 'power2.out', clearProps: 'opacity' });
-    if (box) gsap.from(box, { y: 26, scale: 0.955, duration: 0.46, ease: 'power3.out', clearProps: 'transform' });
-  }
-  // Pitch-overlay close: box drops + the whole overlay fades, then `done` hides it.
-  function modalClose(box, overlay, done) {
-    const gsap = G();
-    if (!live() || !gsap) { done(); return; }
-    gsap.timeline({ onComplete: () => { gsap.set([box, overlay].filter(Boolean), { clearProps: 'all' }); done(); } })
-      .to(box || overlay, { y: 18, scale: 0.97, duration: 0.26, ease: 'power2.in' }, 0)
-      .to(overlay, { opacity: 0, duration: 0.26, ease: 'power2.in' }, 0);
-  }
-
-  // Tap/click a player: single selection with a glowing indicator + a small pop.
-  function tapSelect(pl, shell) {
-    if (!pl || !shell) return;
-    const was = pl.classList.contains('is-sel');
-    shell.querySelectorAll('.fp-pl.is-sel').forEach(x => { if (x !== pl) x.classList.remove('is-sel'); });
-    pl.classList.toggle('is-sel', !was);
-    const gsap = G(), fig = pl.querySelector('.fp-fig');
-    if (live() && gsap && fig && !was) gsap.fromTo(fig, { scale: 0.86 }, { scale: 1, duration: 0.55, ease: 'elastic.out(1,0.5)', clearProps: 'scale' });
-  }
-
-  return { enter, swapOut, modalOpen, modalClose, tapSelect, live };
-})();
-
-// Delegated player selection (figures opt into pointer events; the turf stays inert).
-document.addEventListener('click', e => {
-  const stand = e.target.closest && e.target.closest('.fp-stand'); if (!stand) return;
-  fpMotion.tapSelect(stand.closest('.fp-pl'), stand.closest('.fp-shell'));
-});
-
 window.fpMount = function (root) {
   if (!root) return;
   fpEnsureDefs();
@@ -1975,21 +1892,21 @@ window.fpMount = function (root) {
     if (img.complete && img.naturalWidth === 0) { fail(); return; }
     img.addEventListener('error', fail, { once: true });
   });
-  fpMotion.enter(root);               // staggered GSAP entrance (no-op without GSAP / reduced-motion)
 };
 window.fpToggle = function (el) {
   const id = el.dataset.id, side = el.dataset.side, uid = el.dataset.uid;
   const c = MI.cache[id], shell = document.getElementById('fpShell-' + uid);
-  if (!c || !shell || shell.dataset.fpBusy === '1') return;
-  shell.dataset.fpBusy = '1';                          // lock during the swap
-  // GSAP timeline: lift the current team out → swap the DOM → stand the new team in.
-  fpMotion.swapOut(shell, () => {
+  if (!c || !shell || shell.classList.contains('fp-swapping')) return;
+  shell.classList.add('fp-swapping');                 // fade/lift out, rebuild, settle in
+  setTimeout(() => {
     const fresh = document.createElement('div');
     fresh.innerHTML = teamPitch(c.data, side, uid);
     const next = fresh.firstElementChild;
+    next.classList.add('fp-swapping');
     shell.replaceWith(next);
-    fpMount(next);                                     // wires images + runs the entrance
-  });
+    fpMount(next);
+    requestAnimationFrame(() => requestAnimationFrame(() => next.classList.remove('fp-swapping')));
+  }, 200);
 };
 function miLineupCol(tm, lu) {
   const t = tNow();
@@ -2063,19 +1980,13 @@ window.miOpen = function (id) {
   const m = $('miModal'), body = $('miBody'); if (!m || !body) return;
   MI.from = document.activeElement; MI.open = id;
   m.classList.remove('hidden');
-  m.dataset.miClosing = '';                            // clear any stale closing lock
-  fpMotion.modalOpen(m.querySelector('.mi-box'), m);   // backdrop fade + box rise (no-op w/o GSAP)
   miLoadInto(id, body, 'miBody');
   setTimeout(() => { const x = m.querySelector('.fb-x'); if (x) x.focus(); }, 30);
 };
 window.miClose = function () {
-  const m = $('miModal'); if (!m || m.classList.contains('hidden') || m.dataset.miClosing === '1') return;
-  m.dataset.miClosing = '1';
-  const finish = () => {
-    m.classList.add('hidden'); m.dataset.miClosing = ''; MI.open = null;
-    if (MI.from && MI.from.focus) { try { MI.from.focus(); } catch (e) {} }
-  };
-  fpMotion.modalClose(m.querySelector('.mi-box'), m, finish);   // animate out, then hide + restore focus
+  const m = $('miModal'); if (!m || m.classList.contains('hidden')) return;
+  m.classList.add('hidden'); MI.open = null;
+  if (MI.from && MI.from.focus) { try { MI.from.focus(); } catch (e) {} }
 };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') miClose(); });
 document.addEventListener('click', e => { const m = $('miModal'); if (m && e.target === m) miClose(); });
@@ -3731,7 +3642,6 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 <script src="live-globe.js" defer></script>
 <script src="fx.js" defer></script>
-<script src="vendor/gsap.min.js" defer></script>
 <script src="vendor/lenis.min.js" defer></script>
 <script src="demo-arena.js" defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
