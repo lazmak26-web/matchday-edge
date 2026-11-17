@@ -114,17 +114,28 @@ test('getMatchInfo: friendly resolved by names, line-ups, absences, h2h, domesti
   assert.strictEqual(calls.length, n, 'second open is served from cache (no API call)');
 });
 
-test('far from kick-off: no line-up call, says when they come', async () => {
+test('far from kick-off: no match line-up call, falls back to a probable XI', async () => {
   const far = new Date(Date.now() + 50 * 3600e3), day = far.toISOString().slice(0, 10);
   ROUTES[`/fixtures?date=${day}`] = () => ({ response: [fxRow(950, [10, 'Chindia Targoviste'], [20, 'FCSB'], far.toISOString())] });
   ROUTES['/injuries?fixture=950'] = () => ({ response: [] });
   const from = calls.length;
   const d = await mi.getMatchInfo(Object.assign({}, fx, { id: 'af_950', date: day, kickoff: far.toISOString().slice(11, 16) }), { match: teamsMatchAny });
   assert.strictEqual(d.found, true);
+  assert.strictEqual(d.lineups.status, 'probable', 'shows a probable XI built from the team\'s last real line-up');
+  assert.strictEqual(d.lineups.home.xi.length, 11);
+  assert.strictEqual(d.lineups.home.probableFrom.vs, 'Otelul');
+  assert.ok(d.lineups.home.probableFrom.date);
+  assert.ok(!calls.slice(from).includes('/fixtures?id=950'), 'the match\'s own line-up endpoint is not called 50 h before kick-off');
+  assert.deepStrictEqual(d.absences.home, []);
+});
+
+test('far from kick-off with no prior line-up: says when line-ups come', async () => {
+  const far = new Date(Date.now() + 6 * 864e5), day = far.toISOString().slice(0, 10);   // distinct day → own day-feed cache
+  ROUTES[`/fixtures?date=${day}`] = () => ({ response: [fxRow(952, [70, 'Newcomer A'], [71, 'Newcomer B'], far.toISOString())] });
+  ROUTES['/injuries?fixture=952'] = () => ({ response: [] });
+  const d = await mi.getMatchInfo(Object.assign({}, fx, { id: 'af_952', date: day, kickoff: far.toISOString().slice(11, 16), home: { name: 'Newcomer A', logo: null }, away: { name: 'Newcomer B', logo: null } }), { match: teamsMatchAny });
   assert.strictEqual(d.lineups.status, 'not_yet');
   assert.ok(d.lineups.expectedFrom);
-  assert.ok(!calls.slice(from).includes('/fixtures?id=950'), 'no line-up call 50 h before kick-off');
-  assert.deepStrictEqual(d.absences.home, []);
 });
 
 test('dump/load round-trips the Map-based line-ups', () => {

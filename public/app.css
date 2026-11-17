@@ -1955,6 +1955,17 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-form{position:absolute;bottom:2%;left:8px;z-index:4;font-size:12px;font-weight:800;letter-spacing:.06em;
   color:#fff;background:rgba(10,14,22,.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
   border:1px solid rgba(255,255,255,.2);padding:5px 12px;border-radius:999px;box-shadow:0 6px 16px -8px rgba(0,0,0,.8)}
+/* status chip (confirmed vs probable XI), top-left over the pitch */
+.fp-chip{position:absolute;top:10px;left:10px;z-index:5;display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:800;letter-spacing:.03em;color:#fff;padding:5px 11px 5px 9px;border-radius:999px;
+  background:rgba(10,14,22,.82);border:1px solid rgba(255,255,255,.18);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 6px 16px -8px rgba(0,0,0,.85)}
+.fp-chip i{width:7px;height:7px;border-radius:50%;flex:none}
+.fp-chip.ok i{background:#4ade80;box-shadow:0 0 7px rgba(74,222,128,.8)}
+.fp-chip.prob{color:#ffd9a8;border-color:rgba(251,191,36,.42)}
+.fp-chip.prob i{background:#fbbf24;box-shadow:0 0 7px rgba(251,191,36,.85)}
+/* a probable XI gets an amber inner edge so it's never mistaken for a confirmed line-up */
+.fp-turf.fp-prob{box-shadow:inset 0 0 0 3px rgba(251,191,36,.55),inset 0 0 90px rgba(2,24,10,.6),inset 0 3px 2px rgba(255,255,255,.14)}
 /* empty / pre-lineup state */
 .fp-empty{display:grid;place-items:center}
 .fp-emptymsg{position:relative;z-index:2;max-width:78%;text-align:center;color:rgba(255,255,255,.96);

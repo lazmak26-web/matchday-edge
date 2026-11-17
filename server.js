@@ -2459,6 +2459,37 @@ app.use('/uploads', express.static(UPLOADS_DIR, {
   setHeaders(res) { res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox"); }
 }));
 
+// Player head-shots cached on the persistent disk, so the tactical pitch never depends on the
+// API media host at view time. Lazy: the first request for a player pulls the photo from the
+// provider's media CDN and stores it; every later request is served straight off disk. The media
+// host is separate from the API-Football request quota, so warming portraits costs no budget.
+const PORTRAITS_DIR = path.join(path.dirname(HISTORY_FILE), 'portraits');
+try { fs.mkdirSync(PORTRAITS_DIR, { recursive: true }); } catch (e) { console.error('Portraits folder error:', e.message); }
+const portraitInflight = new Map();
+const PORTRAIT_HDRS = { 'Cache-Control': 'public, max-age=604800, immutable', 'Content-Security-Policy': "default-src 'none'; img-src 'self'; sandbox" };
+app.get('/portraits/:id.png', async (req, res) => {
+  const id = String(req.params.id || '');
+  if (!/^\d{1,8}$/.test(id)) return res.status(400).end();
+  const file = path.join(PORTRAITS_DIR, id + '.png');
+  const miss = path.join(PORTRAITS_DIR, id + '.none');          // remember "no photo" so we don't refetch on every view
+  if (fs.existsSync(file)) return res.sendFile(file, { headers: PORTRAIT_HDRS });
+  if (fs.existsSync(miss) && Date.now() - fs.statSync(miss).mtimeMs < 7 * 24 * 3600e3) return res.status(404).end();
+  try {
+    if (!portraitInflight.has(id)) portraitInflight.set(id, (async () => {
+      const r = await fetch(`https://media.api-sports.io/football/players/${id}.png`, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error('upstream ' + r.status);
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (buf.length < 1500 || buf.slice(0, 8).toString('hex') !== '89504e470d0a1a0a') throw new Error('placeholder');
+      fs.writeFileSync(file, buf);
+    })().finally(() => portraitInflight.delete(id)));
+    await portraitInflight.get(id);
+    return res.sendFile(file, { headers: PORTRAIT_HDRS });
+  } catch (e) {
+    try { fs.writeFileSync(miss, ''); } catch (_) {}            // negative-cache the miss; frontend falls back to the kit jersey
+    return res.status(404).end();
+  }
+});
+
 function imageSignatureOk(file, mimetype) {
   let b;
   try { const fd = fs.openSync(file, 'r'); b = Buffer.alloc(12); fs.readSync(fd, b, 0, 12, 0); fs.closeSync(fd); } catch (e) { return false; }

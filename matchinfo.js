@@ -175,7 +175,7 @@ const prevLineup = (tid, beforeTs) => cached(`prev:${tid}:${new Date(beforeTs).t
   if (!prev) return null;
   const lu = await cached('lu:' + prev.fixture.id, () => TTL.oldLineup, async () => parseLineups((await af.get(`/fixtures/lineups?fixture=${prev.fixture.id}`)).response));
   const mine = lu && lu.get(String(tid));
-  return mine ? { xi: mine.xi, date: String(prev.fixture.date).slice(0, 10), vs: s(String(prev.teams.home.id) === String(tid) ? prev.teams.away.name : prev.teams.home.name, 60) } : null;
+  return mine ? { xi: mine.xi, formation: mine.formation || null, colors: mine.colors || null, date: String(prev.fixture.date).slice(0, 10), vs: s(String(prev.teams.home.id) === String(tid) ? prev.teams.away.name : prev.teams.home.name, 60) } : null;
 });
 
 async function standingFor(teamId, fxLeague) {
@@ -235,9 +235,21 @@ async function getMatchInfo(fx, { match, fallback = {} } = {}) {
 
   const lus = det && det.lineups;
   const luH = lus && lus.get(String(hid)), luA = lus && lus.get(String(aid));
+  // Previous real line-ups feed two things: the "changes vs last match" badges when a
+  // line-up is confirmed, and the probable-XI fallback shown when the provider has none yet.
   let prevH = null, prevA = null;
-  if (luH && luA && budgetLeft() > ROTATION_MIN_BUDGET) [prevH, prevA] = await Promise.all([prevLineup(hid, row.ts), prevLineup(aid, row.ts)]);
+  const needPrev = ((luH || luA) ? (luH && luA) : !started) && budgetLeft() > ROTATION_MIN_BUDGET;
+  if (needPrev) [prevH, prevA] = await Promise.all([prevLineup(hid, row.ts), prevLineup(aid, row.ts)]);
   const chH = changesVs(luH && luH.xi, prevH && prevH.xi), chA = changesVs(luA && luA.xi, prevA && prevA.xi);
+  // Build the line-ups payload: confirmed → probable (from last real line-up) → not_yet/unavailable.
+  const probLu = pv => (pv && pv.xi && pv.xi.length)
+    ? { formation: pv.formation || null, coach: null, colors: pv.colors || null, xi: pv.xi, subs: [], probableFrom: { date: pv.date, vs: pv.vs } }
+    : null;
+  const lineups = (luH || luA)
+    ? { status: 'confirmed', home: luH || null, away: luA || null }
+    : (probLu(prevH) || probLu(prevA))
+      ? { status: 'probable', home: probLu(prevH), away: probLu(prevA) }
+      : { status: started ? 'unavailable' : 'not_yet', expectedFrom: new Date(row.ts - 60 * 60e3).toISOString() };
   const absH = inj ? inj.get(String(hid)) || [] : null, absA = inj ? inj.get(String(aid)) || [] : null;
   const h2h = h2r ? parseH2H(h2r, hid, aid) : bzz;
 
@@ -245,9 +257,7 @@ async function getMatchInfo(fx, { match, fallback = {} } = {}) {
     found: true,
     league: { name: row.league.name, country: row.league.country, round: (det && det.round) || row.league.round },
     venue: (det && det.venue) || row.venue, referee: (det && det.referee) || row.referee,
-    lineups: luH || luA
-      ? { status: 'confirmed', home: luH || null, away: luA || null }
-      : { status: started ? 'unavailable' : 'not_yet', expectedFrom: new Date(row.ts - 60 * 60e3).toISOString() },
+    lineups,
     absences: inj ? { home: absH, away: absA } : null,
     h2h: h2h && h2h.total ? h2h : bzz,
     home: Object.assign(base.home, { logo: base.home.logo || row.home.logo, standing: sh || (fallback.standings && fallback.standings.home) || null, changes: chH, prev: prevH ? { date: prevH.date, vs: prevH.vs } : null, strength: strength(absH, chH, !!luH) }),
