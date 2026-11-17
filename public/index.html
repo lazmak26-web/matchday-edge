@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
-<link rel="stylesheet" href="/app.css?v=20261117a">
+<link rel="stylesheet" href="/app.css?v=20261117c">
 <link rel="stylesheet" href="/demo-arena.css">
 <link rel="stylesheet" href="/ui-pro.css">
 <script src="/spatial.js" defer></script>
@@ -832,6 +832,7 @@ const ACT = {
   mcDay: el => mcDay(el.dataset.day),
   miOpen: el => miOpen(el.dataset.info),
   miTab: el => miTab(el, el.dataset.uid),
+  fpToggle: el => fpToggle(el),
   mcToggle: el => mcToggle(el.dataset.mcid),
   toggleBell: el => toggleBell(el.dataset.bell),
   togglePin: el => togglePin(el.dataset.pin),
@@ -1706,6 +1707,48 @@ function miPitch(lu, newIds) {
   const last = n => String(n || '').split(' ').slice(-1)[0];
   return `<div class="mi-pitch">${lines.map(ps => `<div class="mi-line">${ps.map(p => `<div class="mi-pl${newIds.has(p.name) ? ' new' : ''}" title="${esc(p.name)}"><i>${p.number ?? ''}</i><span>${esc(last(p.name))}</span></div>`).join('')}</div>`).join('')}</div>`;
 }
+// ── Full pitch: both line-ups on one terrain, player photos (API-Football) with jersey+name fallback ──
+function fpPlayer(p, side) {
+  const last = String(p.name || '').split(' ').slice(-1)[0];
+  const photo = p.id ? `https://media.api-sports.io/football/players/${p.id}.png` : '';
+  const img = photo ? `<img class="fp-img" src="${photo}" loading="lazy" alt="" referrerpolicy="no-referrer" onerror="var a=this.closest('.fp-ava');if(a)a.classList.add('noimg');this.remove()">` : '';
+  return `<div class="fp-pl"><div class="fp-ava fp-${side}${photo ? '' : ' noimg'}">`
+    + `<svg class="fp-shirt" viewBox="0 0 48 44" aria-hidden="true"><path d="M16 3 2 12l5 9 5-3v23h24V18l5 3 5-9L37 3l-4 4H20z"/></svg>`
+    + `${img}<span class="fp-num">${p.number ?? ''}</span></div>`
+    + `<span class="fp-nm" title="${esc(p.name)}">${esc(last)}</span></div>`;
+}
+function fpTeamRows(luT, side) {
+  const rows = new Map();
+  luT.xi.forEach((p, i) => { const r = p.grid ? +p.grid.split(':')[0] : (i === 0 ? 1 : 2 + Math.floor((i - 1) / 4)); if (!rows.has(r)) rows.set(r, []); rows.get(r).push(p); });
+  const ordered = [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, ps]) => ps.sort((a, b) => (a.grid ? +a.grid.split(':')[1] : 0) - (b.grid ? +b.grid.split(':')[1] : 0)));
+  return ordered.map(ps => `<div class="fp-row">${ps.map(p => fpPlayer(p, side)).join('')}</div>`).join('');
+}
+// One team on the pitch at a time; the button under it carries the OTHER team's name and swaps the view.
+function teamPitch(d, side, uid) {
+  const t = tNow(), lu = d.lineups || {};
+  const team = side === 'home' ? d.home : d.away, other = side === 'home' ? d.away : d.home, otherSide = side === 'home' ? 'away' : 'home';
+  const luT = side === 'home' ? lu.home : lu.away;
+  const head = `<div class="fp-badge">${crestHTML(team)}<b>${esc(team.name)}</b>${luT && luT.formation ? `<span class="fp-form">${esc(luT.formation)}</span>` : ''}</div>`;
+  let field;
+  if (lu.status !== 'confirmed' || !luT) {
+    const msg = lu.status === 'not_yet'
+      ? (t.mi_lu_soon || 'Line-ups are announced about 1 hour before kick-off ({time}).').replace('{time}', lu.expectedFrom ? new Date(lu.expectedFrom).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '')
+      : (t.mi_lu_na || 'No line-up data for this match.');
+    field = `<div class="fp-field fp-empty fp-${side}"><div class="fp-emptymsg"><span>⚽</span>${esc(msg)}</div></div>`;
+  } else {
+    field = `<div class="fp-field fp-${side}">${fpTeamRows(luT, side)}</div>`;
+  }
+  const toggle = `<button type="button" class="fp-toggle" data-act="fpToggle" data-side="${otherSide}" data-id="${esc(d.id)}" data-uid="${esc(uid)}" aria-label="${esc(other.name)}">`
+    + `<span class="fp-tg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/></svg></span>`
+    + `${crestHTML(other)}<b>${esc(other.name)}</b></button>`;
+  return `<div class="fp-shell" id="fpShell-${esc(uid)}">${head}${field}${toggle}</div>`;
+}
+window.fpToggle = function (el) {
+  const id = el.dataset.id, side = el.dataset.side, uid = el.dataset.uid;
+  const c = MI.cache[id], shell = document.getElementById('fpShell-' + uid);
+  if (!c || !shell) return;
+  shell.outerHTML = teamPitch(c.data, side, uid);
+};
 function miLineupCol(tm, lu) {
   const t = tNow();
   if (!lu) return `<div class="mi-col"><h4>${crestHTML(tm)}<span>${esc(tm.name)}</span></h4><div class="mi-note">${esc(t.mi_lu_none || 'No line-up for this team.')}</div></div>`;
@@ -1766,11 +1809,7 @@ function miRender(d, uid) {
   return `
     <div class="mi-teams"><div class="mi-team">${crestHTML(d.home)}<b>${esc(d.home.name)}</b></div><div class="mi-vs">${score}</div><div class="mi-team">${crestHTML(d.away)}<b>${esc(d.away.name)}</b></div></div>
     <div class="mi-meta">${meta.map(m => `<span>${esc(m)}</span>`).join('')}</div>
-    <div class="mi-tabs" role="tablist">${tabs.map(([k, l], i) => `<button type="button" role="tab" class="mi-tab${i === 0 ? ' on' : ''}" data-mi="${k}" data-act="miTab" data-uid="${uid}">${esc(l)}</button>`).join('')}</div>
-    <div class="mi-pane on" data-pane="ov"><div class="mi-grid">${miTeamCol(d.home)}${miTeamCol(d.away)}</div>${miAnalysis(d.id)}</div>
-    <div class="mi-pane" data-pane="lu">${luPane}</div>
-    <div class="mi-pane" data-pane="ab"><div class="mi-grid">${miAbsCol(d.home, ab ? ab.home : null)}${miAbsCol(d.away, ab ? ab.away : null)}</div></div>
-    <div class="mi-pane" data-pane="h2h">${miH2H(d)}</div>
+    ${teamPitch(d, 'home', uid)}
     <p class="mi-src">${esc(d.source === 'api-football' ? (t.mi_src || 'Data: API-Football') : (t.mi_src_basic || 'Line-ups and injuries are not available for this match.'))}</p>`;
 }
 window.miTab = function (btn, uid) {
