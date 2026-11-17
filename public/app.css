@@ -1092,11 +1092,11 @@ body{background:transparent!important}
 .fb-lg-lead{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--ink-2);padding-top:10px;border-top:1px solid var(--line)}
 /* ── Match info (card button, modal, Match Center tab) ── */
 .info-btn svg{fill:none!important}
-.mi-box{width:min(100%,560px);padding:14px 16px 18px;border-radius:var(--r-lg)}
-/* The pitch is the hero: no dark card frame around it, just the dimmed backdrop. */
+.mi-box{width:min(100%,560px);padding:10px 16px 16px;border-radius:var(--r-lg)}
+/* Nothing but the pitch: a clean solid backdrop hides the page behind it, no card frame, no header. */
+#miModal.modal-overlay{background:#070a10;background-image:radial-gradient(circle at 50% 42%,rgba(22,163,74,.14),rgba(7,10,16,0) 60%),radial-gradient(circle at 50% 12%,rgba(0,77,152,.16),transparent 55%);-webkit-backdrop-filter:none;backdrop-filter:none}
 #miModal .modal-box.mi-box{background:transparent!important;border:0;box-shadow:none;overflow-x:visible;overflow-y:auto}
-#miModal .mi-head{margin-bottom:2px}
-#miModal .mi-head .section-label{opacity:.72;font-size:11px;letter-spacing:.14em}
+#miModal .mi-head{display:none}
 .mi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:40px}
 .mi-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin:14px 0 6px;text-align:center}
 .mi-team{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
@@ -1263,11 +1263,11 @@ body{background:transparent!important}
 /* Error box inside sheets: a plain panel, not a dashed placeholder */
 .fb-err{border:0;background:var(--soft);border-radius:var(--r-lg)}
 
-/* Team news on phones: a bottom sheet (full width, anchored to the bottom, grab handle) instead of a floating box */
+/* Team news on phones: the pitch fills the screen, vertically centred (no bottom sheet, no grab handle) */
 @media (max-width:560px){
-  #miModal.modal-overlay{align-items:flex-end;padding:0}
-  #miModal .mi-box{width:100%;max-height:88vh;border-radius:var(--r-lg) var(--r-lg) 0 0;border-bottom:0;padding:26px 16px calc(20px + env(safe-area-inset-bottom,0px));transform-origin:50% 100%}
-  #miModal .mi-box::before{content:"";position:absolute;top:8px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:var(--r-pill);background:var(--line-2);opacity:1}
+  #miModal.modal-overlay{align-items:center;justify-content:center;padding:10px}
+  #miModal .mi-box{width:100%;max-height:96vh;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+  #miModal .mi-box::before{display:none}
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1862,67 +1862,97 @@ html,body{max-width:100%;overflow-x:clip}
   .sx::after{width:104px;height:104px;right:-40px;opacity:.8}
 }
 
-/* ── 3D tactical pitch (realistic grass, perspective camera, player billboards) ── */
-.fp-shell{display:flex;flex-direction:column;gap:14px;margin:2px 0 4px}
+/* ── 3D tactical pitch: raised stadium block with upright standing kits/photos ── */
+.fp-shell{display:flex;flex-direction:column;gap:14px;margin:2px 0 4px;--fp-tilt:52deg}
 .fp-stage{position:relative;width:100%;aspect-ratio:10/12;max-height:62vh;
-  perspective:900px;perspective-origin:50% 42%;isolation:isolate}
-.fp-field{position:absolute;inset:0;transform-style:preserve-3d;
-  transform:rotateX(51deg) scale(1.04) translateY(-3%);transition:transform .55s cubic-bezier(.22,.9,.26,1),opacity .35s ease}
-.fp-turf{position:absolute;inset:0;border-radius:10px;overflow:hidden;
-  border:1px solid rgba(0,0,0,.45);
-  box-shadow:0 36px 60px -26px rgba(0,0,0,.8),0 10px 24px -14px rgba(0,0,0,.6),inset 0 0 80px rgba(2,28,12,.55),inset 0 2px 0 rgba(255,255,255,.08);
+  perspective:1000px;perspective-origin:50% 40%;isolation:isolate}
+.fp-field{position:absolute;inset:7% 4%;transform-style:preserve-3d;
+  transform:rotateX(var(--fp-tilt)) scale(1.02);transition:transform .55s cubic-bezier(.22,.9,.26,1),opacity .4s ease}
+/* deep floating shadow + dark architectural plinth under the turf */
+.fp-field::before{content:"";position:absolute;inset:-5%;border-radius:18px;background:rgba(0,0,0,.85);
+  filter:blur(22px);transform:translateZ(-40px);pointer-events:none}
+.fp-plinth{position:absolute;inset:-9px;border-radius:14px;background:#0c1220;
+  border:1px solid rgba(255,255,255,.12);transform:translateZ(-20px);box-shadow:0 0 26px rgba(0,0,0,.95);pointer-events:none}
+/* four extruded turf walls so every edge shows real thickness */
+.fp-wall{position:absolute;pointer-events:none}
+.fp-wall-front{left:0;right:0;bottom:0;height:20px;transform-origin:bottom;transform:rotateX(-90deg);
+  background:linear-gradient(#15803d,#0a2d18 70%,#05140b);border-bottom:2px solid #4ade80;box-shadow:inset 0 2px 6px rgba(255,255,255,.22)}
+.fp-wall-back{left:0;right:0;top:0;height:20px;transform-origin:top;transform:rotateX(90deg);background:linear-gradient(#0a2d18,#05140b)}
+.fp-wall-left{top:0;bottom:0;left:0;width:20px;transform-origin:left;transform:rotateY(-90deg);background:linear-gradient(to left,#166534,#061c0e);border-left:2px solid #34d36a}
+.fp-wall-right{top:0;bottom:0;right:0;width:20px;transform-origin:right;transform:rotateY(90deg);background:linear-gradient(to right,#166534,#061c0e);border-right:2px solid #34d36a}
+/* flat grass island (overflow clipped here only, so standing props aren't cut) */
+.fp-turf{position:absolute;inset:0;border-radius:9px;overflow:hidden;
+  box-shadow:inset 0 0 0 3px rgba(74,222,128,.9),inset 0 0 70px rgba(2,28,12,.5);
   background:
-    radial-gradient(130% 70% at 50% -8%, rgba(220,255,230,.22), rgba(255,255,255,0) 58%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.055) 0 8.33%, rgba(0,0,0,.055) 8.33% 16.66%),
-    linear-gradient(177deg,#35a95a 0%,#2a9150 46%,#1d6f3c 100%)}
-.fp-turf::after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(90% 60% at 50% 120%, rgba(0,0,0,.42), rgba(0,0,0,0) 62%),
-    radial-gradient(120% 90% at 50% -20%, rgba(255,255,255,.1), rgba(0,0,0,0) 50%);
-  mix-blend-mode:multiply;opacity:.7}
-.fp-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
-  filter:drop-shadow(0 1px 0 rgba(0,0,0,.25))}
+    radial-gradient(130% 70% at 50% -8%, rgba(220,255,230,.2), rgba(255,255,255,0) 58%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 8.33%, rgba(0,0,0,.06) 8.33% 16.66%),
+    linear-gradient(177deg,#35a95a,#2a9150 46%,#1d6f3c)}
+.fp-turf::after{content:"";position:absolute;inset:0;pointer-events:none;background:
+    radial-gradient(90% 60% at 50% 118%, rgba(0,0,0,.4), rgba(0,0,0,0) 62%),
+    radial-gradient(120% 90% at 50% -18%, rgba(255,255,255,.1), rgba(0,0,0,0) 50%);mix-blend-mode:multiply;opacity:.7}
+.fp-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 1px 0 rgba(0,0,0,.25))}
+/* standing props (goals + corner flags) live outside the clipped turf */
+.fp-props{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none}
+.fp-goal{position:absolute;left:50%;width:26%;height:16px;border:2px solid #fff;border-bottom:none;
+  transform-origin:bottom center;box-shadow:0 0 7px rgba(255,255,255,.4);
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.25) 0 1px,transparent 1px 5px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.25) 0 1px,transparent 1px 5px)}
+.fp-goal-top{top:5px;transform:translateX(-50%) translateY(-100%) rotateX(-90deg)}
+.fp-goal-bottom{bottom:5px;transform:translateX(-50%) rotateX(-90deg)}
+.fp-flag{position:absolute;width:2.5px;height:20px;background:#fde68a;transform-origin:bottom center;transform:rotateX(-90deg)}
+.fp-flag::after{content:"";position:absolute;top:0;left:2.5px;width:9px;height:6px;
+  background:linear-gradient(135deg,#ef4444,#facc15);clip-path:polygon(0 0,100% 50%,0 100%)}
+.fp-flag.tl{top:2px;left:5px}.fp-flag.tr{top:2px;right:5px}.fp-flag.bl{bottom:5px;left:5px}.fp-flag.br{bottom:5px;right:5px}
+/* players */
 .fp-players{position:absolute;inset:0;transform-style:preserve-3d}
-/* one player, placed at tactical (x,y); children build a grounded, standing figure */
-.fp-pl{position:absolute;transform:translate(-50%,-50%);transform-style:preserve-3d;
-  width:clamp(44px,13vw,72px);text-align:center}
-.fp-shadow{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);
-  width:62%;height:16%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.6),rgba(0,0,0,0));
-  filter:blur(1px)}
-.fp-stand{display:inline-flex;flex-direction:column;align-items:center;gap:3px;
-  transform:rotateX(-51deg);transform-origin:50% 100%;transform-style:preserve-3d}
-.fp-ava{position:relative;width:clamp(32px,9.6vw,48px);height:clamp(32px,9.6vw,48px);
-  display:grid;place-items:center;filter:drop-shadow(0 5px 7px rgba(0,0,0,.5))}
-.fp-shirt{position:absolute;inset:0;width:100%;height:100%}
-.fp-ava:not(.noimg) .fp-shirt{opacity:0}
-.fp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;
-  border:2px solid rgba(255,255,255,.92);background:#0b0b10;
-  box-shadow:0 3px 9px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.25)}
-.fp-num{position:absolute;bottom:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;
-  border-radius:999px;background:#0b0b10;color:#fff;font-size:10px;font-weight:800;
-  display:grid;place-items:center;border:1.5px solid rgba(255,255,255,.8)}
-.fp-ava.noimg .fp-num{display:none}
-.fp-nm{max-width:82px;font-size:clamp(9px,2.6vw,12px);font-weight:700;color:#fff;letter-spacing:.01em;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  padding:1px 7px;border-radius:999px;background:rgba(8,12,20,.6);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
-  text-shadow:0 1px 2px rgba(0,0,0,.8);box-shadow:0 1px 3px rgba(0,0,0,.35)}
-/* formation chip anchored to the near corner of the pitch */
-.fp-form{position:absolute;bottom:3%;left:10px;z-index:3;font-size:12px;font-weight:800;letter-spacing:.06em;
-  color:#fff;background:rgba(10,14,22,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-  border:1px solid rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;box-shadow:0 6px 16px -8px rgba(0,0,0,.75)}
+.fp-pl{position:absolute;width:0;height:0;transform-style:preserve-3d}
+/* glowing pedestal ring laid flat on the grass */
+.fp-ped{position:absolute;left:-19px;top:-19px;width:38px;height:38px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,0,0,.78) 24%,rgba(0,0,0,0) 70%);
+  border:1.5px solid rgba(255,255,255,.4);box-shadow:0 0 10px rgba(0,0,0,.5);transform:translateZ(1px)}
+/* the upright figure stands perpendicular to the grass (counter-rotates the tilt) */
+.fp-stand{position:absolute;left:-36px;bottom:0;width:72px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  transform-style:preserve-3d;transform-origin:50% 100%;
+  transform:translateZ(2px) rotateX(calc(-1 * var(--fp-tilt) - 6deg))}
+.fp-fig{position:relative;width:clamp(34px,10vw,50px);height:clamp(34px,10vw,50px);transform-style:preserve-3d}
+/* real photo */
+.fp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:2;
+  border:2px solid rgba(255,255,255,.92);background:#0b0b10;box-shadow:0 5px 9px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.25)}
+.fp-np{position:absolute;bottom:-5px;right:-5px;z-index:3;min-width:17px;height:17px;padding:0 4px;border-radius:999px;
+  background:#0b0b10;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;border:1.5px solid rgba(255,255,255,.8)}
+.fp-fig.noimg .fp-np{display:none}
+/* volumetric kit (fallback): a back layer gives thickness, a front layer the crisp jersey */
+.fp-kit{position:absolute;inset:0;transform-style:preserve-3d}
+.fp-fig:not(.noimg) .fp-kit{opacity:0}
+.fp-kit .kb,.fp-kit .kf{position:absolute;inset:0;display:block}
+.fp-kit svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.fp-kit .kb{transform:translateZ(-4px);filter:brightness(.5) drop-shadow(0 4px 6px rgba(0,0,0,.8))}
+.fp-kit .kf{transform:translateZ(0);filter:drop-shadow(0 4px 5px rgba(0,0,0,.6))}
+.fp-knum{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) translateZ(3px);z-index:4;
+  font-size:13px;font-weight:900;letter-spacing:-.5px;text-shadow:0 1px 0 rgba(0,0,0,.5),0 2px 4px rgba(0,0,0,.9)}
+.fp-fig.noimg .fp-knum{display:block}
+.fp-fig:not(.noimg) .fp-knum{display:none}
+/* name plate under the standing figure */
+.fp-nm{transform:translateZ(3px);max-width:84px;display:flex;align-items:center;gap:4px;
+  background:rgba(9,13,22,.95);border:1px solid rgba(255,255,255,.28);padding:2px 7px;border-radius:6px;
+  font-size:clamp(9px,2.5vw,11px);font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 5px 12px rgba(0,0,0,.8)}
+.fp-nm i{width:5px;height:5px;border-radius:50%;flex:none}
+/* formation chip on the near corner */
+.fp-form{position:absolute;bottom:2%;left:8px;z-index:4;font-size:12px;font-weight:800;letter-spacing:.06em;
+  color:#fff;background:rgba(10,14,22,.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.2);padding:5px 12px;border-radius:999px;box-shadow:0 6px 16px -8px rgba(0,0,0,.8)}
 /* empty / pre-lineup state */
 .fp-empty{display:grid;place-items:center}
 .fp-emptymsg{position:relative;z-index:2;max-width:78%;text-align:center;color:rgba(255,255,255,.96);
-  font-weight:600;font-size:14px;line-height:1.5;transform:rotateX(-51deg);
-  text-shadow:0 2px 8px rgba(0,0,0,.7)}
+  font-weight:600;font-size:14px;line-height:1.5;transform:rotateX(calc(-1 * var(--fp-tilt) - 6deg));text-shadow:0 2px 8px rgba(0,0,0,.7)}
 .fp-emptymsg span{display:block;font-size:34px;margin-bottom:6px}
 /* team-swap transition */
-.fp-swapping .fp-field{opacity:0;transform:rotateX(51deg) scale(1.1) translateY(-6%)}
+.fp-swapping .fp-field{opacity:0;transform:rotateX(var(--fp-tilt)) scale(1.08) translateY(-6%)}
 /* bottom swap button */
 .fp-toggle{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;
-  border-radius:16px;border:1px solid var(--line-2);
-  background:linear-gradient(180deg,var(--soft),var(--card));color:var(--ink);font-weight:700;font-size:14px;
-  cursor:pointer;box-shadow:0 10px 22px -16px rgba(0,0,0,.7);
+  border-radius:16px;border:1px solid var(--line-2);background:linear-gradient(180deg,var(--soft),var(--card));
+  color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 10px 22px -16px rgba(0,0,0,.7);
   transition:background .18s,border-color .18s,transform .12s,box-shadow .18s}
 .fp-toggle:hover{border-color:var(--brand-line);box-shadow:0 14px 26px -16px rgba(0,0,0,.8)}
 .fp-toggle:active{transform:scale(.985)}
@@ -1931,5 +1961,5 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-toggle .fp-tg-ic{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--brand-dim);color:var(--brand);flex:none}
 .fp-toggle .fp-tg-ic svg{width:15px;height:15px}
 .fp-toggle b{margin-inline-end:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:620px){.fp-stage{aspect-ratio:10/13;max-height:66vh;perspective:760px}}
-@media (prefers-reduced-motion:reduce){.fp-field,.fp-swapping .fp-field{transition:opacity .2s ease}}}
+@media (max-width:620px){.fp-shell{--fp-tilt:54deg}.fp-stage{aspect-ratio:10/13;max-height:66vh;perspective:820px}}
+@media (prefers-reduced-motion:reduce){.fp-field,.fp-swapping .fp-field{transition:opacity .2s ease}}
