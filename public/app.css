@@ -11,8 +11,8 @@
    Radius: sm 12 (buttons, inputs, tags) · lg 20 (cards, sheets) · pill (chips, round buttons)
    Use these variables instead of pixel values so every screen stays on the same scale. */
 :root{--fs-xs:12px;--fs-sm:14px;--fs-md:16px;--fs-lg:20px;--fs-xl:24px;--fs-2xl:32px;--fs-3xl:48px;--r-sm:12px;--r-lg:20px;--r-pill:999px}
-/* Spacing scale — one coherent rhythm for padding, gaps and margins across the app */
-:root{--sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-6:24px;--sp-8:32px;--sp-12:48px}
+/* Spacing scale — one coherent rhythm across the app, available in EVERY theme (was midnight-only) */
+:root{--s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:24px;--s-6:32px;--s-7:48px}
 /* Fixed brand colours that are not part of a theme */
 :root{--tg:#0F6F9E;--away:#F97316}
 
@@ -330,7 +330,7 @@ button,select,input{font:inherit;color:inherit}
 .auth-input{width:100%;padding:14px 16px;border-radius:var(--r-lg);background:var(--soft);border:1px solid transparent;color:var(--ink);margin-bottom:10px;outline:none}
 .auth-input:focus{border-color:var(--brand)}
 .otp-input{text-align:center;font-size:var(--fs-xl);letter-spacing:.5em}
-.modal-box .auth-btn{width:100%;margin-top:8px}
+.modal-box .auth-btn{width:100%;margin-top:10px}
 .auth-btn.auth-secondary{background:var(--soft);color:var(--ink)}
 .auth-error{min-height:18px;margin-top:10px;font-size:var(--fs-sm);color:var(--bad);text-align:center}
 .control-panel{display:flex;flex-direction:column;gap:22px}
@@ -1243,7 +1243,7 @@ body{background:transparent!important}
 .auth-legal a{ color:inherit; text-decoration:underline; }
 #ssoWrap .consent{ font-size:var(--fs-sm); margin-bottom:2px; max-width:300px; }
 /* Both buttons share one fixed footprint so Google (rendered) and Apple (custom) line up exactly. */
-#googleBtn{ display:flex; justify-content:center; width:300px; height:40px; color-scheme:light; }
+#googleBtn{ display:flex; justify-content:center; width:100%; min-height:44px; color-scheme:light; }
 #googleBtn.hidden, .sso-btn.hidden{ display:none; }
 .sso-apple{ display:flex; align-items:center; justify-content:center; gap:8px; width:300px; height:40px; border:none; border-radius:var(--r-pill);
   background:#000; color:#fff; font-size:var(--fs-sm); font-weight:500; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent; }
@@ -1361,7 +1361,7 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .filter-btn:hover{background:var(--soft);color:var(--ink)}
 
 /* ── Dashboard summary: one big count, three supporting figures, then search ── */
-.stat-strip{display:block;margin-top:0}
+.stat-strip{display:block;margin-top:0;margin-bottom:var(--s-5)}
 .sx{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--s-5);align-items:end;padding-bottom:var(--s-4);border-bottom:1px solid var(--line)}
 .sx-lead .stat-value{font-size:clamp(48px,14vw,68px);font-weight:700;letter-spacing:-.05em;line-height:.86;color:var(--ink)}
 .sx-lead .stat-label{margin-top:10px;font-size:var(--fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
@@ -1383,7 +1383,7 @@ body:has(#appContent:not(.hidden)) .globe-bg,body:has(#appContent:not(.hidden)) 
 .stat-search:active{transform:none}
 
 /* ── Match card ── */
-.match-grid{gap:var(--s-3)}
+.match-grid{gap:clamp(16px,2.2vw,24px)}
 .match{padding:var(--s-4);gap:14px;transition:border-color .15s}
 .match.is-value,.match.is-live-card,.match.is-pinned,.match.is-selected{box-shadow:none}
 .match.is-value{border-color:var(--good-line)}

@@ -351,14 +351,14 @@
     <label class="consent" id="consentWrap"><input type="checkbox" id="gConsent"><span data-i18n="consent_age">I am 18 or older</span></label>
     <button class="auth-btn" id="loginSubmitBtn" data-i18n="login_btn">Login</button>
     <p class="auth-legal"><span data-i18n="legal_a">By continuing, you accept the</span> <a href="/terms" target="_blank" rel="noopener" data-i18n="terms_link">Terms of Service</a> <span data-i18n="consent_and">and</span> <a href="/privacy" target="_blank" rel="noopener" data-i18n="privacy_link">Privacy Policy</a>.</p>
-    <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" data-act="closeAuthModal" data-i18n="cancel">Cancel</button>
+    <button class="auth-btn" style="background:transparent; color:var(--ink-2); border:1px solid var(--line-2); margin-top:10px;" data-act="closeAuthModal" data-i18n="cancel">Cancel</button>
     <div class="auth-error" id="authError"></div>
     </div>
     <div id="otpStep" class="hidden">
       <input type="text" class="auth-input otp-input" id="otpCode" aria-label="Verification code" placeholder="······" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
       <button class="auth-btn" id="otpBtn" type="button" data-act="verifyOtp" data-i18n="otp_btn">Verify</button>
       <button class="auth-btn auth-secondary" id="otpResend" type="button" data-act="resendOtp" disabled></button>
-      <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" data-act="resetAuthSteps" data-i18n="otp_back">Back</button>
+      <button class="auth-btn" style="background:transparent; color:var(--ink-2); border:1px solid var(--line-2); margin-top:10px;" type="button" data-act="resetAuthSteps" data-i18n="otp_back">Back</button>
       <div class="auth-error" id="otpError"></div>
     </div>
   </div>
@@ -438,8 +438,6 @@
           </select>
         </div>
         <div style="margin-top:16px;">
-          <label class="control-label" data-i18n="theme_label">Theme</label>
-          <div id="themeGrid" class="theme-grid" role="radiogroup" aria-label="Theme"></div>
           <select id="themeSelect" class="settings-select" hidden style="display:none">
             <option value="midnight">Midnight (default)</option>
             <option value="fintech">LuciBet Green</option>
@@ -477,7 +475,7 @@
     <p data-i18n="lic_sub">Enter your license key to activate Pro on your account.</p>
     <input type="text" class="auth-input" id="licKey" aria-label="License key" placeholder="LB-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <button class="auth-btn" id="licBtn" type="button" data-act="activateLicense" data-i18n="lic_btn">Activate</button>
-    <button class="auth-btn" style="background:transparent; color:var(--ink-3); margin-top:8px;" type="button" data-act="closeLicenseModal" data-i18n="cancel">Cancel</button>
+    <button class="auth-btn" style="background:transparent; color:var(--ink-2); border:1px solid var(--line-2); margin-top:10px;" type="button" data-act="closeLicenseModal" data-i18n="cancel">Cancel</button>
     <div class="auth-error" id="licMsg"></div>
     <div class="lic-state" id="licState" role="status" aria-live="polite">
       <div class="lic-badge">
@@ -1095,7 +1093,7 @@ function renderGoogleButton() {
   const host = document.getElementById('googleBtn');
   if (!host) return;
   google.accounts.id.initialize({ client_id: googleClientId, callback: onGoogleCredential, auto_select: false, cancel_on_tap_outside: true });
-  google.accounts.id.renderButton(host, { type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: 300 });
+  google.accounts.id.renderButton(host, { type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: 360 });
   host.classList.remove('hidden');
   showSso();
   gsiRendered = true;
