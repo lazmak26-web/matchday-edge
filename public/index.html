@@ -2271,7 +2271,7 @@ function buildCard(r, t) {
         <div class="vb-body"><span class="vb-sel">${esc(bv.selection ?? '—')}</span><span class="vb-price">${Number.isFinite(bvOdds) ? bvOdds.toFixed(2) : '—'}</span></div>
         <div class="vb-meta"><span>${t.kelly}: ${esc(bv.quarter_kelly ?? '—')}</span><span class="pill ${riskClass(bv.risk_level)}">${esc(bv.risk_level ?? '—')}</span></div>
       </div>` : '';
-  const actions = `${mxQuality(fx)}<div class="mx-actions">${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" data-act="shareMatch" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${infoHTML(fx.id)}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}</div>`;
+  const actions = `${mxQuality(fx)}<div class="mx-actions">${isAdmin() ? `<button class="pin-btn share-btn${sharedIds.has(String(fx.id)) ? ' on' : ''}" type="button" data-share="${esc(fx.id)}" data-act="shareMatch" title="${sharedIds.has(String(fx.id)) ? 'Shared on Discover' : 'Share on Discover'}" aria-label="Share on Discover"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>` : ''}${pinHTML(fx.id)}${v.started ? '' : bellHTML(fx.id)}</div>`;
 
   return `<article data-fx="${esc(fx.id)}" data-odds="${fx.odds && fx.odds.length ? 1 : 0}" class="match ${v.bet ? 'is-value' : ''} ${v.started ? 'is-live-card' : ''} ${isPinned(fx.id) ? 'is-pinned' : ''}">
       ${mxTop(fx, actions)}
