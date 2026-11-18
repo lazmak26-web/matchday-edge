@@ -1,0 +1,86 @@
+/* football-dash.css — dashboard layout for the league page and the team sheet.
+   Rule of thumb: labels small, muted, upper-case; numbers big, bold, tabular. */
+
+/* KPI strip: one card, cells split by hairlines */
+.dx-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0 0 14px;border:1px solid var(--line);
+  border-radius:var(--r-lg);overflow:hidden;background:var(--line)}
+@media (min-width:640px){.dx-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.dx-kpis.dx-kpis-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dx-kpis-3 .dx-kpi{padding:12px 10px}
+.dx-kpis[hidden]{display:none}
+.dx-kpi{display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px 14px;background:var(--card)}
+.dx-k{font-size:11px;line-height:1.2;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);overflow-wrap:anywhere}
+.dx-v{font-size:clamp(20px,5.4vw,26px);line-height:1.05;font-weight:800;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-sub{font-size:var(--fs-xs);color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-bar{display:block;height:4px;border-radius:4px;background:color-mix(in srgb,var(--ink) 8%,transparent);overflow:hidden;margin-top:2px}
+.dx-bar i{display:block;height:100%;border-radius:inherit;background:var(--brand)}
+
+/* green / red numbers */
+.dx-gd.up{color:var(--good)} .dx-gd.down{color:var(--bad)}
+.dx-wdl{display:inline-flex;gap:6px;font-size:var(--fs-xs);font-weight:700;font-variant-numeric:tabular-nums}
+.dx-wdl i{font-style:normal;padding:2px 7px;border-radius:6px}
+.dx-wdl .w{color:var(--good);background:color-mix(in srgb,var(--good) 13%,transparent)}
+.dx-wdl .d{color:var(--ink-2);background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.dx-wdl .l{color:var(--bad);background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.dx-wdl.big{gap:5px;margin-top:2px;flex-wrap:wrap}
+.dx-wdl.big i{font-size:clamp(15px,4.4vw,18px);font-weight:800;padding:3px 7px;display:inline-flex;align-items:baseline;gap:2px}
+.dx-wdl.big small{font-size:10px;font-weight:700;opacity:.8}
+
+/* leader card */
+.dx-leader{display:flex;align-items:center;gap:14px;padding:14px 16px;margin:0 0 6px;border:1px solid color-mix(in srgb,var(--brand) 30%,var(--line));
+  border-radius:var(--r-lg);background:linear-gradient(135deg,color-mix(in srgb,var(--brand) 9%,var(--card)),var(--card))}
+.dx-leader.fb-li{border-bottom:1px solid color-mix(in srgb,var(--brand) 30%,var(--line))}
+.dx-crest{width:46px;height:46px;object-fit:contain;flex:none}
+.dx-leader-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.dx-leader-name{font-size:var(--fs-lg);font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-leader-pts{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:end}
+.dx-gap{font-size:var(--fs-xs);font-weight:700;color:var(--ink-3);white-space:nowrap}
+.dx-gap.up{color:var(--good)}
+
+/* compact tables */
+.dx-table{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);overflow:hidden}
+.dx-tr{display:grid;grid-template-columns:28px minmax(0,1fr) 34px 44px 48px;align-items:center;gap:8px;padding:10px 14px;
+  border-bottom:1px solid var(--line);font-size:var(--fs-sm)}
+.dx-scorers .dx-tr{grid-template-columns:28px minmax(0,1fr) 40px 48px}
+.dx-tr:last-child{border-bottom:0}
+.dx-tr.fb-li{display:grid}
+.dx-th{padding-block:8px;background:color-mix(in srgb,var(--ink) 3%,var(--card))}
+.dx-th span{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.dx-th span:nth-child(n+3){text-align:end}
+.dx-pos{font-weight:700;color:var(--ink-3);text-align:center;font-variant-numeric:tabular-nums}
+.dx-tr:nth-child(2) .dx-pos{color:var(--brand)}
+.dx-team{display:flex;align-items:center;gap:10px;min-width:0}
+.dx-team .fb-crest{flex:none}
+.dx-team-txt{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.dx-team-txt b{color:var(--ink);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-team-txt small{color:var(--ink-3);font-size:var(--fs-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-team-txt .fb-form{transform:scale(.85);transform-origin:left center}
+.dx-team-txt .dx-bar{height:3px;max-width:160px}
+.dx-num{text-align:end;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.dx-muted{color:var(--ink-3);font-weight:600}
+.dx-pts{font-size:var(--fs-lg);font-weight:800}
+@media (hover:hover){.dx-tr.tap:hover{background:color-mix(in srgb,var(--brand) 6%,var(--card))}}
+
+/* key/value card (club facts) */
+.dx-card{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);padding:2px 14px}
+.dx-kv{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--line)}
+.dx-kv:last-child{border-bottom:0}
+.dx-kv > span{flex:none;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.dx-kv > b{min-width:0;text-align:end;font-size:var(--fs-md);font-weight:700;color:var(--ink);line-height:1.3}
+.dx-kv > b small{display:block;font-size:var(--fs-xs);font-weight:500;color:var(--ink-3)}
+
+/* squad */
+.dx-squad{padding-bottom:6px}
+.dx-group{display:flex;align-items:center;justify-content:space-between;margin:14px 0 2px;font-size:11px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.dx-group small{font-size:11px;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink-2)}
+.dx-squad .fb-sq div{padding:7px 0}
+.dx-squad .fb-sq div:not(.nm){padding-left:12px}
+.dx-squad .fb-sq div.ag{font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.dx-squad .fb-sq div:not(.nm):not(.ag){color:var(--ink-3);font-size:var(--fs-xs)}
+
+/* the team sheet uses the same strip; the old tiles stay for other pages */
+.fb-team-box .dx-kpis{margin-top:4px}
+.fb-team-box .fb-h4{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:20px 0 8px}
+#view-leagues .fb-h4{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:20px 0 8px}
