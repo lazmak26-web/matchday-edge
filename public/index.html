@@ -52,7 +52,7 @@
     <div class="brand">
       <button class="icon-btn hidden" id="menuBtn" type="button" aria-label="Menu" data-act="openMenu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="brand-mark">
-        <img src="logo.png" alt="LuciBet logo" width="34" height="34" decoding="async" fetchpriority="high">
+        <img class="logo-w" src="logo.png" alt="LuciBet logo" width="34" height="34" decoding="async" fetchpriority="high"><img class="logo-k" src="logo-dark.png" alt="" aria-hidden="true" width="34" height="34" decoding="async">
       </div>
       <div class="brand-text">
         <div class="brand-name">LuciBet</div>
@@ -125,7 +125,6 @@
       <div class="lb-edge lbb">
         <div class="lbb-head">
           <span class="lbb-title" data-i18n="lb_edge_title">Picks win rate · recent</span>
-          <button type="button" class="lbb-go" data-act="openAuthModal" aria-label="Open the dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         </div>
         <div class="lbb-value" id="lbEdgeRate">—</div>
         <p class="lbb-sub" id="lbDelta" data-i18n="lbb_empty">Results show up here once our picks are settled.</p>
@@ -956,6 +955,9 @@ document.getElementById('settingsBtn').onclick = () => setTimeout(openSettingsMo
 /* logo tile: if the tile behind the LuciBet logo is white, make it black (any other colour stays as it is) */
 (function () {
   function fix() {
+    const cx = document.createElement('canvas').getContext('2d'); cx.fillStyle = '#000'; cx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#000';
+    const hx = String(cx.fillStyle), bg = hx.charAt(0) === '#' ? [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)) : (hx.match(/[\d.]+/g) || []).map(Number);
+    if (bg.length >= 3) document.documentElement.classList.toggle('ui-light', (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) > 150);
     const m = document.querySelector('.brand-mark'); if (!m) return;
     m.classList.remove('is-dark');
     const c = (getComputedStyle(m).backgroundColor.match(/[\d.]+/g) || []).map(Number);
@@ -3063,12 +3065,16 @@ function drawLandingBars(totals) {
     return;
   }
   let best = 0; shown.forEach((x, i) => { if (x.r > shown[best].r) best = i; });
+  // Scale to the real spread of the days shown (not 0-100 %), so a 78 % day and an 85 % day look different;
+  // the lowest day still gets a visible bar and every bar carries its own number.
+  const lo = Math.max(0, Math.min(...shown.map(x => x.r)) - 0.08), hi = Math.max(...shown.map(x => x.r));
+  const hgt = r => hi - lo < 0.001 ? 70 : 18 + (r - lo) / (hi - lo) * 82;
   const last = shown.length - 1;
   const lbl = d => d.toLocaleDateString(loc, { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
   box.innerHTML = shown.map((x, i) => {
     const cls = i === last ? ' is-last' : i === best ? ' is-best' : '';
     const tip = `${d2(x.d, loc)} · ${x.w}/${x.n} ${t.lb_won || 'won'} (${Math.round(x.r * 100)}%)`;
-    return `<div class="lbb-col${cls}" title="${esc(tip)}"><i style="height:${Math.max(8, x.r * 100).toFixed(0)}%"></i><span>${esc(lbl(x.d))}</span></div>`;
+    return `<div class="lbb-col${cls}" title="${esc(tip)}"><em>${Math.round(x.r * 100)}%</em><i style="height:calc((100% - 68px) * ${(hgt(x.r) / 100).toFixed(3)})"></i><span>${esc(lbl(x.d))}</span><small>${x.w}/${x.n}</small></div>`;
   }).join('');
   box.setAttribute('aria-label', shown.map(x => `${d2(x.d, loc)} ${Math.round(x.r * 100)}%`).join(', '));
   if (shown.length < 2) { sub.textContent = t.lbb_one || 'First settled day of picks.'; return; }
