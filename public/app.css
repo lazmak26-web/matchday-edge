@@ -49,8 +49,8 @@
 [data-theme="light"]{
   color-scheme: light;
   /* Premium warm ivory — not aggressive pure white; keeps LuciBet's blue identity */
-  --bg: #F5F4EF;            /* soft warm off-white */
-  --card: #FFFFFF;          /* clean solid light surface */
+  --bg: #F1EFE8;            /* soft warm off-white (blanc cassé), never a glaring pure white */
+  --card: #FBFAF6;          /* off-white surface, softer than #fff so nothing glares */
   --soft: #ECEAE2;          /* secondary warm surface */
   --ink: #1C1B18;           /* deep warm charcoal */
   --ink-2: #4A4842;         /* secondary text */
@@ -981,14 +981,18 @@ body::before,body::after,.aurora{display:none!important}
   -webkit-backdrop-filter:none;backdrop-filter:none}
 .feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.bv,.pf-card,.pf-day,.empty-state{
   background:var(--card);border-radius:var(--r-lg);box-shadow:var(--edge),var(--shadow)}
-/* Glassy-solid surfaces: opaque cards with a subtle gloss + top sheen, in every theme */
-.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.bv,.pf-card,.pf-day,.empty-state,.stat-item{
-  background:var(--card-gloss,none),var(--card);
-  box-shadow:inset 0 1px 0 var(--card-sheen,transparent),var(--edge),var(--shadow)}
-:root,[data-theme="dark"]{--card-gloss:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,0) 46%);--card-sheen:rgba(255,255,255,.07)}
-[data-theme="midnight"]{--card-gloss:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0) 46%);--card-sheen:rgba(255,255,255,.09)}
-[data-theme="light"]{--card-gloss:linear-gradient(180deg,rgba(255,255,255,.9),rgba(28,27,24,.022) 100%);--card-sheen:rgba(255,255,255,1)}
-[data-theme="fintech"]{--card-gloss:linear-gradient(180deg,rgba(255,255,255,.9),rgba(11,31,23,.02) 100%);--card-sheen:rgba(255,255,255,1)}
+/* Glassmorphism surfaces: translucent + blurred, subtle border, soft shadow + inset top light.
+   Values mirror the reference card. Applies to cards and the header, in every theme. */
+.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.bv,.pf-card,.pf-day,.empty-state,.stat-item,.app-header{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(var(--glass-blur,22px)) saturate(140%);backdrop-filter:blur(var(--glass-blur,22px)) saturate(140%);
+  border:1px solid var(--glass-brd)}
+.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.bv,.pf-card,.pf-day,.empty-state,.stat-item{box-shadow:var(--glass-sh)}
+.app-header{box-shadow:var(--glass-sh-bar);z-index:50}
+:root,[data-theme="dark"]{--glass-bg:rgba(17,17,20,.80);--glass-blur:22px;--glass-brd:rgba(255,255,255,.06);--glass-sh:0 20px 50px -14px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.03);--glass-sh-bar:0 10px 30px -16px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04)}
+[data-theme="midnight"]{--glass-bg:rgba(15,15,18,.82);--glass-blur:22px;--glass-brd:rgba(255,255,255,.065);--glass-sh:0 20px 50px -14px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.035);--glass-sh-bar:0 10px 30px -16px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.045)}
+[data-theme="light"]{--glass-bg:rgba(252,251,247,.70);--glass-blur:20px;--glass-brd:rgba(28,27,24,.08);--glass-sh:0 16px 40px -18px rgba(28,27,24,.16),inset 0 1px 0 rgba(255,255,255,.6);--glass-sh-bar:0 10px 28px -16px rgba(28,27,24,.16),inset 0 1px 0 rgba(255,255,255,.7)}
+[data-theme="fintech"]{--glass-bg:rgba(252,251,247,.70);--glass-blur:20px;--glass-brd:rgba(11,31,23,.08);--glass-sh:0 16px 40px -18px rgba(11,31,23,.16),inset 0 1px 0 rgba(255,255,255,.6);--glass-sh-bar:0 10px 28px -16px rgba(11,31,23,.16),inset 0 1px 0 rgba(255,255,255,.7)}
 .perf-card.hero::before,.perf-card.hero::after{background:var(--card);border:1px solid var(--line)}
 .perf-val,.stat-value{font-weight:800;letter-spacing:-.03em}
 .btn-main{background:var(--hero);color:#fff}
