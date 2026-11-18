@@ -1473,6 +1473,19 @@ window.crestFail = function(img) {
   p.textContent = img.dataset.ini || '?';
 };
 
+// CSP blocks inline onerror=, so broken crest/logo images never cleaned themselves up and showed the
+// browser's torn-image icon (obscure clubs whose logo 404s). Wire the fallbacks from script instead:
+// 'error' doesn't bubble, so listen in the capture phase for any image load failure app-wide.
+document.addEventListener('error', function (e) {
+  const el = e.target;
+  if (!el || el.tagName !== 'IMG') return;
+  if (el.closest && el.closest('.crest.has-logo')) { crestFail(el); return; }         // match-card crest → team initials
+  if (el.classList.contains('fb-crest') || (el.closest && el.closest('.fb-crest'))) {  // football-data crest → neutral placeholder
+    el.replaceWith(Object.assign(document.createElement('span'), { className: 'fb-crest-ph' })); return;
+  }
+  if (el.closest && el.closest('.lg-chip, .fb-comp, .fb-meta')) { el.remove(); return; }   // league/competition emblems: just drop
+}, true);
+
 const crestHTML = t => {
   const ini = esc(initials(t.name));
   const url = logoOf(t);
