@@ -422,9 +422,10 @@ body.is-ar .t-name, body.is-ar .pick-match{ unicode-bidi: plaintext; }
 
 .tg-fab{right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:52px;height:52px}@media (min-width:960px){.tg-fab{bottom:28px;right:28px}}
 
-[data-theme="midnight"]{color-scheme:dark;--good:#34D399;--warn:#FBBF24;--bad:#FB7185;--info:#38BDF8;--good-dim:rgba(52,211,153,.14);--good-line:rgba(52,211,153,.38);--warn-dim:rgba(251,191,36,.14);--bad-dim:rgba(251,113,133,.14);--info-dim:rgba(56,189,248,.14);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 6px 24px -10px rgba(0,0,0,.6)}
+[data-theme="midnight"]{color-scheme:dark;--good:#34D399;--warn:#FBBF24;--bad:#FB7185;--info:#38BDF8;--good-dim:rgba(52,211,153,.14);--good-line:rgba(52,211,153,.38);--warn-dim:rgba(251,191,36,.14);--bad-dim:rgba(251,113,133,.14);--info-dim:rgba(56,189,248,.14);--text-main:var(--ink);--text-sub:var(--ink-2);--shadow:0 1px 2px rgba(0,0,0,.5),0 14px 34px -16px rgba(0,0,0,.72)}
 
-[data-theme="midnight"]{--bg:#000;--card:#111113;--soft:#1C1C1F;--ink:#F5F5F7;--ink-2:#B0B0B8;--ink-3:#8E8E99;--line:#232327;--line-2:#34343A;--brand:#2997FF;--brand-2:#64B5FF;--brand-dim:rgba(41,151,255,.16);--grad:linear-gradient(135deg,#0A84FF,#2997FF)}
+/* Coordinated near-black surfaces (not pure #000) so cards read as elevated, like the light theme's depth */
+[data-theme="midnight"]{--bg:#08080B;--card:#141419;--soft:#1E1E25;--ink:#F5F5F7;--ink-2:#B0B0B8;--ink-3:#8E8E99;--line:#26262E;--line-2:#34343F;--brand:#2997FF;--brand-2:#64B5FF;--brand-dim:rgba(41,151,255,.16);--grad:linear-gradient(135deg,#0A84FF,#2997FF)}
 
 :root{--glass:color-mix(in srgb,var(--card) 56%,transparent);--glass-line:color-mix(in srgb,var(--ink) 11%,transparent);--hi:color-mix(in srgb,var(--ink) 9%,transparent)}
 .feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.stat-item{background:var(--glass);border:1px solid var(--glass-line);border-radius:var(--r-lg);box-shadow:inset 0 1px 0 var(--hi),var(--shadow)}
