@@ -51,7 +51,7 @@ function parseLineups(arr) {
   const out = new Map();
   for (const l of Array.isArray(arr) ? arr : []) {
     if (!l || !l.team || l.team.id == null) continue;
-    const xi = (l.startXI || []).map(parsePlayer).filter(Boolean);
+    const xi = (l.startXI || []).map(parsePlayer).filter(Boolean).slice(0, 11);   // a starting XI is 11; guard against a provider sending extras/bench
     if (!xi.length) continue;
     out.set(String(l.team.id), {
       formation: /^\d(-\d){1,4}$/.test(l.formation || '') ? l.formation : null,

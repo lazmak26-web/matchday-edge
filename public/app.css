@@ -1893,7 +1893,7 @@ html,body{max-width:100%;overflow-x:clip}
 }
 
 /* ── 3D tactical pitch: raised stadium block with upright standing kits/photos ── */
-.fp-shell{display:flex;flex-direction:column;gap:10px;margin:2px 0 4px;--fp-tilt:30deg}
+.fp-shell{display:flex;flex-direction:column;gap:10px;margin:2px 0 4px;--fp-tilt:44deg}
 /* top control row: the swap button sits here, beside the modal's close (X) button */
 .fp-top{display:flex;justify-content:flex-end;align-items:center;min-height:40px;padding-right:52px;position:relative;z-index:6}
 /* the pitch never intercepts clicks meant for the controls above it */
@@ -2032,5 +2032,5 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-toggle .fp-tg-ic{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--brand-dim);color:var(--brand);flex:none}
 .fp-toggle .fp-tg-ic svg{width:14px;height:14px}
 .fp-toggle b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
-@media (max-width:620px){.fp-shell{--fp-tilt:32deg}.fp-stage{aspect-ratio:10/12.5;max-height:62vh;perspective:1040px}}
+@media (max-width:620px){.fp-shell{--fp-tilt:44deg}.fp-stage{aspect-ratio:10/12.5;max-height:62vh;perspective:1040px}}
 @media (prefers-reduced-motion:reduce){.fp-field,.fp-swapping .fp-field{transition:opacity .2s ease}}
