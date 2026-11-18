@@ -102,7 +102,6 @@
 
   <div id="landingPage">
     <div class="landing-left">
-      <span class="lb-badge"><span class="lb-dot"></span><span data-i18n="hero_badge">Live Odds · +EV Scanner</span></span>
       <h1 class="hero-title" data-i18n="hero_title">Match analytics.<br>The decision is yours.</h1>
       <p class="hero-subtitle adapt-ink" data-i18n="hero_sub">Statistical match analysis built on a Poisson model and live market odds. We highlight prices where our model estimates positive expected value (EV). These are estimates, not guaranteed outcomes.</p>
       <div class="lb-stats">
@@ -908,7 +907,7 @@ function updateAuthUI() {
   }
 }
 
-function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
+function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); requestAnimationFrame(() => { try { renderGoogleButton(); } catch (e) {} }); }   // fit the Google button to the now-visible box width
 function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authError').textContent = ''; resetAuthSteps(); setAuthMode('login'); }
 function openSettingsModal() { const m = document.getElementById('settingsModal'); m.classList.remove('closing'); m.classList.remove('hidden');  document.getElementById('menuSetBtn').classList.add('active'); }
 function animHide(el, ms) { ms = ms || 460; if (!el || el.classList.contains('hidden') || el.classList.contains('closing')) return; if (matchMedia('(prefers-reduced-motion:reduce)').matches) { el.classList.add('hidden'); return; } el.classList.add('closing'); setTimeout(() => { el.classList.add('hidden'); el.classList.remove('closing'); }, ms); }
@@ -1086,13 +1085,16 @@ async function ssoLogin(url, payload) {
 }
 
 /* Google Identity Services — official rendered button (dark pill). */
+let gsiInit = false;
 function renderGoogleButton() {
-  if (gsiRendered || !googleClientId) return;
+  if (!googleClientId) return;
   if (!(window.google && google.accounts && google.accounts.id)) return;   // GIS script not ready yet; onGoogleLibraryLoad will retry
   const host = document.getElementById('googleBtn');
   if (!host) return;
-  google.accounts.id.initialize({ client_id: googleClientId, callback: onGoogleCredential, auto_select: false, cancel_on_tap_outside: true });
-  google.accounts.id.renderButton(host, { type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: 360 });
+  if (!gsiInit) { google.accounts.id.initialize({ client_id: googleClientId, callback: onGoogleCredential, auto_select: false, cancel_on_tap_outside: true }); gsiInit = true; }
+  const bw = Math.max(220, Math.min(400, Math.round(host.getBoundingClientRect().width) || 360));   // match the email box width
+  host.innerHTML = '';   // re-render so the width tracks the (now visible) box
+  google.accounts.id.renderButton(host, { type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: bw });
   host.classList.remove('hidden');
   showSso();
   gsiRendered = true;

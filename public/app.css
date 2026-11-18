@@ -981,6 +981,14 @@ body::before,body::after,.aurora{display:none!important}
   -webkit-backdrop-filter:none;backdrop-filter:none}
 .feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.bv,.pf-card,.pf-day,.empty-state{
   background:var(--card);border-radius:var(--r-lg);box-shadow:var(--edge),var(--shadow)}
+/* Glassy-solid surfaces: opaque cards with a subtle gloss + top sheen, in every theme */
+.feature-card,.chart-card,.match,.perf-card,.plan-card,.pick,.hc-card,.bv,.pf-card,.pf-day,.empty-state,.stat-item{
+  background:var(--card-gloss,none),var(--card);
+  box-shadow:inset 0 1px 0 var(--card-sheen,transparent),var(--edge),var(--shadow)}
+:root,[data-theme="dark"]{--card-gloss:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,0) 46%);--card-sheen:rgba(255,255,255,.07)}
+[data-theme="midnight"]{--card-gloss:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0) 46%);--card-sheen:rgba(255,255,255,.09)}
+[data-theme="light"]{--card-gloss:linear-gradient(180deg,rgba(255,255,255,.9),rgba(28,27,24,.022) 100%);--card-sheen:rgba(255,255,255,1)}
+[data-theme="fintech"]{--card-gloss:linear-gradient(180deg,rgba(255,255,255,.9),rgba(11,31,23,.02) 100%);--card-sheen:rgba(255,255,255,1)}
 .perf-card.hero::before,.perf-card.hero::after{background:var(--card);border:1px solid var(--line)}
 .perf-val,.stat-value{font-weight:800;letter-spacing:-.03em}
 .btn-main{background:var(--hero);color:#fff}
@@ -1244,7 +1252,7 @@ body{background:transparent!important}
 .auth-legal a{ color:inherit; text-decoration:underline; }
 #ssoWrap .consent{ font-size:var(--fs-sm); margin-bottom:2px; max-width:300px; }
 /* Both buttons share one fixed footprint so Google (rendered) and Apple (custom) line up exactly. */
-#googleBtn{ display:flex; justify-content:center; width:100%; min-height:44px; color-scheme:light; }
+#googleBtn{ display:flex; align-items:center; justify-content:center; width:100%; min-height:48px; color-scheme:light; }
 #googleBtn.hidden, .sso-btn.hidden{ display:none; }
 .sso-apple{ display:flex; align-items:center; justify-content:center; gap:8px; width:300px; height:40px; border:none; border-radius:var(--r-pill);
   background:#000; color:#fff; font-size:var(--fs-sm); font-weight:500; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent; }
