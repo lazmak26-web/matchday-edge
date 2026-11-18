@@ -38,6 +38,7 @@
 <link rel="stylesheet" href="/football-dash.css">
 <link rel="stylesheet" href="/no-glow.css">
 <link rel="stylesheet" href="/polish.css">
+<script src="/rays-bg.js" defer></script>
 <script src="/spatial.js" defer></script>
 <script src="/ui-pro.js" defer></script>
 </head>
@@ -3017,7 +3018,7 @@ function lpCarouselOff(el) {
 function renderLanding(list, elId = 'lpCards', unlockCall = () => openAuthModal()) {
   const t = tNow();
   const el = $(elId); if (!el) return;
-  if (!list.length) { const bar = document.getElementById(elId + 'Bar'); if (bar) bar.innerHTML = ''; if (elId === 'lpCards') lpCarouselOff(el); el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
+  if (!list.length) { const bar = document.getElementById(elId + 'Bar'); if (bar) bar.innerHTML = ''; if (elId === 'lpCards') { lpCarouselOff(el); updateLandingStats(list); } el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
   const shown = lgBar(elId, list, () => renderLanding(list, elId, unlockCall));
   const cardHTML = fx => {
     const live = mxLive(fx);
@@ -3366,6 +3367,7 @@ async function addComment(id) {
 
 /* BOOT */
 checkAuth();
+updateLandingStats([]);   // landing numbers + bars from what this browser already has, before the match list arrives
 loadAuthProviders();
 loadHistory(); 
 loadPublicFixtures();
