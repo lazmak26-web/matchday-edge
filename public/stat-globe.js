@@ -11,8 +11,10 @@
   var st = { phi: 0.9, theta: 0.32 };
 
   function isLight() {
-    var t = document.documentElement.getAttribute('data-theme') || 'light';
-    return /light|paper|sand|cream|snow|day/.test(t);
+    var cx = document.createElement('canvas').getContext('2d'); cx.fillStyle = '#000';
+    cx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#000';
+    var hx = String(cx.fillStyle), c = hx.charAt(0) === '#' ? [1, 3, 5].map(function (i) { return parseInt(hx.slice(i, i + 2), 16); }) : (hx.match(/[\d.]+/g) || []).map(Number);
+    return c.length >= 3 ? (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) > 150 : true;
   }
   function brand() {
     var c = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() || '#2f8cff';

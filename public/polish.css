@@ -38,3 +38,22 @@
 .dx-kpis,.dx-table,.dx-card,.dx-leader,.fb-tile,.fb-table-card,.empty-state,.da-card,.stat-hero{
   box-shadow:var(--card-shadow)!important;
 }
+
+/* logo: black on light themes, white on dark ones (html.ui-light is set from the page background's brightness) */
+.brand-mark{position:relative}
+.brand-mark .logo-k{display:none}
+html.ui-light .brand-mark .logo-w{display:none}
+html.ui-light .brand-mark .logo-k{display:block}
+html.ui-light .brand-mark,html.ui-light .brand-mark.is-dark,html.ui-light .app-header .brand-mark.is-dark{background:transparent!important;box-shadow:none!important}
+
+/* landing bars: the number of each day on top, W/N under the day */
+.lbb-bars{height:190px}
+.lbb-col{gap:6px}
+.lbb-col em{font-style:normal;font-size:12px;font-weight:700;color:var(--ink-2);text-align:center;font-variant-numeric:tabular-nums}
+.lbb-col.is-best em{color:#0EA5E9}
+.lbb-col.is-last em{color:#D97706}
+.lbb-col i{flex:none}
+.lbb-col span{line-height:1.1}
+.lbb-col small{font-size:10.5px;color:var(--ink-3);text-align:center;font-variant-numeric:tabular-nums;margin-top:-4px}
+.lbb-col.is-empty em,.lbb-col.is-empty small{display:none}
+@media (max-width:480px){.lbb-col small{display:none}.lbb-bars{height:176px}.lbb-col i{max-height:calc(100% - 50px)}}
