@@ -1113,9 +1113,9 @@ body{background:transparent!important}
 /* ── Match info (card button, modal, Match Center tab) ── */
 .info-btn svg{fill:none!important}
 .mi-box{width:min(100%,560px);padding:10px 16px 16px;border-radius:var(--r-lg)}
-/* Nothing but the pitch: no card frame, no header. */
-/* No backdrop of its own: the pitch floats as a piece on top of the live site content behind it. */
-#miModal.modal-overlay{background:transparent;background-image:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+/* Nothing but the pitch: no card frame, no header. A soft frosted backdrop so the pitch reads as a
+   clean glassy piece and its content never blends into the match list behind it. */
+#miModal.modal-overlay{background:rgba(6,8,13,.55);background-image:none;-webkit-backdrop-filter:blur(10px) saturate(115%);backdrop-filter:blur(10px) saturate(115%)}
 #miModal .modal-box.mi-box{background:transparent!important;border:0;box-shadow:none;overflow-x:visible;overflow-y:auto}
 #miModal .mi-head{display:none}
 #miModal .fb-x{z-index:9;background:rgba(14,19,30,.92);border-color:rgba(255,255,255,.14);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 6px 16px -8px rgba(0,0,0,.8)}
@@ -1881,7 +1881,7 @@ html,body{max-width:100%;overflow-x:clip}
 }
 
 /* ── 3D tactical pitch: raised stadium block with upright standing kits/photos ── */
-.fp-shell{display:flex;flex-direction:column;gap:10px;margin:2px 0 4px;--fp-tilt:49deg}
+.fp-shell{display:flex;flex-direction:column;gap:10px;margin:2px 0 4px;--fp-tilt:30deg}
 /* top control row: the swap button sits here, beside the modal's close (X) button */
 .fp-top{display:flex;justify-content:flex-end;align-items:center;min-height:40px;padding-right:52px;position:relative;z-index:6}
 /* the pitch never intercepts clicks meant for the controls above it */
@@ -1902,8 +1902,8 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-wall-left{top:0;bottom:0;left:0;width:20px;transform-origin:left;transform:rotateY(-90deg);background:linear-gradient(to left,#166534,#061c0e);border-left:2px solid #34d36a}
 .fp-wall-right{top:0;bottom:0;right:0;width:20px;transform-origin:right;transform:rotateY(90deg);background:linear-gradient(to right,#166534,#061c0e);border-right:2px solid #34d36a}
 /* flat grass island (overflow clipped here only, so standing props aren't cut) */
-.fp-turf{position:absolute;inset:0;border-radius:9px;overflow:hidden;
-  box-shadow:inset 0 0 0 3px rgba(74,222,128,.92),inset 0 0 90px rgba(2,24,10,.6),inset 0 3px 2px rgba(255,255,255,.14);
+.fp-turf{position:absolute;inset:0;border-radius:10px;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10),inset 0 0 70px rgba(2,24,10,.45),0 20px 44px -18px rgba(0,0,0,.7);
   background:
     radial-gradient(120% 62% at 50% -6%, rgba(235,255,240,.26), rgba(255,255,255,0) 55%),
     repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 12.5%, rgba(0,0,0,.028) 12.5% 25%),
@@ -1918,7 +1918,7 @@ html,body{max-width:100%;overflow-x:clip}
     radial-gradient(70% 55% at 50% 34%, rgba(255,255,255,.14), rgba(255,255,255,0) 60%),
     radial-gradient(95% 70% at 50% 120%, rgba(0,0,0,.5), rgba(0,0,0,0) 60%),
     radial-gradient(120% 90% at 50% -16%, rgba(255,255,255,.12), rgba(0,0,0,0) 48%);
-  mix-blend-mode:soft-light;opacity:.85}
+  mix-blend-mode:soft-light;opacity:.45}
 .fp-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 1px 0 rgba(0,0,0,.25))}
 /* standing props (goals + corner flags) live outside the clipped turf */
 .fp-props{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none}
@@ -1962,7 +1962,7 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-fig.noimg .fp-knum{display:block}
 .fp-fig:not(.noimg) .fp-knum{display:none}
 /* name plate under the standing figure */
-.fp-nm{transform:translateZ(3px);max-width:84px;display:flex;align-items:center;gap:4px;
+.fp-nm{transform:translateZ(3px);max-width:68px;display:flex;align-items:center;gap:4px;
   background:rgba(9,13,22,.95);border:1px solid rgba(255,255,255,.28);padding:2px 7px;border-radius:6px;
   font-size:clamp(9px,2.5vw,11px);font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   box-shadow:0 5px 12px rgba(0,0,0,.8)}
@@ -2020,5 +2020,5 @@ html,body{max-width:100%;overflow-x:clip}
 .fp-toggle .fp-tg-ic{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--brand-dim);color:var(--brand);flex:none}
 .fp-toggle .fp-tg-ic svg{width:14px;height:14px}
 .fp-toggle b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
-@media (max-width:620px){.fp-shell{--fp-tilt:50deg}.fp-stage{aspect-ratio:10/12.5;max-height:62vh;perspective:1040px}}
+@media (max-width:620px){.fp-shell{--fp-tilt:32deg}.fp-stage{aspect-ratio:10/12.5;max-height:62vh;perspective:1040px}}
 @media (prefers-reduced-motion:reduce){.fp-field,.fp-swapping .fp-field{transition:opacity .2s ease}}

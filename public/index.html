@@ -1821,8 +1821,7 @@ function fpPlayer(pos, kit, def) {
     + `</span></div>`;
 }
 // Stadium chrome (raised plinth + four extruded turf walls) and standing props (goals, corner flags).
-const FP_CHROME = `<div class="fp-plinth"></div>`
-  + `<div class="fp-wall fp-wall-front"></div><div class="fp-wall fp-wall-back"></div><div class="fp-wall fp-wall-left"></div><div class="fp-wall fp-wall-right"></div>`;
+const FP_CHROME = ``;   // no plinth / fence walls — a clean field, not a chunky 3D stadium
 const FP_PROPS = `<div class="fp-props"><div class="fp-goal fp-goal-top"></div><div class="fp-goal fp-goal-bottom"></div>`
   + `<div class="fp-flag tl"></div><div class="fp-flag tr"></div><div class="fp-flag bl"></div><div class="fp-flag br"></div></div>`;
 // SVG line markings for a full pitch (viewBox 0 0 100 150, top = attacking end).
@@ -1872,7 +1871,7 @@ function teamPitch(d, side, uid) {
   } else {
     const def = side === 'home' ? '#6d5cff' : '#e0423f';   // side-based default kit when the provider gives no colours
     const players = fpLayout(luT).map(pos => fpPlayer(pos, luT.colors, def)).join('');
-    field = `${FP_CHROME}<div class="fp-turf${isProb ? ' fp-prob' : isProj ? ' fp-proj' : ''}">${FP_LINES}</div>${FP_PROPS}<div class="fp-players">${players}</div>`;
+    field = `${FP_CHROME}<div class="fp-turf">${FP_LINES}</div>${FP_PROPS}<div class="fp-players">${players}</div>`;
     if (luT.formation) form = `<span class="fp-form" aria-label="${esc(t.mi_formation || 'Formation')}">${esc(luT.formation)}</span>`;
     const pf = luT.probableFrom;
     chip = isProb
@@ -1887,7 +1886,7 @@ function teamPitch(d, side, uid) {
     + `${crestHTML(other)}<b>${esc(other.name)}</b></button>`;
   return `<div class="fp-shell" id="fpShell-${esc(uid)}" data-side="${side}">`
     + `<div class="fp-top">${toggle}</div>`
-    + `<div class="fp-stage">${chip}<div class="fp-field">${field}</div>${form}</div></div>`;
+    + `<div class="fp-stage"><div class="fp-field">${field}</div></div></div>`;
 }
 // CSP blocks inline onerror= attributes, so the photo→kit fallback is wired from script:
 // reveal the kit when a player photo is missing. Covers images that already failed before
@@ -2429,11 +2428,10 @@ function mxTeams(fx, started) {
 // Home / draw / away: a bar cut in three, in the same left-to-right order as the tiles: green for the team more likely to win, red for the other, orange for the draw.
 function mxProb(p, t) {
   const tile = (label, val, top) => `<div class="tile${top ? ' top' : ''}"><i>${label}</i><b>${p ? pct1(val) : '—'}</b></div>`;
-  if (!p) return `<div class="mx-prob"><div class="mx-bar is-empty"></div><div class="tiles">${tile(t.home, 0)}${tile(t.draw, 0)}${tile(t.away, 0)}</div></div>`;
+  if (!p) return `<div class="mx-prob"><div class="tiles">${tile(t.home, 0)}${tile(t.draw, 0)}${tile(t.away, 0)}</div></div>`;
   const mx = Math.max(p.h, p.d, p.a), w = x => (x * 100).toFixed(1);
   const hw = p.h >= p.a;   // the team the model gives the better chance gets the green part, the other team the red part; the draw stays orange
   return `<div class="mx-prob" role="group" aria-label="${esc(t.home)} ${pct1(p.h)}, ${esc(t.draw)} ${pct1(p.d)}, ${esc(t.away)} ${pct1(p.a)}">
-        <div class="mx-bar" aria-hidden="true"><i class="h ${hw ? 'pw' : 'pl'}" style="width:${w(p.h)}%"></i><i class="d" style="width:${w(p.d)}%"></i><i class="a ${hw ? 'pl' : 'pw'}" style="width:${w(p.a)}%"></i></div>
         <div class="tiles">${tile(t.home, p.h, p.h === mx)}${tile(t.draw, p.d, p.d === mx && p.h !== mx)}${tile(t.away, p.a, p.a === mx && p.h !== mx && p.d !== mx)}</div>
       </div>`;
 }
