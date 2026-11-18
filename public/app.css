@@ -1884,3 +1884,28 @@ html,body{max-width:100%;overflow-x:clip}
   .sx{padding:16px}
   .sx::after{width:100px;height:100px;right:-32px;opacity:.35}
 }
+
+/* Landing "Picks win rate" bar card (drawLandingBars) */
+.lbb{gap:0;padding:20px 20px 16px}
+.lbb-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lbb-title{font-size:var(--fs-sm);color:var(--ink-3);font-weight:500}
+.lbb-go{display:grid;place-items:center;width:30px;height:30px;margin:-6px -6px -6px 0;border:0;border-radius:50%;background:transparent;color:var(--ink-3);cursor:pointer}
+@media (hover:hover){.lbb-go:hover{background:var(--soft);color:var(--ink)}}
+.lbb-value{margin-top:8px;font-size:clamp(34px,8vw,42px);line-height:1;font-weight:800;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
+.lbb-sub{margin:8px 0 0;font-size:var(--fs-sm);color:var(--ink-3);line-height:1.4}
+.lbb-sub b{font-weight:700}
+.lbb-sub b.up{color:var(--good)} .lbb-sub b.down{color:var(--bad)}
+.lbb-bars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:clamp(6px,2vw,12px);height:150px;margin-top:22px}
+.lbb-col{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:8px;min-width:0}
+.lbb-col i{display:block;border-radius:12px 12px 4px 4px;background:color-mix(in srgb,var(--ink) 22%,var(--card));transform-origin:bottom;animation:lbbGrow .6s cubic-bezier(.23,1,.32,1) both}
+.lbb-col:nth-child(2) i{animation-delay:.04s}.lbb-col:nth-child(3) i{animation-delay:.08s}.lbb-col:nth-child(4) i{animation-delay:.12s}
+.lbb-col:nth-child(5) i{animation-delay:.16s}.lbb-col:nth-child(6) i{animation-delay:.2s}.lbb-col:nth-child(7) i{animation-delay:.24s}.lbb-col:nth-child(8) i{animation-delay:.28s}
+.lbb-col.is-best i{background:#0EA5E9}
+.lbb-col.is-last i{background:#F59E0B}
+.lbb-col.is-empty i{height:34%;background:color-mix(in srgb,var(--ink) 8%,var(--card));animation:none}
+.lbb-col span{font-size:var(--fs-sm);color:var(--ink-3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lbb-meta{display:flex;gap:18px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:var(--fs-sm);color:var(--ink-3)}
+.lbb-meta b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.lbb-meta b.g{color:var(--good)}
+@keyframes lbbGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){.lbb-col i{animation:none}}

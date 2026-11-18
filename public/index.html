@@ -121,21 +121,15 @@
     </div>
 
     <div class="landing-right">
-      <div class="lb-edge">
-        <div class="lb-edge-head">
-          <div><div class="lb-edge-t" data-i18n="lb_edge_title">Picks win rate · recent</div><div class="lb-edge-v" id="lbEdgeRate">—</div></div>
+      <div class="lb-edge lbb">
+        <div class="lbb-head">
+          <span class="lbb-title" data-i18n="lb_edge_title">Picks win rate · recent</span>
+          <button type="button" class="lbb-go" data-act="openAuthModal" aria-label="Open the dashboard"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         </div>
-        <svg class="lb-chart" viewBox="0 0 320 110" preserveAspectRatio="none" aria-hidden="true">
-          <defs><linearGradient id="lbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--brand)" stop-opacity=".26"/><stop offset="1" stop-color="var(--brand)" stop-opacity="0"/></linearGradient></defs>
-          <path d="M0,80 L28,74 L56,82 L84,60 L112,66 L140,48 L168,54 L196,36 L224,44 L252,26 L280,32 L320,18 L320,110 L0,110 Z" fill="url(#lbg)"/>
-          <path d="M0,80 L28,74 L56,82 L84,60 L112,66 L140,48 L168,54 L196,36 L224,44 L252,26 L280,32 L320,18" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="320" cy="18" r="3.5" fill="var(--brand)"/>
-        </svg>
-        <div class="lb-chips">
-          <div class="lb-chip"><b id="lbPicks">—</b><span data-i18n="lb_picks">Picks</span></div>
-          <div class="lb-chip"><b class="g" id="lbWon">—</b><span data-i18n="lb_won">Won</span></div>
-          <div class="lb-chip"><b id="lbRoi">+EV</b><span data-i18n="lb_edge_short">Edge</span></div>
-        </div>
+        <div class="lbb-value" id="lbEdgeRate">—</div>
+        <p class="lbb-sub" id="lbDelta" data-i18n="lbb_empty">Results show up here once our picks are settled.</p>
+        <div class="lbb-bars" id="lbBars" role="img" aria-label="Win rate per day"></div>
+        <div class="lbb-meta"><span><b id="lbPicks">—</b> <span data-i18n="lb_picks">Picks</span></span><span><b class="g" id="lbWon">—</b> <span data-i18n="lb_won">Won</span></span></div>
       </div>
       <div class="cta-box">
         <div class="cta-title" data-i18n="get_started">Get Started Now</div>
@@ -641,6 +635,9 @@ Object.assign(translations.ar, { or_email: "أو بالبريد الإلكترو
 Object.assign(translations.en, { fb_goals_t: "Goals", fb_per_match: "per match", fb_of: "of", fb_pts_clear: "pts clear", fb_level: "level on points", fb_player: "Player", fb_goals_s: "G", fb_assists_s: "A", fb_gd: "Goal difference", fb_for: "for", fb_against: "against", fb_record: "Record", fb_club: "Club", fb_players: "Players", fb_avg_age: "Average age", fb_nations: "Nations" });
 Object.assign(translations.fr, { fb_goals_t: "Buts", fb_per_match: "par match", fb_of: "sur", fb_pts_clear: "pts d'avance", fb_level: "à égalité de points", fb_player: "Joueur", fb_goals_s: "B", fb_assists_s: "PD", fb_gd: "Différence de buts", fb_for: "pour", fb_against: "contre", fb_record: "Bilan", fb_club: "Club", fb_players: "Joueurs", fb_avg_age: "Âge moyen", fb_nations: "Nations" });
 Object.assign(translations.ar, { fb_goals_t: "الأهداف", fb_per_match: "في المباراة", fb_of: "من", fb_pts_clear: "نقاط فارق", fb_level: "تعادل في النقاط", fb_player: "اللاعب", fb_goals_s: "أهداف", fb_assists_s: "تمريرات", fb_gd: "فارق الأهداف", fb_for: "له", fb_against: "عليه", fb_record: "السجل", fb_club: "النادي", fb_players: "اللاعبون", fb_avg_age: "متوسط العمر", fb_nations: "الجنسيات" });
+Object.assign(translations.en, { lbb_empty: "Results show up here once our picks are settled.", lbb_one: "First settled day of picks.", lbb_same: "Win rate held steady on the last match day.", lbb_up: "Win rate rose on the last match day by about", lbb_down: "Win rate fell on the last match day by about", lbb_pts: "pts" });
+Object.assign(translations.fr, { lbb_empty: "Les résultats s'affichent ici dès que nos pronos sont réglés.", lbb_one: "Premier jour de pronos réglés.", lbb_same: "Taux de réussite stable le dernier jour de match.", lbb_up: "Le taux de réussite a progressé le dernier jour de match d'environ", lbb_down: "Le taux de réussite a baissé le dernier jour de match d'environ", lbb_pts: "pts" });
+Object.assign(translations.ar, { lbb_empty: "تظهر النتائج هنا بعد حسم توقعاتنا.", lbb_one: "أول يوم بتوقعات محسومة.", lbb_same: "نسبة الفوز ثابتة في آخر يوم مباريات.", lbb_up: "ارتفعت نسبة الفوز في آخر يوم مباريات بحوالي", lbb_down: "انخفضت نسبة الفوز في آخر يوم مباريات بحوالي", lbb_pts: "نقطة" });
 Object.assign(translations.en, { nav_mc: "Match Center", mc_label: "Upcoming matches", mc_sub: "Line-ups, injuries, head-to-head and league position for every upcoming match. Tap a match.", mc_today: "Today", mc_tomorrow: "Tomorrow", mc_search_ph: "Search a team or league…", mc_pro_p: "Unlock Pro to see line-ups, injuries and head-to-head for every match.", mi_title: "Team news", mi_btn: "Line-ups & team news", mi_login: "Please log in again.", mi_pro: "Match info is part of the Pro plan.", mi_t_overview: "Overview", mi_t_lineups: "Line-ups", mi_t_absences: "Injuries", mi_t_h2h: "Head-to-head", mi_s_full: "Full strength", mi_s_mostly: "Almost full strength", mi_s_weak: "Weakened", mi_s_rot: "Rotated XI", mi_s_unknown: "No team news yet", mi_out_n: "out", mi_doubt_n: "doubtful", mi_changes_n: "changes vs last match", mi_no_table: "No league table for this team.", mi_record: "W-D-L", mi_lu_none: "No line-up for this team.", mi_lu_soon: "Line-ups are announced about 1 hour before kick-off ({time}).", mi_lu_na: "No line-up data for this match.", mi_new: "NEW", mi_same_xi: "Same XI as the last match", mi_formation: "Formation", mi_subs: "Substitutes", mi_abs_unknown: "No team news available.", mi_abs_none: "No reported injuries or suspensions.", mi_out: "OUT", mi_doubt: "DOUBT", mi_h2h_none: "These teams have not met recently.", mi_h2h_total: "Matches played", mi_wins: "wins", mi_goals: "Goals", mi_last_meet: "Last meetings", mi_src: "Data: API-Football", mi_src_basic: "Line-ups and injuries are not available for this match.", mi_lu_prob: "Probable XI", mi_lu_prob_t: "Projected from the last line-up", mi_lu_conf: "Confirmed XI", mi_lu_proj: "Projected XI", mi_lu_proj_t: "Projected first-choice XI — not a confirmed line-up", mi_lu_squad: "Squad" });
 Object.assign(translations.fr, { nav_mc: "Centre des matchs", mc_label: "Matchs à venir", mc_sub: "Compositions, blessés, confrontations et classement pour chaque match à venir. Touchez un match.", mc_today: "Aujourd'hui", mc_tomorrow: "Demain", mc_search_ph: "Chercher une équipe ou une compétition…", mc_pro_p: "Passez Pro pour voir compositions, blessés et confrontations de chaque match.", mi_title: "Infos équipes", mi_btn: "Compositions et infos équipes", mi_login: "Reconnectez-vous.", mi_pro: "Les infos de match font partie du plan Pro.", mi_t_overview: "Aperçu", mi_t_lineups: "Compositions", mi_t_absences: "Blessés", mi_t_h2h: "Confrontations", mi_s_full: "Au complet", mi_s_mostly: "Presque au complet", mi_s_weak: "Affaiblie", mi_s_rot: "Équipe remaniée", mi_s_unknown: "Pas encore d'infos", mi_out_n: "absent(s)", mi_doubt_n: "incertain(s)", mi_changes_n: "changements vs dernier match", mi_no_table: "Pas de classement pour cette équipe.", mi_record: "G-N-P", mi_lu_none: "Pas de composition pour cette équipe.", mi_lu_soon: "Les compositions sont annoncées environ 1 h avant le coup d'envoi ({time}).", mi_lu_na: "Pas de composition pour ce match.", mi_new: "NOUV.", mi_same_xi: "Même onze que le dernier match", mi_formation: "Schéma", mi_subs: "Remplaçants", mi_abs_unknown: "Pas d'infos disponibles.", mi_abs_none: "Aucun blessé ni suspendu signalé.", mi_out: "ABSENT", mi_doubt: "INCERTAIN", mi_h2h_none: "Ces équipes ne se sont pas affrontées récemment.", mi_h2h_total: "Matchs joués", mi_wins: "victoires", mi_goals: "Buts", mi_last_meet: "Dernières confrontations", mi_src: "Données : API-Football", mi_src_basic: "Compositions et blessés indisponibles pour ce match.", mi_lu_prob: "XI probable", mi_lu_prob_t: "Projeté d'après la dernière composition", mi_lu_conf: "XI confirmé", mi_lu_proj: "XI projeté", mi_lu_proj_t: "XI type projeté — pas une composition confirmée", mi_lu_squad: "Effectif" });
 Object.assign(translations.ar, { nav_mc: "مركز المباريات", mc_label: "المباريات القادمة", mc_sub: "التشكيلات والإصابات والمواجهات المباشرة والترتيب لكل مباراة قادمة. اضغط على مباراة.", mc_today: "اليوم", mc_tomorrow: "غداً", mc_search_ph: "ابحث عن فريق أو بطولة…", mc_pro_p: "فعّل Pro لرؤية التشكيلات والإصابات والمواجهات لكل مباراة.", mi_title: "أخبار الفريقين", mi_btn: "التشكيلة وأخبار الفريقين", mi_login: "يرجى تسجيل الدخول من جديد.", mi_pro: "معلومات المباراة متاحة في خطة Pro.", mi_t_overview: "نظرة عامة", mi_t_lineups: "التشكيلة", mi_t_absences: "الإصابات", mi_t_h2h: "المواجهات", mi_s_full: "التشكيلة كاملة", mi_s_mostly: "شبه كاملة", mi_s_weak: "منقوصة", mi_s_rot: "تشكيلة مُدوَّرة", mi_s_unknown: "لا أخبار بعد", mi_out_n: "غائب", mi_doubt_n: "مشكوك فيه", mi_changes_n: "تغييرات مقارنة بالمباراة السابقة", mi_no_table: "لا يوجد ترتيب لهذا الفريق.", mi_record: "ف-ت-خ", mi_lu_none: "لا توجد تشكيلة لهذا الفريق.", mi_lu_soon: "تُعلن التشكيلات قبل ساعة تقريباً من البداية ({time}).", mi_lu_na: "لا توجد تشكيلة لهذه المباراة.", mi_new: "جديد", mi_same_xi: "نفس تشكيلة المباراة السابقة", mi_formation: "الخطة", mi_subs: "البدلاء", mi_abs_unknown: "لا توجد أخبار متاحة.", mi_abs_none: "لا إصابات ولا إيقافات معلنة.", mi_out: "غائب", mi_doubt: "شك", mi_h2h_none: "لم يلتقِ الفريقان مؤخراً.", mi_h2h_total: "عدد المباريات", mi_wins: "فوز", mi_goals: "الأهداف", mi_last_meet: "آخر المواجهات", mi_src: "المصدر: API-Football", mi_src_basic: "التشكيلات والإصابات غير متاحة لهذه المباراة.", mi_lu_prob: "تشكيلة متوقعة", mi_lu_prob_t: "مبنية على آخر تشكيلة", mi_lu_conf: "تشكيلة مؤكدة", mi_lu_proj: "تشكيلة أساسية", mi_lu_proj_t: "تشكيلة أساسية متوقعة — ليست مؤكدة", mi_lu_squad: "القائمة" });
@@ -3043,6 +3040,42 @@ function renderLanding(list, elId = 'lpCards', unlockCall = () => openAuthModal(
   if (elId === 'lpCards') updateLandingStats(list);
 }
 
+// Landing "Picks win rate" card: one bar per recent match day (height = that day's win rate), the best day in blue,
+// the latest day in orange, and a sentence on how the latest day compares with the one before. Real numbers only:
+// with no settled picks the bars stay empty.
+function drawLandingBars(totals) {
+  const box = document.getElementById('lbBars'), sub = document.getElementById('lbDelta');
+  if (!box || !sub) return;
+  const t = tNow(), lang = localStorage.getItem('mde:lang') || 'en', loc = lang === 'ar' ? 'ar' : lang === 'fr' ? 'fr-FR' : 'en-GB';
+  const days = [];
+  for (let i = 29; i >= 0 && days.length < 40; i--) {
+    const d = utcDayOff(-i), key = localDateStr(d), v = totals[key];
+    if (v && (v.wins + v.losses) > 0) days.push({ d, key, w: v.wins, n: v.wins + v.losses, r: v.wins / (v.wins + v.losses) });
+  }
+  const shown = days.slice(-8);
+  if (!shown.length) {
+    box.innerHTML = Array.from({ length: 8 }, () => '<div class="lbb-col is-empty"><i></i><span>&nbsp;</span></div>').join('');
+    box.setAttribute('aria-label', t.lbb_empty || 'No settled picks yet');
+    sub.textContent = t.lbb_empty || 'Results show up here once our picks are settled.';
+    return;
+  }
+  let best = 0; shown.forEach((x, i) => { if (x.r > shown[best].r) best = i; });
+  const last = shown.length - 1;
+  const lbl = d => d.toLocaleDateString(loc, { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+  box.innerHTML = shown.map((x, i) => {
+    const cls = i === last ? ' is-last' : i === best ? ' is-best' : '';
+    const tip = `${d2(x.d, loc)} · ${x.w}/${x.n} ${t.lb_won || 'won'} (${Math.round(x.r * 100)}%)`;
+    return `<div class="lbb-col${cls}" title="${esc(tip)}"><i style="height:${Math.max(8, x.r * 100).toFixed(0)}%"></i><span>${esc(lbl(x.d))}</span></div>`;
+  }).join('');
+  box.setAttribute('aria-label', shown.map(x => `${d2(x.d, loc)} ${Math.round(x.r * 100)}%`).join(', '));
+  if (shown.length < 2) { sub.textContent = t.lbb_one || 'First settled day of picks.'; return; }
+  const diff = Math.round((shown[last].r - shown[last - 1].r) * 100);
+  if (!diff) { sub.textContent = t.lbb_same || 'Win rate held steady on the last match day.'; return; }
+  const txt = (diff > 0 ? (t.lbb_up || 'Win rate rose on the last match day by about') : (t.lbb_down || 'Win rate fell on the last match day by about'));
+  sub.innerHTML = `${esc(txt)} <b class="${diff > 0 ? 'up' : 'down'}">${Math.abs(diff)} ${esc(t.lbb_pts || 'pts')}</b>`;
+}
+function d2(d, loc) { return d.toLocaleDateString(loc, { day: 'numeric', month: 'short', timeZone: 'UTC' }); }
+
 // Fills the landing hero stats + edge panel with the app's own recent numbers (never placeholders once data is in).
 function updateLandingStats(list) {
   try {
@@ -3053,6 +3086,7 @@ function updateLandingStats(list) {
     const n = wins + losses, rate = n ? Math.round(wins / n * 100) + '%' : null;
     set('lbWinRate', rate); set('lbEdgeRate', rate);
     set('lbPicks', n || null); set('lbWon', n ? wins : null);
+    drawLandingBars(totals);
     const leagues = new Set((list || []).map(f => f.league).filter(Boolean));
     if (leagues.size) set('lbLeagues', leagues.size);
   } catch (e) { /* non-critical */ }
