@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="midnight" dir="ltr">
+<html lang="en" data-theme="light" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -36,6 +36,7 @@
 <link rel="stylesheet" href="/star-border.css">
 <link rel="stylesheet" href="/gooey-nav.css">
 <link rel="stylesheet" href="/football-dash.css">
+<link rel="stylesheet" href="/no-glow.css">
 <script src="/spatial.js" defer></script>
 <script src="/ui-pro.js" defer></script>
 </head>
@@ -165,13 +166,7 @@
             <div class="section-label"><span data-i18n="fixtures">Fixtures</span></div>
             <h2 data-i18n="matches">Matches</h2>
           </div>
-          <button class="filter-btn" id="openFilterBtn" title="Filters" aria-label="Filters">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="4" y1="6" x2="20" y2="6"></line>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-              <line x1="11" y1="18" x2="13" y2="18"></line>
-            </svg>
-          </button>
+
         </div>
         <div class="match-grid" id="cards"><div class="mx-skel" aria-hidden="true"></div><div class="mx-skel" aria-hidden="true"></div><div class="mx-skel" aria-hidden="true"></div></div>
       </section>
@@ -267,25 +262,6 @@
       </section>
     </div>
 
-    <div id="view-upcoming" class="tab-view">
-      <section>
-        <div class="section-head"><div><div class="section-label"><span data-i18n="mc_label">Upcoming matches</span></div><h2 data-i18n="nav_mc">Match Center</h2></div></div>
-        <p class="fb-src" style="margin:-8px 2px 14px" data-i18n="mc_sub">Line-ups, injuries, head-to-head and league position for every upcoming match. Tap a match.</p>
-        <div class="mc-tools">
-          <div class="lg-chips" id="mcDays" role="tablist" style="margin:0">
-            <button type="button" role="tab" class="lg-chip on" data-day="all" data-act="mcDay" data-i18n="all_leagues">All</button>
-            <button type="button" role="tab" class="lg-chip" data-day="today" data-act="mcDay" data-i18n="mc_today">Today</button>
-            <button type="button" role="tab" class="lg-chip" data-day="tomorrow" data-act="mcDay" data-i18n="mc_tomorrow">Tomorrow</button>
-          </div>
-          <div class="hist-search" role="search">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
-            <input id="mcSearch" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search a team or league…" data-i18n-ph="mc_search_ph" aria-label="Search upcoming matches">
-          </div>
-        </div>
-        <div id="mcBody" aria-live="polite"></div>
-      </section>
-    </div>
-
     <div id="view-admin" class="tab-view">
       <section class="db">
         <div class="section-head"><div><div class="section-label">Admin</div><h2>Dashboard</h2></div>
@@ -368,46 +344,6 @@
   </div>
 </div>
 
-<div id="filterModal" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width: 420px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <h2 data-i18n="filters_title">Model Filters</h2>
-      <button class="icon-btn" style="width:36px; height:36px;" data-act="closeFilterModal">✕</button>
-    </div>
-    <p data-i18n="filters_sub" style="margin-bottom:24px;">Adjust how the bot calculates Value Bets.</p>
-
-    <div class="control-panel">
-      <div>
-        <div class="control-head">
-          <span class="control-label" data-i18n="mw_title">Market weight in final probability</span>
-          <output class="control-output" id="mw-o">70%</output>
-        </div>
-        <input type="range" id="mw" aria-label="Market weight in final probability" min="0" max="100" step="5" value="70">
-        <span class="control-hint" data-i18n="mw_hint">0% trusts the Poisson model only, 100% trusts the market only.</span>
-      </div>
-
-      <div>
-        <div class="control-head">
-          <span class="control-label" data-i18n="mev_title">Minimum EV to flag a bet</span>
-          <output class="control-output" id="mev-o">4.5%</output>
-        </div>
-        <input type="range" id="mev" aria-label="Minimum EV to flag a bet" min="0" max="10" step="0.5" value="4.5">
-        <span class="control-hint" data-i18n="mev_hint">Only prices with expected value above this threshold are flagged.</span>
-      </div>
-
-      <div id="fpreview" class="control-hint" style="background:var(--soft); padding:12px 14px; border-radius:var(--r-sm); line-height:1.5;"></div>
-
-      <div class="quality-legend">
-        <span class="ql-item"><span class="ql-dot" style="background:var(--good)"></span><span data-i18n="q_high">High — direct xG + odds</span></span>
-        <span class="ql-item"><span class="ql-dot" style="background:var(--warn)"></span><span data-i18n="q_med">Medium — forms-derived xG</span></span>
-        <span class="ql-item"><span class="ql-dot" style="background:var(--bad)"></span><span data-i18n="q_low">Low — H2H estimate</span></span>
-        <span class="ql-item"><span class="ql-dot" style="background:var(--ink-3)"></span><span data-i18n="q_est">Est. — league average</span></span>
-      </div>
-    </div>
-
-    <button class="auth-btn" style="margin-top:24px;" data-act="closeFilterModal" data-i18n="done">Done</button>
-  </div>
-</div>
 
 <div id="fbTeamModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="fbTeamName">
   <div class="modal-box fb-team-box">
@@ -462,7 +398,6 @@
   <div class="side-head"><b data-i18n="menu_title">Menu</b><button class="icon-btn" type="button" style="width:36px;height:36px;border-radius:50%;" data-act="closeMenu">✕</button></div>
   <button class="side-item da-side" type="button" data-tab="demo" data-act="menuGo"><span class="si-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a4 4 0 0 1-4 4M7 5H4v2a4 4 0 0 0 4 4"/></svg></span><span class="si-t"><b>Demo Arena</b><small>Virtual Sports Predictions</small></span></button>
   <button class="side-item" type="button" data-tab="standings" data-act="menuGo"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v18"/></svg><span data-i18n="nav_standings">Standings</span></button>
-  <button class="side-item" type="button" data-tab="upcoming" data-act="menuGo"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h3M8 18h6"/></svg><span data-i18n="nav_mc">Match Center</span></button>
   <button class="side-item" type="button" data-tab="leagues" data-act="menuGo"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="nav_leagues">Leagues</span></button>
   <button class="side-item" type="button" data-tab="performance" data-act="menuGo"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_perf">Performance</span></button>
   <button class="side-item" type="button" data-tab="weekly" data-act="menuGo"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="nav_weekly">Agent Stats</span></button>
@@ -798,10 +733,11 @@ function buildThemeGrid() {
 }
 
 const savedLang = localStorage.getItem('mde:lang') || 'en';
-let savedTheme = 'midnight';
+// Light is the site's default theme: a first visit (and every browser once, after this change) starts in light; after that the visitor's own choice is kept.
+let savedTheme = 'light';
 try {
-  if (localStorage.getItem('mde:themeV3')) savedTheme = localStorage.getItem('mde:theme') || 'midnight';
-  else { savedTheme = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'midnight'; localStorage.setItem('mde:themeV3', '1'); }  // honour the OS setting on first visit
+  if (localStorage.getItem('mde:themeV4')) savedTheme = localStorage.getItem('mde:theme') || 'light';
+  else { localStorage.setItem('mde:theme', 'light'); localStorage.setItem('mde:themeV4', '1'); }
 } catch (e) {}
 applyLanguage(savedLang);
 buildThemeGrid();
@@ -852,7 +788,7 @@ const ACT = {
   openAuthModal: () => openAuthModal(), closeAuthModal: () => closeAuthModal(), resetAuthSteps: () => resetAuthSteps(),
   verifyOtp: () => verifyOtp(), resendOtp: () => resendOtp(),
   submitPost: () => submitPost(), loadAdmin: () => loadAdmin(), histMore: () => histMore(),
-  closeFilterModal: () => closeFilterModal(), closeSettingsModal: () => closeSettingsModal(),
+  closeSettingsModal: () => closeSettingsModal(),
   openLicenseModal: () => openLicenseModal(), closeLicenseModal: () => closeLicenseModal(), activateLicense: () => activateLicense(),
   fbCloseTeam: () => fbCloseTeam(), miClose: () => miClose(), fbAllLeagues: () => { FB.lgOpen = null; renderLeagues(); },
   openSearch: () => { window.__openSearch && window.__openSearch(); }, closeSearch: () => { window.__closeSearch && window.__closeSearch(); },
@@ -860,10 +796,8 @@ const ACT = {
   checkNew: el => { el.disabled = true; el.textContent = 'Checking…'; pollFeed().finally(() => { el.disabled = false; el.textContent = 'Check for new matches'; }); },
   switchTab: el => switchTab(el.dataset.tab),
   menuGo: el => menuGo(el.dataset.tab),
-  mcDay: el => mcDay(el.dataset.day),
   miOpen: el => miOpen(el.dataset.info),
   miTab: el => miTab(el, el.dataset.uid),
-  mcToggle: el => mcToggle(el.dataset.mcid),
   toggleBell: el => toggleBell(el.dataset.bell),
   togglePin: el => togglePin(el.dataset.pin),
   shareMatch: el => shareMatch(el.dataset.share, el),
@@ -928,8 +862,6 @@ function closeAuthModal() { document.getElementById('authModal').classList.add('
 function openSettingsModal() { const m = document.getElementById('settingsModal'); m.classList.remove('closing'); m.classList.remove('hidden');  document.getElementById('menuSetBtn').classList.add('active'); }
 function animHide(el, ms) { ms = ms || 460; if (!el || el.classList.contains('hidden') || el.classList.contains('closing')) return; if (matchMedia('(prefers-reduced-motion:reduce)').matches) { el.classList.add('hidden'); return; } el.classList.add('closing'); setTimeout(() => { el.classList.add('hidden'); el.classList.remove('closing'); }, ms); }
 function closeSettingsModal() { animHide(document.getElementById('settingsModal')); document.getElementById('menuSetBtn').classList.remove('active'); }
-function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); }
-function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); }
 
 function openMenu() { const sm = document.getElementById('sideMenu'); let _i = 0; sm.querySelectorAll('.side-head,.side-item:not(.hidden)').forEach(el => el.style.setProperty('--i', _i++)); sm.inert = false; sm.setAttribute('aria-hidden', 'false'); sm.classList.add('open'); document.getElementById('menuOverlay').classList.remove('hidden'); }
 function closeMenu() { const sm = document.getElementById('sideMenu'); sm.classList.remove('open'); sm.setAttribute('aria-hidden', 'true'); sm.inert = true; document.getElementById('menuOverlay').classList.add('hidden'); }
@@ -985,7 +917,6 @@ async function activateLicense() {
 
 document.getElementById('loginBtn').onclick = openAuthModal;
 document.getElementById('settingsBtn').onclick = () => setTimeout(openSettingsModal, 280);
-document.getElementById('openFilterBtn').onclick = openFilterModal;
 
 /* team search */
 (function () {
@@ -1477,7 +1408,8 @@ const NA = '<span class="na">N/A</span>';
 // "2 - 1"; a finished match whose score the feed does not have yet shows "– - –" (never a made-up 0 - 0).
 const scoreTxt = fx => (Number.isInteger(fx.homeScore) && Number.isInteger(fx.awayScore)) ? `${fx.homeScore} - ${fx.awayScore}` : (fx.status === 'finished' ? '– - –' : '0 - 0');
 
-const st = { fixtures: [], mw: 0.85, mev: 0.045, results: [], query: '', queryRaw: '' };
+// Model settings are fixed for everyone (the filter panel was removed): market weight 75 %, minimum EV 0 %.
+const st = { fixtures: [], mw: 0.75, mev: 0, results: [], query: '', queryRaw: '' };
 
 const pct1 = x => (x * 100).toFixed(1) + '%';
 const sgn = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(2) + '%';
@@ -1527,12 +1459,8 @@ if (localStorage.getItem('mde:settings_version') !== SETTINGS_VERSION) {
   localStorage.setItem('mde:settings_version', SETTINGS_VERSION);
 }
 
-try {
-  const saved = JSON.parse(localStorage.getItem('mde:settings') || '{}');
-  if (Number.isFinite(saved.mw)) st.mw = Math.min(1, Math.max(0, saved.mw));
-  if (Number.isFinite(saved.mev)) st.mev = Math.min(0.1, Math.max(0, saved.mev));
-} catch (e) {}
-const persist = () => localStorage.setItem('mde:settings', JSON.stringify({ mw: st.mw, mev: st.mev }));
+try { localStorage.removeItem('mde:settings'); } catch (e) {}   // old per-browser slider values no longer apply
+const persist = () => {};   // nothing to save: the model settings are fixed
 
 /* ── Football: league tables, current leagues, team sheets (public data from /api/football/*) ── */
 const FB = { leagues: null, leaguesTs: 0, sel: null, lgOpen: null, cache: {} };
@@ -1891,52 +1819,6 @@ window.miClose = function () {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') miClose(); });
 document.addEventListener('click', e => { const m = $('miModal'); if (m && e.target === m) miClose(); });
 
-/* Match Center tab: every upcoming / live match, expand one for its line-ups, injuries, head-to-head and table */
-function mcDayKey(fx) { const d = fxDateTime(fx); return isNaN(d) ? fx.date : localDateStr(d); }
-function renderUpcoming() {
-  const t = tNow(), body = $('mcBody'); if (!body) return;
-  if (!isPro()) { body.innerHTML = `<div class="empty-state"><strong>${esc(t.mi_pro || 'Match info is part of the Pro plan.')}</strong><p>${esc(t.mc_pro_p || 'Unlock Pro to see line-ups, injuries and head-to-head for every match.')}</p><button type="button" class="empty-cta" data-act="switchTab" data-tab="unlock">${esc(t.nav_unlock || 'Unlock Access')}</button></div>`; return; }
-  const today = localDateStr(new Date()), tmr = localDateStr(new Date(Date.now() + 864e5));
-  const q = normQ(MI.mcQ);
-  const seen = new Set();
-  const list = (st.results || []).map(r => r && r.fx).filter(fx => {
-    if (!fx || seen.has(String(fx.id))) return false; seen.add(String(fx.id));
-    if (fx.status !== 'notstarted' && fx.status !== 'started') return false;
-    const k = mcDayKey(fx);
-    if (MI.mcDay === 'today' && k !== today) return false;
-    if (MI.mcDay === 'tomorrow' && k !== tmr) return false;
-    if (q) { const hay = normQ(fx.home.name + ' ' + fx.away.name + ' ' + (fx.league || '')); if (!q.split(' ').every(w => hay.includes(w))) return false; }
-    return true;
-  }).sort((a, b) => (Number(b.status === 'started') - Number(a.status === 'started')) || (fxDateTime(a) - fxDateTime(b)));
-  document.querySelectorAll('#mcDays .lg-chip').forEach(c => { const on = c.dataset.day === MI.mcDay; c.classList.toggle('on', on); c.setAttribute('aria-selected', on); });
-  if (!list.length) { body.innerHTML = `<div class="empty-state"><strong>${esc(q ? (t.hist_no_match || 'No matches found') : (t.no_upcoming || 'No upcoming matches.'))}</strong></div>`; return; }
-  let html = '', day = null;
-  for (const fx of list) {
-    const live = fx.status === 'started', k = live ? 'live' : mcDayKey(fx);
-    if (k !== day) { day = k; html += `<div class="mc-day">${live ? '🔴 LIVE' : esc(k === today ? (t.mc_today || 'Today') : k === tmr ? (t.mc_tomorrow || 'Tomorrow') : fxDateLabel(fx))}</div>`; }
-    const id = String(fx.id), open = MI.mcOpen === id, uid = 'mcb_' + id.replace(/[^a-z0-9_]/gi, '');
-    html += `<div class="mc-item${open ? ' open' : ''}" data-id="${esc(id)}">
-      <button type="button" class="mc-row" aria-expanded="${open}" data-act="mcToggle" data-mcid="${esc(id)}">
-        <span class="mc-time${live ? ' live' : ''}">${live ? esc(scoreTxt(fx)) : esc(fxLocalTime(fx))}</span>
-        <span class="tm h"><span>${esc(teamDisp(fx.home, fx))}</span>${crestHTML(fx.home)}</span>
-        <span class="mc-vs">${live ? 'LIVE' : 'VS'}</span>
-        <span class="tm">${crestHTML(fx.away)}<span>${esc(teamDisp(fx.away, fx))}</span></span>
-        <svg class="mc-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        <span class="mc-lg">${esc(leagueDisp(fx))}</span>
-      </button>
-      ${open ? `<div class="mc-body" id="${uid}"></div>` : ''}
-    </div>`;
-  }
-  body.innerHTML = html;
-  if (MI.mcOpen) { const id = MI.mcOpen, uid = 'mcb_' + id.replace(/[^a-z0-9_]/gi, ''), el = document.getElementById(uid); if (el) miLoadInto(id, el, uid); }
-}
-window.mcToggle = function (id) { MI.mcOpen = MI.mcOpen === id ? null : id; renderUpcoming(); const el = document.querySelector(`.mc-item[data-id="${CSS.escape(id)}"]`); if (el && MI.mcOpen) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
-window.mcDay = function (d) { MI.mcDay = d; renderUpcoming(); };
-(function () {
-  const inp = document.getElementById('mcSearch'); if (!inp) return;
-  let tm = 0;
-  inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { MI.mcQ = inp.value.trim(); renderUpcoming(); }, 150); });
-})();
 
 window.switchTab = function(tab) {
   window.__tabNext = tab;
@@ -1964,7 +1846,6 @@ function __doSwitch(tab) {
   if (tab === 'discover') setTimeout(() => { if (view.classList.contains('active')) loadDiscover(); }, 90);
   if (tab === 'standings') setTimeout(() => { if (view.classList.contains('active')) renderStandings(); }, 60);
   if (tab === 'leagues') setTimeout(() => { if (view.classList.contains('active')) renderLeagues(); }, 60);
-  if (tab === 'upcoming') setTimeout(() => { if (view.classList.contains('active')) renderUpcoming(); }, 60);
   if (tab === 'performance') requestAnimationFrame(() => updateChart(perfDays, 'app'));
 }
 
@@ -2268,7 +2149,7 @@ function renderSignals() {
   syncStatsFromCards();
   // The count-up animation (fx.js) runs ~0.9 s after a render: re-check once it is over so nothing can leave a stale number on screen.
   clearTimeout(window.__statSync); window.__statSync = setTimeout(syncStatsFromCards, 1200);
-  const mcv = document.getElementById('view-upcoming'); if (mcv && mcv.classList.contains('active')) renderUpcoming();
+
 }
 // The cards on screen are the truth: the first three dashboard numbers are read back from them, so "Matches" can never differ from what the person counts.
 function syncStatsFromCards() {
@@ -2558,19 +2439,6 @@ function updateFilterPreview() {
     : `0/${up.length} matches have odds yet, so these sliders have nothing to change right now.`;
 }
 
-$('mw').value = st.mw * 100; $('mw-o').textContent = (st.mw * 100).toFixed(0) + '%';
-$('mev').value = st.mev * 100; $('mev-o').textContent = (st.mev * 100).toFixed(1) + '%';
-$('mw').addEventListener('input', e => {
-  st.mw = e.target.value / 100;
-  $('mw-o').textContent = e.target.value + '%';
-  onSliderMove();
-});
-
-$('mev').addEventListener('input', e => {
-  st.mev = e.target.value / 100;
-  $('mev-o').textContent = Number(e.target.value).toFixed(1) + '%';
-  onSliderMove();
-});
 $('today').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 
 let lastHash = null;
@@ -3541,7 +3409,6 @@ document.addEventListener('DOMContentLoaded',function(){
     const l = L[document.documentElement.lang] || L.en;
     document.querySelectorAll('button.icon-btn').forEach(b => { if (b.textContent.trim() === '✕') b.setAttribute('aria-label', l.close); });
     const lb = document.getElementById('loginBtn'); if (lb) lb.setAttribute('aria-label', l.login);
-    const fb = document.getElementById('openFilterBtn'); if (fb) fb.setAttribute('aria-label', l.filters);
     document.querySelectorAll('input[placeholder]').forEach(i => { if (!i.getAttribute('aria-label') || i.dataset.auto) { i.setAttribute('aria-label', i.placeholder); i.dataset.auto = '1'; } });
     const y = document.getElementById('yr'); if (y) y.textContent = new Date().getFullYear();
   }
