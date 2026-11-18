@@ -1823,7 +1823,8 @@ function fpPlayer(pos, kit, def) {
     + `</span></div>`;
 }
 // Stadium chrome (raised plinth + four extruded turf walls) and standing props (goals, corner flags).
-const FP_CHROME = ``;   // no plinth / fence walls — a clean field, not a chunky 3D stadium
+const FP_CHROME = `<div class="fp-plinth"></div>`
+  + `<div class="fp-wall fp-wall-front"></div><div class="fp-wall fp-wall-back"></div><div class="fp-wall fp-wall-left"></div><div class="fp-wall fp-wall-right"></div>`;
 const FP_PROPS = `<div class="fp-props"><div class="fp-goal fp-goal-top"></div><div class="fp-goal fp-goal-bottom"></div>`
   + `<div class="fp-flag tl"></div><div class="fp-flag tr"></div><div class="fp-flag bl"></div><div class="fp-flag br"></div></div>`;
 // SVG line markings for a full pitch (viewBox 0 0 100 150, top = attacking end).
@@ -1873,7 +1874,7 @@ function teamPitch(d, side, uid) {
   } else {
     const def = side === 'home' ? '#6d5cff' : '#e0423f';   // side-based default kit when the provider gives no colours
     const players = fpLayout(luT).map(pos => fpPlayer(pos, luT.colors, def)).join('');
-    field = `${FP_CHROME}<div class="fp-turf">${FP_LINES}</div>${FP_PROPS}<div class="fp-players">${players}</div>`;
+    field = `${FP_CHROME}<div class="fp-turf${isProb ? ' fp-prob' : isProj ? ' fp-proj' : ''}">${FP_LINES}</div>${FP_PROPS}<div class="fp-players">${players}</div>`;
     if (luT.formation) form = `<span class="fp-form" aria-label="${esc(t.mi_formation || 'Formation')}">${esc(luT.formation)}</span>`;
     const pf = luT.probableFrom;
     chip = isProb
@@ -1888,7 +1889,7 @@ function teamPitch(d, side, uid) {
     + `${crestHTML(other)}<b>${esc(other.name)}</b></button>`;
   return `<div class="fp-shell" id="fpShell-${esc(uid)}" data-side="${side}">`
     + `<div class="fp-top">${toggle}</div>`
-    + `<div class="fp-stage"><div class="fp-field">${field}</div></div></div>`;
+    + `<div class="fp-stage">${chip}<div class="fp-field">${field}</div>${form}</div></div>`;
 }
 // CSP blocks inline onerror= attributes, so the photo→kit fallback is wired from script:
 // reveal the kit when a player photo is missing. Covers images that already failed before
