@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="/ui-pro.css">
 <link rel="stylesheet" href="/circular-carousel.css">
 <link rel="stylesheet" href="/code-slots.css">
+<link rel="stylesheet" href="/pixel-card.css">
 <script src="/spatial.js" defer></script>
 <script src="/ui-pro.js" defer></script>
 </head>
@@ -506,6 +507,7 @@
 <script src="reblend.js"></script>
 <script src="/circular-carousel.js"></script>
 <script src="/code-slots.js"></script>
+<script src="/pixel-card.js"></script>
 <script src="/odds-core.js"></script>
 <script>
 (function () {
@@ -709,6 +711,9 @@ Object.assign(translations.en, { globe_kicker: "Live now", globe_title: "Around 
 Object.assign(translations.fr, { left_lbl: "Temps restant", lifetime: "À vie", lic_checking: "Vérification de la licence…", otp_title: "Vérifiez votre email", otp_sub: "Nous avons envoyé un code à 6 chiffres à {email}.", otp_btn: "Vérifier", otp_back: "Retour", otp_bad: "Saisissez le code à 6 chiffres.", otp_resend: "Renvoyer le code", otp_resend_in: "Renvoyer dans {s}s", menu_title: "Menu", lic_menu: "Activer Premium", lic_title: "Activer Premium", lic_sub: "Saisissez votre clé de licence pour activer Pro sur votre compte.", lic_btn: "Activer", lic_have: "J'ai une clé de licence", lic_ok: "Premium activé ✓", lic_fail: "Échec de l'activation.", lic_login: "Session expirée. Reconnectez-vous.", reg_title: "Créer un compte", reg_sub: "Choisissez un nom, puis saisissez votre email et un mot de passe.", reg_submit: "Créer le compte", have_acc: "J'ai déjà un compte", ph_name: "Votre nom", name_bad: "Saisissez votre nom (2 à 30 caractères).", lic_doing: "Activation…", lic_timeout: "Le serveur met trop de temps. Réessayez." });
 Object.assign(translations.fr, { globe_kicker: "En direct", globe_title: "Partout dans le monde", globe_online: "en ligne", globe_note: "Localisation approximative (niveau ville) des personnes présentes sur le site en ce moment." });
 Object.assign(translations.ar, { left_lbl: "المدة المتبقية", lifetime: "مدى الحياة", lic_checking: "جارٍ التحقق من الترخيص…", otp_title: "تحقق من بريدك", otp_sub: "أرسلنا رمزًا من 6 أرقام إلى {email}.", otp_btn: "تحقق", otp_back: "رجوع", otp_bad: "أدخل الرمز المكون من 6 أرقام.", otp_resend: "إعادة إرسال الرمز", otp_resend_in: "إعادة الإرسال بعد {s}ث", menu_title: "القائمة", lic_menu: "تفعيل بريميوم", lic_title: "تفعيل بريميوم", lic_sub: "أدخل مفتاح الترخيص لتفعيل Pro على حسابك.", lic_btn: "تفعيل", lic_have: "لدي مفتاح ترخيص", lic_ok: "تم تفعيل بريميوم ✓", lic_fail: "فشل التفعيل.", lic_login: "انتهت الجلسة. سجل الدخول مجددًا.", reg_title: "إنشاء حساب", reg_sub: "اختر اسمًا ثم أدخل بريدك الإلكتروني وكلمة مرور.", reg_submit: "إنشاء الحساب", have_acc: "لدي حساب بالفعل", ph_name: "اسمك", name_bad: "أدخل اسمك (من 2 إلى 30 حرفًا).", lic_doing: "جارٍ التفعيل…", lic_timeout: "استغرق الخادم وقتًا طويلًا. حاول مجددًا." });
+Object.assign(translations.en, { plan_starter: "Starter", plan_free: "free forever", plan_current: "Current plan", plan_included: "Included", plan_starter_on: "Active on your account", plan_starter_note: "Included with every account and switched on as soon as you log in. No card needed.", sf_1: "Today's matches and live scores", sf_2: "League tables and upcoming fixtures", sf_3: "Discover feed", sf_4: "Demo Arena", sf_x: "Win probabilities and +EV value bets" });
+Object.assign(translations.fr, { plan_starter: "Starter", plan_free: "gratuit pour toujours", plan_current: "Offre actuelle", plan_included: "Inclus", plan_starter_on: "Active sur votre compte", plan_starter_note: "Incluse avec chaque compte et activée dès que vous vous connectez. Aucune carte requise.", sf_1: "Matchs du jour et scores en direct", sf_2: "Classements et prochains matchs", sf_3: "Fil Découvrir", sf_4: "Demo Arena", sf_x: "Probabilités de victoire et value bets +EV" });
+Object.assign(translations.ar, { plan_starter: "Starter", plan_free: "مجانية دائماً", plan_current: "باقتك الحالية", plan_included: "مضمّنة", plan_starter_on: "مفعّلة في حسابك", plan_starter_note: "مضمّنة مع كل حساب وتُفعَّل فور تسجيل الدخول. لا حاجة لبطاقة.", sf_1: "مباريات اليوم والنتائج المباشرة", sf_2: "جداول الترتيب والمباريات القادمة", sf_3: "صفحة اكتشف", sf_4: "Demo Arena", sf_x: "احتمالات الفوز ورهانات +EV" });
 Object.assign(translations.ar, { globe_kicker: "مباشر الآن", globe_title: "حول العالم", globe_online: "متصل", globe_note: "مواقع تقريبية على مستوى المدينة للأشخاص المتواجدين على الموقع الآن." });
 
 function applyLanguage(lang) {
@@ -3011,13 +3016,27 @@ function renderWeekly() {
 })();
 
 function renderUnlock() {
-  const t = tNow(), p = authState.profile || {};
-  const status = isPro() ? `<div class="pill good" style="display:inline-block;margin-bottom:12px">✓ ${t.plan_active}${p.planUntil ? ' · ' + new Date(p.planUntil).toLocaleDateString('en-GB') : ''}</div>` : '';
-  $('planBox').innerHTML = `<div class="plan-card">${status}<div class="plan-name">Pro</div><div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p>
-    <ul class="plan-feats">${[t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5].map(f => `<li>${esc(f)}</li>`).join('')}</ul>
-    <a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${isPro() ? t.plan_renew : t.plan_get}</span></a>
-    ${isPro() ? '' : `<button class="btn-main" type="button" style="margin-top:12px" data-act="openLicenseModal">${t.lic_have}</button>`}
-    <p class="plan-note">${t.plan_note.replace('{email}', esc(p.username || ''))}</p></div>`;
+  const t = tNow(), p = authState.profile || {}, pro = isPro();
+  const feats = (list, off) => list.map(f => `<li${off ? ' class="off"' : ''}>${esc(f)}</li>`).join('');
+  // Starter: the free tier every account gets as soon as it logs in (nothing to buy or activate).
+  const starter = `<div class="plan-card is-starter">
+      <div class="plan-head"><div class="plan-name">${esc(t.plan_starter)}</div>${pro ? `<span class="pill">${esc(t.plan_included)}</span>` : `<span class="pill good">✓ ${esc(t.plan_current)}</span>`}</div>
+      <div class="plan-price"><b>$0</b><small>${esc(t.plan_free)}</small></div>
+      <p class="plan-note">${esc(t.plan_starter_note)}</p>
+      <ul class="plan-feats">${feats([t.sf_1, t.sf_2, t.sf_3, t.sf_4])}${feats([t.sf_x], true)}</ul>
+      <div class="plan-cta">${pro ? '' : `<div class="plan-on">✓ ${esc(t.plan_starter_on)}</div>`}</div>
+    </div>`;
+  const status = pro ? `<span class="pill good">✓ ${t.plan_active}${p.planUntil ? ' · ' + new Date(p.planUntil).toLocaleDateString('en-GB') : ''}</span>` : '';
+  const proCard = `<div class="plan-card is-pro">
+      <div class="plan-head"><div class="plan-name">Pro</div>${status}</div>
+      <div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p>
+      <ul class="plan-feats">${feats([t.pf_1, t.pf_2, t.pf_3, t.pf_4, t.pf_5])}</ul>
+      <div class="plan-cta"><a class="btn-tg plan-tg" href="${TG_LINK}" target="_blank" rel="noopener noreferrer">${TG_SVG}<span>${pro ? t.plan_renew : t.plan_get}</span></a>
+      <p class="plan-note">${t.plan_note.replace('{email}', esc(p.username || ''))}</p></div>
+    </div>`;
+  const box = $('planBox');
+  box.innerHTML = `<div class="plan-grid">${starter}${proCard}</div>`;
+  if (window.PixelCard) window.PixelCard.mountAll(box, '.plan-card');
 }
 
 function setLang(l) {

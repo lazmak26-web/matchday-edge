@@ -1,0 +1,18 @@
+/* pixel-card.css — styles for pixel-card.js (port of React Bits PixelCard) + the plan cards. */
+.pixel-card{isolation:isolate;-webkit-tap-highlight-color:transparent}
+.pixel-card-canvas{position:absolute;inset:0;z-index:0;display:block;width:100%;height:100%;pointer-events:none;border-radius:inherit}
+.pixel-card > :not(.pixel-card-canvas){position:relative;z-index:1}
+.pixel-card[data-active]{border-color:color-mix(in srgb,var(--brand) 34%,var(--line))}
+
+/* Unlock page: Starter (free) + Pro side by side, stacked on phones */
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:clamp(14px,2.2vw,22px);max-width:940px;align-items:stretch}
+.plan-grid .plan-card{max-width:none;display:flex;flex-direction:column}
+.plan-grid .plan-card .plan-cta{margin-top:auto}
+.plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:28px}
+.plan-head .pill{margin:0}
+.plan-price small{font-size:var(--fs-sm);color:var(--ink-3);font-weight:500;margin-inline-start:6px;letter-spacing:0}
+.plan-card.is-pro{border-color:color-mix(in srgb,var(--brand) 40%,var(--line))}
+.plan-feats li.off{color:var(--ink-3)}
+.plan-feats li.off::before{content:"\2715";color:var(--ink-3)}
+.plan-on{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 16px;border-radius:var(--r-pill,999px);
+  font-weight:600;font-size:var(--fs-sm);color:var(--good);background:color-mix(in srgb,var(--good) 12%,transparent);border:1px solid color-mix(in srgb,var(--good) 30%,transparent)}
