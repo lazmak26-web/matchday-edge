@@ -1,0 +1,74 @@
+/* code-slots.css — styles for code-slots.js (port of React Bits CodeSlots), on the app's tokens. */
+.code-slots{
+  --cs-accent:var(--brand);
+  --cs-ink:var(--ink);
+  --cs-slot:var(--soft);
+  --cs-digit:var(--on-brand,#fff);
+  --cs-danger:var(--bad,#ff3b30);
+  --cs-size:clamp(38px,11vw,46px);
+  --cs-height:calc(var(--cs-size) * 1.18);
+  --cs-gap:clamp(6px,2vw,9px);
+  --cs-radius:12px;
+  --cs-font:calc(var(--cs-size) * .5);
+  --cs-spring:cubic-bezier(.34,1.42,.64,1);   /* settle ≈ .3s, bounce ≈ .2 */
+  --cs-ease:cubic-bezier(.23,1,.32,1);
+  position:relative;display:flex;justify-content:center;margin:4px 0 14px;
+}
+.code-slots__row{position:relative;display:inline-flex;gap:var(--cs-gap);cursor:text;direction:ltr;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:opacity .2s ease}
+.code-slots__row:has(.code-slots__input:disabled){opacity:.5;cursor:not-allowed}
+
+/* the real <input>, invisible, on top of the slots */
+.code-slots .code-slots__input{position:absolute;inset:0;z-index:4;width:100%;height:100%;margin:0;padding:0;border:0;outline:0;
+  background:transparent;color:transparent;caret-color:transparent;font-size:16px;letter-spacing:0;opacity:0;cursor:inherit;
+  -webkit-appearance:none;appearance:none;box-shadow:none}
+
+.code-slots__slot{position:relative;width:var(--cs-size);height:var(--cs-height);border-radius:var(--cs-radius);overflow:hidden;
+  background:var(--cs-slot);transition:background-color .2s ease,box-shadow .2s ease;-webkit-user-select:none;user-select:none}
+.code-slots__slot[data-active]{background:color-mix(in srgb,var(--cs-ink) 8%,var(--cs-slot));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--cs-accent) 55%,transparent)}
+@media (hover:hover) and (pointer:fine){
+  .code-slots__row[data-status="idle"]:hover .code-slots__slot:not([data-active]){background:color-mix(in srgb,var(--cs-ink) 4%,var(--cs-slot))}
+}
+
+/* fill grows from the centre; digit rises in. --cs-delay gives the paste cascade */
+.code-slots__fill{position:absolute;inset:0;border-radius:inherit;background:var(--cs-accent);transform:scale(0);
+  transition:transform .3s var(--cs-spring) var(--cs-delay,0ms),background-color .2s ease}
+.code-slots__digit{position:absolute;inset:0;z-index:2;display:grid;place-items:center;color:var(--cs-digit);
+  font-size:var(--cs-font);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;
+  opacity:0;transform:translateY(8px);
+  transition:transform .3s var(--cs-spring) var(--cs-delay,0ms),opacity .2s ease var(--cs-delay,0ms)}
+.code-slots__slot[data-filled] .code-slots__fill{transform:scale(1)}
+.code-slots__slot[data-filled] .code-slots__digit{opacity:1;transform:translateY(0)}
+
+/* error: red tint, then the slots drain */
+.code-slots__row[data-status="error"] .code-slots__slot{background:color-mix(in srgb,var(--cs-danger) 20%,var(--cs-slot))}
+.code-slots__row[data-status="error"] .code-slots__fill{background:var(--cs-danger)}
+
+/* success: digits sink, a wash opens from the centre, the tick rises */
+.code-slots__row[data-status="success"] .code-slots__digit{opacity:0;transform:translateY(calc(var(--cs-height) * .5));
+  transition:transform .3s var(--cs-ease) var(--cs-sink-delay,0ms),opacity .18s ease var(--cs-sink-delay,0ms)}
+.code-slots__wash{position:absolute;inset:0;z-index:1;display:grid;place-items:center;border-radius:var(--cs-radius);
+  background:var(--cs-accent);color:var(--cs-digit);pointer-events:none;
+  clip-path:inset(0 50% round var(--cs-radius));transition:clip-path .2s var(--cs-ease) .06s}
+.code-slots__row[data-status="success"] .code-slots__wash{clip-path:inset(0 0% round var(--cs-radius));transition:clip-path .3s var(--cs-ease)}
+.code-slots__check{display:grid;place-items:center;width:calc(var(--cs-size) * .6);height:calc(var(--cs-size) * .6);
+  opacity:0;transform:translateY(8px) scale(.85);transition:opacity .15s var(--cs-ease),transform .15s var(--cs-ease)}
+.code-slots__row[data-status="success"] .code-slots__check{opacity:1;transform:none;
+  transition:opacity .35s var(--cs-ease) .28s,transform .35s var(--cs-spring) .28s}
+
+.code-slots__caret{position:absolute;z-index:3;top:25%;left:calc(var(--cs-size) / 2 - .75px);width:1.5px;height:50%;
+  opacity:0;pointer-events:none;transition:transform .22s var(--cs-ease)}
+.code-slots__caret[data-show]{opacity:1}
+.code-slots__caret-line{display:block;width:100%;height:100%;background:var(--cs-ink);animation:code-slots-blink 1s linear infinite}
+@keyframes code-slots-blink{0%,49.9%{opacity:1}50%,100%{opacity:0}}
+
+.code-slots__sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (prefers-reduced-motion:reduce){
+  .code-slots__digit,.code-slots__check,.code-slots__fill,.code-slots__caret{transform:none !important}
+  .code-slots__slot .code-slots__fill{opacity:0;transition:opacity .15s ease}
+  .code-slots__slot[data-filled] .code-slots__fill{opacity:1}
+  .code-slots__caret-line{animation:none}
+  .code-slots__wash{clip-path:none;opacity:0;transition:opacity .2s ease}
+  .code-slots__row[data-status="success"] .code-slots__wash{opacity:1}
+}

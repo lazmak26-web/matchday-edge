@@ -31,6 +31,7 @@
 <link rel="stylesheet" href="/demo-arena.css">
 <link rel="stylesheet" href="/ui-pro.css">
 <link rel="stylesheet" href="/circular-carousel.css">
+<link rel="stylesheet" href="/code-slots.css">
 <script src="/spatial.js" defer></script>
 <script src="/ui-pro.js" defer></script>
 </head>
@@ -504,6 +505,7 @@
 
 <script src="reblend.js"></script>
 <script src="/circular-carousel.js"></script>
+<script src="/code-slots.js"></script>
 <script src="/odds-core.js"></script>
 <script>
 (function () {
@@ -1141,12 +1143,15 @@ async function appleSignIn() {
 document.getElementById('appleBtn').addEventListener('click', appleSignIn);
 
 let otpEmail = '', otpTimer = null;
+// 6-slot animated code field (code-slots.js); falls back to the plain input if the script is missing.
+const otpSlots = window.CodeSlots ? window.CodeSlots.enhance(document.getElementById('otpCode'), { length: 6, onComplete: () => verifyOtp() }) : null;
+function otpReset() { if (otpSlots) otpSlots.reset(); else document.getElementById('otpCode').value = ''; }
 function resetAuthSteps() {
   clearInterval(otpTimer);
   document.getElementById('otpStep').classList.add('hidden');
   document.getElementById('authStep').classList.remove('hidden');
   document.getElementById('otpError').textContent = '';
-  document.getElementById('otpCode').value = '';
+  otpReset();
   const lang = translations[localStorage.getItem('mde:lang') || 'en'] || translations.en;
   setAuthMode(authMode);
 }
@@ -1177,7 +1182,7 @@ function showOtpStep(email, resendIn) {
   document.getElementById('authTitle').textContent = t.otp_title;
   document.getElementById('authSub').textContent = t.otp_sub.replace('{email}', email);
   document.getElementById('otpError').textContent = '';
-  document.getElementById('otpCode').value = '';
+  otpReset();
   startOtpCountdown(resendIn);
   setTimeout(() => document.getElementById('otpCode').focus(), 50);
 }
@@ -1186,14 +1191,15 @@ async function verifyOtp() {
   const err = document.getElementById('otpError'), btn = document.getElementById('otpBtn'), t = tNow();
   err.textContent = '';
   if (btn.disabled) return;
-  if (code.length !== 6) { err.textContent = t.otp_bad; return; }
+  if (code.length !== 6) { err.textContent = t.otp_bad; if (otpSlots && code.length) otpSlots.setStatus('error'); return; }
   btn.disabled = true; btn.classList.add('loading');
   try {
     const r = await fetch('/api/auth/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: otpEmail, code }) });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || t.otp_bad);
+    if (otpSlots) { otpSlots.setStatus('success'); await new Promise(res => setTimeout(res, 650)); }
     finishLogin(data);
-  } catch (e) { err.textContent = e.message; }
+  } catch (e) { err.textContent = e.message; if (otpSlots) otpSlots.setStatus('error'); }
   finally { btn.disabled = false; btn.classList.remove('loading'); }
 }
 async function resendOtp() {
@@ -1207,7 +1213,7 @@ async function resendOtp() {
   } catch (e) { err.textContent = e.message; startOtpCountdown(0); }
 }
 document.getElementById('otpCode').addEventListener('keydown', e => { if (e.key === 'Enter') verifyOtp(); });
-document.getElementById('otpCode').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); if (e.target.value.length === 6) verifyOtp(); });
+if (!otpSlots) document.getElementById('otpCode').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); if (e.target.value.length === 6) verifyOtp(); });
 
 async function authSubmit() {
   const t = tNow();
