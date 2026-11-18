@@ -1777,8 +1777,9 @@ html,body{max-width:100%;overflow-x:clip}
 .lb-chip{min-width:0;overflow:hidden}
 #landingPage .hero-title{overflow-wrap:break-word;word-break:normal}
 #landingPage .hero-subtitle{overflow-wrap:break-word}
-/* primary CTA follows the blue brand identity, not the legacy violet */
-[data-theme="midnight"] .btn-main{background:linear-gradient(135deg,#0A84FF,#2997FF);color:#fff}
+/* primary CTA follows the blue brand identity in every theme, not the legacy violet */
+.btn-main{background:linear-gradient(135deg,#0A84FF,#2997FF);color:#fff}
+.cta-box .btn-main{width:100%}                 /* full width, matching the chart card above it */
 @media (max-width:860px){
   #landingPage .hero-subtitle{max-width:100%}
   .lb-stats{gap:14px;row-gap:14px}
@@ -1847,40 +1848,35 @@ html,body{max-width:100%;overflow-x:clip}
   #cards .match:nth-child(n+10),#lpCards .match:nth-child(n+10),.match-grid .match:nth-child(n+10){animation-delay:.5s}
 }
 
-/* ── Match-counter as a stadium hero banner (purple night + soccer ball) ── */
+/* ── Match-counter banner: solid themed card, a restrained brand wash and one soccer ball ── */
 .sx{
   position:relative;overflow:hidden;
-  padding:18px 20px;border-radius:18px;border:1px solid rgba(125,108,224,.30);
-  background:
-    radial-gradient(120% 150% at 88% -35%, rgba(139,123,255,.40), transparent 55%),
-    radial-gradient(80% 120% at 6% 125%, rgba(41,151,255,.12), transparent 60%),
-    linear-gradient(135deg,#1b1642 0%,#241a4d 46%,#140f30 100%);
+  padding:18px 20px;border-radius:18px;border:1px solid var(--line);
+  background:var(--card);box-shadow:var(--shadow);
 }
 .sx::before{
   content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:
-    linear-gradient(90deg,rgba(20,15,48,.86) 42%,rgba(20,15,48,.45) 72%,rgba(20,15,48,.12) 90%),
-    repeating-linear-gradient(90deg,transparent 0 22px,rgba(255,255,255,.015) 22px 23px);
+  background:radial-gradient(130% 160% at 90% -40%, var(--brand-dim), transparent 62%);
 }
 .sx::after{
-  content:"";position:absolute;right:-24px;top:50%;transform:translateY(-50%);
-  width:148px;height:148px;z-index:0;pointer-events:none;
+  content:"";position:absolute;right:-16px;top:50%;transform:translateY(-50%);
+  width:130px;height:130px;z-index:0;pointer-events:none;opacity:.42;
   background:url("/ball.svg") center/contain no-repeat;
-  filter:drop-shadow(0 12px 26px rgba(0,0,0,.5));
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,.3));
 }
 .sx-lead,.sx-figs{position:relative;z-index:1}
-.sx-lead .stat-value{color:#fff}
-.sx-lead .stat-label{color:rgba(255,255,255,.62)}
-.sx-fig{border-inline-start-color:rgba(255,255,255,.16)}
-.sx-fig .stat-value{color:#fff}
-.sx-fig .stat-label{color:rgba(255,255,255,.58)}
-.sx-fig.is-on .stat-value{color:#a9c4ff}
-.sx-fig.is-up .stat-value{color:#5de394}
-.sx-meter{background:rgba(255,255,255,.2)}
-.sx-meter i{background:#fff}
+.sx-lead .stat-value{color:var(--ink)}
+.sx-lead .stat-label{color:var(--ink-3)}
+.sx-fig{border-inline-start-color:var(--line)}
+.sx-fig .stat-value{color:var(--ink)}
+.sx-fig .stat-label{color:var(--ink-3)}
+.sx-fig.is-on .stat-value{color:var(--brand)}
+.sx-fig.is-up .stat-value{color:var(--good)}
+.sx-meter{background:var(--soft)}
+.sx-meter i{background:var(--brand)}
 @media (max-width:620px){
   .sx{padding:16px}
-  .sx::after{width:104px;height:104px;right:-40px;opacity:.8}
+  .sx::after{width:100px;height:100px;right:-32px;opacity:.35}
 }
 
 /* ── 3D tactical pitch: raised stadium block with upright standing kits/photos ── */
