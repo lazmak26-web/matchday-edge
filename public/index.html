@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="/app.css?v=20261117c">
 <link rel="stylesheet" href="/demo-arena.css">
 <link rel="stylesheet" href="/ui-pro.css">
+<link rel="stylesheet" href="/circular-carousel.css">
 <script src="/spatial.js" defer></script>
 <script src="/ui-pro.js" defer></script>
 </head>
@@ -502,6 +503,7 @@
 </a>
 
 <script src="reblend.js"></script>
+<script src="/circular-carousel.js"></script>
 <script src="/odds-core.js"></script>
 <script>
 (function () {
@@ -3051,12 +3053,20 @@ function lgBar(elId, list, rerender) {
   bar.onclick = e => { const b = e.target.closest('.lg-chip'); if (!b) return; st.sel = b.dataset.lg; st.rerender(); };
   return st.sel === 'all' ? list : list.filter(fx => leagueDisp(fx) === st.sel);
 }
+// Landing "Today's Matches" is shown as a 3D circular carousel (circular-carousel.js) when there are enough cards;
+// the logged-in locked list (#cards) and short lists keep the normal grid.
+const LP_CAROUSEL_MIN = 4, LP_CAROUSEL_MAX = 12;
+let lpCarousel = null;
+function lpCarouselOff(el) {
+  if (lpCarousel) { lpCarousel.destroy(); lpCarousel = null; }
+  if (el) el.classList.remove('cc-host');
+}
 function renderLanding(list, elId = 'lpCards', unlockCall = () => openAuthModal()) {
   const t = tNow();
   const el = $(elId); if (!el) return;
-  if (!list.length) { const bar = document.getElementById(elId + 'Bar'); if (bar) bar.innerHTML = ''; el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
+  if (!list.length) { const bar = document.getElementById(elId + 'Bar'); if (bar) bar.innerHTML = ''; if (elId === 'lpCards') lpCarouselOff(el); el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
   const shown = lgBar(elId, list, () => renderLanding(list, elId, unlockCall));
-  el.innerHTML = shown.map(fx => {
+  const cardHTML = fx => {
     const live = mxLive(fx);
     return `<article class="match ${live ? 'is-live-card' : ''} ${elId === 'cards' ? 'is-locked' : ''}">
       ${mxTop(fx)}
@@ -3066,7 +3076,19 @@ function renderLanding(list, elId = 'lpCards', unlockCall = () => openAuthModal(
         <button class="lp-unlock" type="button">${t.lp_show}</button>
       </div>
     </article>`;
-  }).join('');
+  };
+  if (elId === 'lpCards' && window.CircularCarousel && shown.length >= LP_CAROUSEL_MIN) {
+    const items = shown.slice(0, LP_CAROUSEL_MAX).map(fx => ({ html: cardHTML(fx), label: teamDisp(fx.home, fx) + ' – ' + teamDisp(fx.away, fx) }));
+    if (lpCarousel && lpCarousel.host === el && el.contains(lpCarousel.el)) lpCarousel.update(items);
+    else {
+      lpCarouselOff(el);
+      el.classList.add('cc-host');
+      lpCarousel = window.CircularCarousel.mount(el, items, { label: t.lp_today || "Today's matches" });
+    }
+  } else {
+    if (elId === 'lpCards') lpCarouselOff(el);
+    el.innerHTML = shown.map(cardHTML).join('');
+  }
   if (elId === 'lpCards') updateLandingStats(list);
 }
 

@@ -1,0 +1,52 @@
+/* circular-carousel.css — styles for circular-carousel.js (port of React Bits CircularCarousel).
+   Uses the app's tokens: --bg, --card, --line, --brand, --r-lg. */
+
+.match-grid.cc-host{display:block}
+
+.circular-carousel{
+  --cc-radius:var(--r-lg,16px);
+  --cc-fade:var(--bg,#000);
+  position:relative;width:100%;min-height:200px;
+  overflow:hidden;overflow:clip;
+  touch-action:pan-y;                       /* horizontal drag is ours, vertical scroll stays the page's */
+  -webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  outline:none;opacity:0;transition:opacity .35s ease;
+}
+.circular-carousel[data-ready]{opacity:1}
+.circular-carousel[data-draggable]{cursor:grab}
+.circular-carousel[data-dragging]{cursor:grabbing}
+.circular-carousel:focus-visible{box-shadow:0 0 0 2px var(--brand,#4f8cff);border-radius:var(--r-lg,16px)}
+
+.circular-carousel__view{position:absolute;inset:0;overflow:hidden;overflow:clip}
+.circular-carousel__stage{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}
+.circular-carousel__camera,
+.circular-carousel__ring,
+.circular-carousel__card{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+.circular-carousel__card{will-change:transform}
+
+.circular-carousel__face,
+.circular-carousel__back{
+  position:absolute;overflow:hidden;border-radius:var(--cc-radius);
+  -webkit-backface-visibility:hidden;backface-visibility:hidden;
+}
+/* far side of the ring: a plain card back (the live HTML card is front-facing only) */
+.circular-carousel__back{background:var(--card);border:1px solid var(--line);transform:rotateY(180deg)}
+.circular-carousel__back::after{content:"";position:absolute;inset:0;background:var(--cc-fade);opacity:var(--cc-inner,.36)}
+
+/* depth fade: cards turning away dissolve into the page background */
+.circular-carousel__shade{
+  position:absolute;inset:0;z-index:6;pointer-events:none;border-radius:inherit;
+  background:var(--cc-fade);opacity:var(--cc-depth,0);
+}
+
+/* the real match card inside a slide: fill the slide, drop the grid-only effects that fight the 3D transform */
+.circular-carousel .match{
+  height:100%;margin:0;box-sizing:border-box;
+  animation:none !important;transform:none !important;will-change:auto;
+  content-visibility:visible !important;contain-intrinsic-size:none;
+}
+
+.circular-carousel__live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (prefers-reduced-motion:reduce){.circular-carousel{transition:none}}
