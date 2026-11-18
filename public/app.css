@@ -1127,8 +1127,8 @@ body{background:transparent!important}
 .mi-box{width:min(100%,560px);padding:10px 16px 16px;border-radius:var(--r-lg)}
 /* Nothing but the pitch: no card frame, no header. */
 /* No backdrop of its own: the pitch floats as a piece on top of the live site content behind it. */
-#miModal.modal-overlay{background:transparent;background-image:none;-webkit-backdrop-filter:none;backdrop-filter:none}
-#miModal .modal-box.mi-box{background:transparent!important;border:0;box-shadow:none;overflow-x:visible;overflow-y:auto}
+#miModal.modal-overlay{background:rgba(6,8,13,.6);background-image:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#miModal .modal-box.mi-box{background:var(--card)!important;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:var(--r-lg);padding:16px;overflow-x:visible;overflow-y:auto}
 #miModal .mi-head{display:none}
 #miModal .fb-x{z-index:9;background:rgba(14,19,30,.92);border-color:rgba(255,255,255,.14);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 6px 16px -8px rgba(0,0,0,.8)}
 .mi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:40px}

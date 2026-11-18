@@ -1982,11 +1982,34 @@ function miAnalysis(id) {
   const r = (st.results || []).find(x => x && x.fx && String(x.fx.id) === String(id));
   return r && r.v ? mxAnalysis(r, tNow()) : '';
 }
-// The pitch is the whole view: no surrounding card, crests, score or match meta —
-// just the 3D tactical pitch, the team-swap button, and a small data credit.
+// Line-ups as a clean list per team — no 3D pitch, no team-swap button.
+function miLuCol(tm, lu, status) {
+  const t = tNow();
+  if (!lu || !lu.xi || !lu.xi.length) return `<div class="mi-col"><h4>${crestHTML(tm)}<span>${esc(tm.name)}</span></h4><div class="mi-note">${esc(t.mi_lu_none || 'No line-up for this team.')}</div></div>`;
+  const newIds = new Set((tm.changes && tm.changes.in) || []);
+  const pl = p => `<div class="mi-li"><span class="num">${p.number ?? ''}</span><span class="nm">${esc(p.name)}</span>${newIds.has(p.name) ? `<span class="mi-tag new">${esc(t.mi_new || 'NEW')}</span>` : ''}<span class="ps">${esc(p.pos || '')}</span></div>`;
+  const label = { confirmed: t.mi_lu_conf, probable: t.mi_lu_prob, projected: t.mi_lu_proj, squad: t.mi_lu_squad }[status];
+  return `<div class="mi-col"><h4>${crestHTML(tm)}<span>${esc(tm.name)}</span></h4>
+    ${label ? `<div class="mi-sub">${esc(label)}</div>` : ''}
+    ${lu.formation ? `<div class="mi-stat"><span>${esc(t.mi_formation || 'Formation')}</span><b>${esc(lu.formation)}</b></div>` : ''}
+    ${lu.coach ? `<div class="mi-stat"><span>${esc(t.fb_coach || 'Coach')}</span><b>${esc(lu.coach)}</b></div>` : ''}
+    <div class="mi-list">${lu.xi.map(pl).join('')}</div>
+    ${lu.subs && lu.subs.length ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:var(--fs-sm);font-weight:700;color:var(--ink-2)">${esc(t.mi_subs || 'Substitutes')} (${lu.subs.length})</summary><div class="mi-list">${lu.subs.map(pl).join('')}</div></details>` : ''}
+  </div>`;
+}
 function miRender(d, uid) {
   const t = tNow();
-  return `${teamPitch(d, 'home', uid)}`
+  const lu = d.lineups || {};
+  let body;
+  if (lu.home || lu.away) {
+    body = miLuCol(d.home, lu.home, lu.status) + miLuCol(d.away, lu.away, lu.status);
+  } else {
+    const msg = lu.status === 'not_yet'
+      ? (t.mi_lu_soon || 'Line-ups are announced about 1 hour before kick-off ({time}).').replace('{time}', lu.expectedFrom ? new Date(lu.expectedFrom).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '')
+      : (t.mi_lu_na || 'No line-up data for this match.');
+    body = `<div class="mi-note">${esc(msg)}</div>`;
+  }
+  return body
     + `<p class="mi-src">${esc(d.source === 'api-football' ? (t.mi_src || 'Data: API-Football') : (t.mi_src_basic || 'Line-ups and injuries are not available for this match.'))}</p>`;
 }
 window.miTab = function (btn, uid) {
