@@ -37,6 +37,7 @@
 <link rel="stylesheet" href="/gooey-nav.css">
 <link rel="stylesheet" href="/football-dash.css">
 <link rel="stylesheet" href="/no-glow.css">
+<link rel="stylesheet" href="/polish.css">
 <script src="/spatial.js" defer></script>
 <script src="/ui-pro.js" defer></script>
 </head>
@@ -442,6 +443,7 @@
 <script src="/pixel-card.js"></script>
 <script src="/star-border.js"></script>
 <script src="/gooey-nav.js"></script>
+<script src="/stat-globe.js"></script>
 <script src="/odds-core.js"></script>
 <script>
 (function () {
@@ -2132,6 +2134,7 @@ function renderSignals() {
       </div>
     </div>
   `;
+  if (window.StatGlobe) window.StatGlobe.place($('stats').querySelector('.sx'));
 
 
   // One broken fixture (missing odds, missing scoreline...) must not stop the other cards from rendering, and it is never hidden silently: it is counted in `failed`.

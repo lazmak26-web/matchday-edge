@@ -1,0 +1,40 @@
+/* polish.css — loaded last.
+   1) the match-counter box: spinning globe instead of the football, a little more room under the header
+   2) the header: a glassy but solid bar, built like the light/dark switch (soft surface, hairline, inner highlight)
+   3) one consistent soft shadow on every card of the site */
+
+:root,[data-theme]{
+  --card-shadow:0 1px 2px rgba(16,24,40,.05),0 6px 16px -6px rgba(16,24,40,.10),0 18px 36px -18px rgba(16,24,40,.16);
+  --bar-hi:rgba(255,255,255,.75);
+}
+[data-theme]:not([data-theme="light"]){
+  --card-shadow:0 1px 2px rgba(0,0,0,.35),0 8px 20px -8px rgba(0,0,0,.45),0 22px 44px -22px rgba(0,0,0,.6);
+  --bar-hi:rgba(255,255,255,.07);
+}
+
+/* 1 ── match-counter box */
+.sx::after{content:none!important;display:none!important}             /* the football */
+.sx-globe{position:absolute;right:-26px;top:50%;width:150px;height:150px;transform:translateY(-50%);z-index:0;pointer-events:none;
+  opacity:0;transition:opacity .8s ease}
+.sx-globe.is-ready{opacity:.9}
+.sx-globe.is-fallback{display:none}
+.sx-globe canvas{display:block;width:150px;height:150px}
+@media (max-width:620px){.sx-globe{width:120px;height:120px;right:-34px}.sx-globe canvas{width:120px;height:120px}.sx-globe.is-ready{opacity:.75}}
+#stats{padding-top:3.5px}
+
+/* 2 ── header: glass, but solid — same recipe as the theme switch */
+.app-header{
+  background:color-mix(in srgb,var(--soft) 86%,transparent)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(170%)!important;backdrop-filter:blur(22px) saturate(170%)!important;
+  border:1px solid var(--line)!important;
+  box-shadow:inset 0 1px 0 var(--bar-hi),var(--card-shadow)!important;
+}
+.app-header.scrolled{box-shadow:inset 0 1px 0 var(--bar-hi),var(--card-shadow)!important}
+.app-header .icon-btn{background:color-mix(in srgb,var(--card) 70%,transparent);border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--bar-hi)}
+.theme-pill{box-shadow:inset 0 1px 0 var(--bar-hi)}
+
+/* 3 ── one shadow for every card */
+.match,.pick,.sx,.lb-edge,.cta-box,.chart-card,.perf-card,.feature-card,.plan-card,.db-card,.hc-card,
+.dx-kpis,.dx-table,.dx-card,.dx-leader,.fb-tile,.fb-table-card,.empty-state,.da-card,.stat-hero{
+  box-shadow:var(--card-shadow)!important;
+}
