@@ -1747,7 +1747,7 @@ function miPitch(lu, newIds) {
 // Real tactical coordinates (0..100). x: 0 = left touchline, 100 = right.
 // y: 0 = this team's own goal line (near camera), 100 = far goal (attack).
 function fpLayout(luT) {
-  const xi = luT.xi || [];
+  const xi = (luT.xi || []).slice(0, 11);   // never more than a starting XI on the pitch (guards cached/over-long line-ups)
   let rows;
   if (xi.length && xi.every(p => p.grid)) {           // provider grid: group by line, order within line
     const m = new Map();
@@ -1755,7 +1755,8 @@ function fpLayout(luT) {
     rows = [...m.entries()].sort((a, b) => a[0] - b[0])
       .map(([, ps]) => ps.sort((a, b) => (b.grid ? +b.grid.split(':')[1] : 0) - (a.grid ? +a.grid.split(':')[1] : 0)));
   } else {                                            // derive lines from the formation string
-    const lines = (luT.formation || '4-4-2').split('-').map(Number).filter(n => n > 0);
+    let lines = (luT.formation || '4-4-2').split('-').map(Number).filter(n => n > 0);
+    if (!lines.length) lines = [4, 4, 2];               // guard against a blank/garbled formation string
     rows = [[xi[0]].filter(Boolean)];
     let i = 1;
     for (const c of lines) { rows.push(xi.slice(i, i + c)); i += c; }
