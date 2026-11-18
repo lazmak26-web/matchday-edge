@@ -1,0 +1,23 @@
+/* no-glow.css — loaded last: removes the blue glows/halos across the site.
+   Cards, buttons and fields keep their normal border and shadow; only the coloured light is gone. */
+
+/* LIVE / pinned / selected match cards: no blue ring or halo, just the normal card edge */
+.match.is-live-card,.match.is-pinned,.match.is-selected,.pick.is-selected{
+  border-color:var(--line)!important;box-shadow:var(--shadow,none)!important}
+.match.is-value{box-shadow:var(--shadow,none)!important}
+
+/* buttons: no blue glow under them, no spinning blue ring */
+.btn-main,.auth-btn{box-shadow:none!important}
+.btn-main:not(.star-border)::before,.auth-btn::before{display:none!important}
+@media (hover:hover){.btn-main:hover,.auth-btn:hover{box-shadow:none!important}}
+
+/* hover lift on cards: keep the lift, drop the blue ring */
+:root,[data-theme]{--ring-brand:0 0 0 0 transparent}
+
+/* inputs and chips: a plain focus ring instead of a glowing one */
+.auth-input:focus{box-shadow:0 0 0 2px var(--brand)!important}
+.theme-chip.active{box-shadow:0 0 0 1px var(--brand)!important}
+.hero-badge{box-shadow:var(--e-1,none)!important}
+
+/* the cursor spotlight on cards was a blue radial light */
+.feature-card::before,.chart-card::before,.match::before,.perf-card::before,.plan-card::before,.pick::before,.hc-card::before{display:none!important}
