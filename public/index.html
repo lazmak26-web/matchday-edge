@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="/code-slots.css">
 <link rel="stylesheet" href="/pixel-card.css">
 <link rel="stylesheet" href="/star-border.css">
+<link rel="stylesheet" href="/gooey-nav.css">
 <script src="/spatial.js" defer></script>
 <script src="/ui-pro.js" defer></script>
 </head>
@@ -510,6 +511,7 @@
 <script src="/code-slots.js"></script>
 <script src="/pixel-card.js"></script>
 <script src="/star-border.js"></script>
+<script src="/gooey-nav.js"></script>
 <script src="/odds-core.js"></script>
 <script>
 (function () {
@@ -1153,6 +1155,8 @@ let otpEmail = '', otpTimer = null;
 // 6-slot animated code field (code-slots.js); falls back to the plain input if the script is missing.
 // "Login to Dashboard" on the landing: running star border (star-border.js), colour = the button's text colour.
 if (window.StarBorder && document.getElementById('lpLoginBtn')) window.StarBorder.attach(document.getElementById('lpLoginBtn'), { duration: 4, stars: 1, trailLength: 0.3, thickness: 1, glow: 0.6, hover: 'lap', sparkle: false, clickPulse: true });
+// Bottom tab bar: gooey active pill (gooey-nav.js). switchTab() still toggles .active; the pill follows it.
+if (window.GooeyNav && document.getElementById('bottomNav')) window.GooeyNav.attach(document.getElementById('bottomNav'), { itemSelector: '.nav-item', particleCount: 15, spread: 56, animationTime: 600, timeVariance: 300, gooeyness: 0.5, wobble: 0.5, hoverEffect: true });
 const otpSlots = window.CodeSlots ? window.CodeSlots.enhance(document.getElementById('otpCode'), { length: 6, onComplete: () => verifyOtp() }) : null;
 function otpReset() { if (otpSlots) otpSlots.reset(); else document.getElementById('otpCode').value = ''; }
 function resetAuthSteps() {

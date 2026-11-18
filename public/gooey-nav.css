@@ -1,0 +1,17 @@
+/* gooey-nav.css — styles for gooey-nav.js (gooey active pill, after React Bits GooeyNav). */
+.gooey-nav__defs{position:absolute;width:0;height:0;overflow:hidden}
+.gooey-nav{isolation:isolate}
+.gooey-nav__layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:visible}
+.gooey-nav__pill,.gooey-nav__drop{position:absolute;left:0;top:0;background:var(--brand)}
+.gooey-nav__pill{border-radius:var(--r-pill,999px);will-change:transform,width;opacity:0}
+.gooey-nav__drop{display:block;border-radius:50%;will-change:transform}
+
+/* tabs sit on top of the blob; the active one just changes its text colour */
+.gooey-nav .nav-item{position:relative;z-index:1}
+/* (ids/!important: the theme has several media-queried rules for #bottomNav .nav-item.active) */
+#bottomNav.gooey-nav .nav-item.active,
+[data-theme] #bottomNav.gooey-nav .nav-item.active{background:transparent!important;box-shadow:none!important;color:var(--on-brand,#fff)!important}
+#bottomNav.gooey-nav .nav-item.active svg{color:inherit!important;stroke:currentColor}
+#bottomNav.gooey-nav .nav-item.active::before{display:none!important}
+
+@media (prefers-reduced-motion:reduce){.gooey-nav__drop{display:none}}
