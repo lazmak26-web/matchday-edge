@@ -140,6 +140,7 @@
       if (next === active) { wake(); return; }
       var prev = active;
       active = next;
+      if (next < 0) { placed = false; paint(); return; }   // no tab is active (e.g. a page from the side menu): hide the pill
       if (prev >= 0 && next >= 0 && placed) {
         // the edge on the side we travel to gets the quick spring, the other one lags behind
         var right = next > prev;
