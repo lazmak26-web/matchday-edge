@@ -1,0 +1,11 @@
+/* star-border.css — styles for star-border.js (port of React Bits StarBorder). */
+.star-border{position:relative;isolation:isolate}
+/* the canvas bleeds 48px past the button so the glow can spill out */
+.star-border__light{position:absolute;top:-48px;left:-48px;z-index:-1;width:calc(100% + 96px);height:calc(100% + 96px);pointer-events:none}
+
+/* On .btn-main: the star replaces the spinning conic ring; a faint track stays on the edge.
+   overflow is opened up for the glow, so the hover sheen (which would slide outside the button) is turned off. */
+.btn-main.star-border{overflow:visible}
+.btn-main.star-border::before{animation:none;background:none;padding:0;-webkit-mask:none;mask:none;opacity:1;
+  box-shadow:inset 0 0 0 var(--star-border-thickness,1px) color-mix(in srgb,currentColor 22%,transparent)}
+.btn-main.star-border::after{display:none}
