@@ -303,6 +303,8 @@
   }
 
   function boot() {
+    // rays-bg.js now draws the site background: keep Lenis and presence, skip the WebGL globe
+    if (window.__raysBg) { card.classList.add('is-fallback'); }
     if (!reduced && !coarse) {
       (window.Lenis ? Promise.resolve() : loadScript(CDN.lenis)).then(function () {
         if (!window.Lenis) return;
@@ -310,7 +312,7 @@
         lenis = new window.Lenis({ lerp: 0.09, wheelMultiplier: 0.95 });
       }).catch(function () {});
     }
-    import(CDN.cobe)
+    if (!window.__raysBg) import(CDN.cobe)
       .then(function (mod) { window.__createGlobe = mod.default; start(); })
       .catch(function () { card.classList.add('is-fallback'); });
     if (!running) { running = true; requestAnimationFrame(frame); }

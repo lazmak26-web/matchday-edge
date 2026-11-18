@@ -57,3 +57,12 @@ html.ui-light .brand-mark,html.ui-light .brand-mark.is-dark,html.ui-light .app-h
 .lbb-col small{font-size:10.5px;color:var(--ink-3);text-align:center;font-variant-numeric:tabular-nums;margin-top:-4px}
 .lbb-col.is-empty em,.lbb-col.is-empty small{display:none}
 @media (max-width:480px){.lbb-col small{display:none}.lbb-bars{height:176px}.lbb-col i{max-height:calc(100% - 50px)}}
+
+/* site background: light rays (rays-bg.js). Replaces the background globe and the aurora blobs, on every page. */
+.aurora,.globe-bg{display:none!important}
+.rays-bg{position:fixed;inset:0;z-index:-1;width:100vw;height:100vh;height:100lvh;pointer-events:none;
+  opacity:0;transition:opacity 1.2s ease;transform-origin:100% 0;animation:raysSway 38s ease-in-out infinite alternate}
+.rays-bg.is-ready{opacity:1}
+@keyframes raysSway{from{transform:rotate(-1.2deg) scale(1.03)}to{transform:rotate(1.4deg) scale(1.05)}}
+@media (prefers-reduced-motion:reduce){.rays-bg{animation:none}}
+.lbb-col.is-empty i{height:46px!important;max-height:none}
