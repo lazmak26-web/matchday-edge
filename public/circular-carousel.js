@@ -22,7 +22,7 @@
     intro: 'rise',
     cardWidth: 310,        // max card width (px); shrinks to ~84% of the container on narrow screens
     gap: 25,
-    tilt: -5,
+    tilt: -3,              // less tilt keeps the far cards closer to the front row (less empty height above it)
     perspective: 2500,
     autoplay: 'drift',     // 'drift' | 'step' | 'off'
     speed: 14,             // deg/s while drifting
@@ -37,7 +37,9 @@
     stretch: 0.5,
     depthFade: 0.55,
     innerShade: 0.6,
-    padY: 40,              // vertical breathing room around the cards (px)
+    padY: 40,              // vertical room used for the first layout pass (px)
+    padTop: 8,             // room above the highest card once fitted (px)
+    padBottom: 14,         // room below the lowest card once fitted (px)
     label: 'Carousel',
     onChange: null
   };
@@ -169,11 +171,36 @@
       var rootH = Math.round(cardH + o.padY * 2);
       root.style.height = rootH + 'px';
       stage.style.perspective = o.perspective + 'px';
+      stage.style.top = '50%';
       st.drop = rootH * 0.55 + cardH;
 
       if (!ready) { ready = true; root.setAttribute('data-ready', ''); }
+      fitHeight();
       render(performance.now());
       wake();
+    }
+
+    // The tilt and perspective push the ring off-centre (the far cards rise, the front card sinks), so a box of
+    // cardH + 2*padY leaves a gap on top and clips the bottom of the front card. Measure where the cards really land
+    // (at rest, ignoring the intro) and size/shift the box to fit them, with padTop/padBottom of room.
+    function fitHeight() {
+      var intro = st.intro, introDone = st.introDone;
+      st.intro = null; st.introDone = true;
+      render(performance.now());
+      var top = Infinity, bottom = -Infinity, base = root.getBoundingClientRect().top;
+      for (var i = 0; i < cards.length; i++) {
+        [cards[i].face, cards[i].back].forEach(function (el) {
+          var r = el.getBoundingClientRect();
+          if (r.width > 4) { top = Math.min(top, r.top - base); bottom = Math.max(bottom, r.bottom - base); }
+        });
+      }
+      st.intro = intro; st.introDone = introDone;
+      if (!isFinite(top)) return;
+      var h = Math.round(bottom - top + o.padTop + o.padBottom);
+      var shift = o.padTop - top - (h - root.offsetHeight) / 2;   // after the resize the stage centre moves by half the change
+      root.style.height = h + 'px';
+      stage.style.top = 'calc(50% + ' + shift.toFixed(1) + 'px)';
+      st.drop = h * 0.55 + cardH;
     }
 
     /* ───────── animation ───────── */

@@ -65,3 +65,12 @@ html.ui-light .brand-mark,html.ui-light .brand-mark.is-dark,html.ui-light .app-h
   opacity:0;transition:opacity 1.2s ease}
 .rays-bg.is-ready{opacity:1}
 .lbb-col.is-empty i{height:46px!important;max-height:none}
+
+/* landing: "Follow us on X" under "Login to Dashboard" */
+.btn-x{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:10px;padding:13px 18px;border-radius:var(--r-pill,999px);
+  background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:var(--card-shadow);font-weight:600;font-size:var(--fs-sm,14px);
+  text-decoration:none;transition:background .2s ease,border-color .2s ease,transform .2s ease}
+.btn-x svg{flex:none}
+.btn-x-handle{color:var(--ink-3);font-weight:500}
+@media (hover:hover){.btn-x:hover{background:var(--soft);border-color:var(--line-2,var(--line));transform:translateY(-1px)}}
+.btn-x:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
