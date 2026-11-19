@@ -1533,23 +1533,40 @@ app.use((req, res, next) => {
 // The file is read once at startup (the container ships a fixed build); the nonce makes the response uncacheable.
 const INDEX_PATH = path.join(__dirname, 'public', 'index.html');
 let INDEX_HTML = '';
-try { INDEX_HTML = fs.readFileSync(INDEX_PATH, 'utf8'); } catch (e) { console.error('index.html read error:', e.message); }
+let CSS_BUNDLE = '';
+try {
+  INDEX_HTML = fs.readFileSync(INDEX_PATH, 'utf8');
+  // one minified stylesheet + content-hashed asset URLs (see asset-pipeline.js); falls back to the raw page on any error
+  try { const built = require('./asset-pipeline').build(INDEX_HTML, path.join(__dirname, 'public'), { '/odds-core.js': path.join(__dirname, 'engine', 'odds.js') }); INDEX_HTML = built.html; CSS_BUNDLE = built.bundle; }
+  catch (e) { console.error('asset pipeline skipped:', e.message); }
+} catch (e) { console.error('index.html read error:', e.message); }
 function sendIndex(req, res) {
   if (!INDEX_HTML) return res.status(500).send('index unavailable');
   const nonce = crypto.randomBytes(16).toString('base64');
   res.setHeader('Content-Security-Policy', cspHeader(nonce));
-  res.setHeader('Cache-Control', 'no-store');
+  // no-cache (revalidate every time) instead of no-store, so the back/forward cache can restore the page instantly
+  res.setHeader('Cache-Control', 'no-cache');
   res.type('html').send(INDEX_HTML.split('<script>').join(`<script nonce="${nonce}">`));
 }
 app.get('/', sendIndex);
 app.get('/index.html', sendIndex);
 // The same pure odds core runs in the browser (sharp weighting, outlier filter, best price), so the Value Board matches the server engine.
-app.get('/odds-core.js', (req, res) => { res.type('application/javascript').set('Cache-Control', 'public, max-age=300').sendFile(path.join(__dirname, 'engine', 'odds.js')); });
+const IMMUTABLE = 'public, max-age=31536000, immutable';
+app.get('/odds-core.js', (req, res) => { res.type('application/javascript').set('Cache-Control', req.query.v ? IMMUTABLE : 'public, max-age=300').sendFile(path.join(__dirname, 'engine', 'odds.js')); });
+app.get('/bundle.css', (req, res) => {
+  if (!CSS_BUNDLE) return res.status(404).end();
+  res.type('text/css').set('Cache-Control', req.query.v ? IMMUTABLE : 'no-cache').send(CSS_BUNDLE);
+});
+// a URL carrying ?v=<content hash> (added by asset-pipeline.js) never changes content, so it can be cached for a year
+app.use((req, res, next) => { if (req.query && req.query.v) res.locals.immutable = true; next(); });
 app.use(express.static(path.join(__dirname, 'public'), {
   extensions: ['html'], dotfiles: 'deny', index: 'index.html',
-  // static assets that rarely change are cached for a week; pages and our own scripts/styles always revalidate (ETag) so updates show up at once
+  // fingerprinted URLs: one year. Fonts and vendor libraries: one year (their names change with their version).
+  // Other images: 30 days. Anything else (unversioned scripts/styles) revalidates with its ETag so updates show up at once.
   setHeaders(res, file) {
-    if (/\.(woff2|png|jpe?g|webp|svg|ico)$/i.test(file) || /[\\/]vendor[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=604800');
+    if (res.locals && res.locals.immutable) res.setHeader('Cache-Control', IMMUTABLE);
+    else if (/\.woff2$/i.test(file) || /[\\/]vendor[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=31536000');
+    else if (/\.(png|jpe?g|webp|avif|svg|ico)$/i.test(file)) res.setHeader('Cache-Control', 'public, max-age=2592000');
     else res.setHeader('Cache-Control', 'no-cache');
   }
 }));

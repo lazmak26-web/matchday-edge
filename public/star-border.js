@@ -91,6 +91,7 @@
     var ctx = canvas.getContext('2d');
     if (!ctx) return null;
     var reduce = !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var idleGap = global.matchMedia && global.matchMedia('(pointer: coarse)').matches ? 50 : 40;
 
     function settings() {
       var cs = getComputedStyle(root);
@@ -115,7 +116,7 @@
 
     function applyMeasure() {
       st.width = root.offsetWidth; st.height = root.offsetHeight;
-      st.dpr = Math.min(global.devicePixelRatio || 1, 2);
+      st.dpr = Math.min(global.devicePixelRatio || 1, 1.25);   // soft light: a 1.25x backing store is enough and 2.5x cheaper than 2x
       canvas.width = Math.max(1, Math.round((st.width + BLEED * 2) * st.dpr));
       canvas.height = Math.max(1, Math.round((st.height + BLEED * 2) * st.dpr));
       S = settings();
@@ -129,7 +130,7 @@
 
     function drawTrail(s, shape, head, length, sign, k, tip) {
       if (length < 0.5 || k <= 0) return;
-      var steps = clamp(Math.ceil(length / 2), 2, 90);
+      var steps = clamp(Math.ceil(length / 4), 2, 36);
       pointAt(shape, head, pt);
       var px = pt.x, py = pt.y;
       for (var i = 1; i <= steps; i++) {
@@ -223,6 +224,8 @@
     function frame(now) {
       raf = 0;
       if (!alive) return;
+      var busyNow = st.lap >= 0 || pulses.length || st.hovered || st.flash > 0.01;
+      if (!busyNow && now - last < idleGap) { raf = requestAnimationFrame(frame); return; }   // ~25 fps (20 on phones) while it just drifts
       if (resizePending) { resizePending = false; applyMeasure(); }
       var s = S, dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
       last = now; st.time += dt;
@@ -266,7 +269,7 @@
       var showing = st.reveal > 0.002 || revealT > 0;
       if (st.visible && !document.hidden && (settling || (moving && showing) || st.hovered)) raf = requestAnimationFrame(frame);
     }
-    function wake() { if (raf || !alive || !st.visible || document.hidden) return; last = performance.now(); raf = requestAnimationFrame(frame); }
+    function wake() { if (raf || !alive || !started || !st.visible || document.hidden) return; last = performance.now(); raf = requestAnimationFrame(frame); }
 
     function onEnter(e) {
       var p = local(e); st.hovered = true;
@@ -306,7 +309,10 @@
     root.addEventListener('pointerdown', onDown); root.addEventListener('click', onClick);
     root.addEventListener('focus', onFocus); root.addEventListener('blur', onBlur);
     document.addEventListener('visibilitychange', onVis);
-    measure();
+    var started = false;
+    function begin() { if (started || !alive) return; started = true; measure(); }
+    function afterLoad() { if (global.requestIdleCallback) requestIdleCallback(begin, { timeout: 2500 }); else setTimeout(begin, 1200); }
+    if (document.readyState === 'complete') afterLoad(); else global.addEventListener('load', afterLoad, { once: true });
 
     var api = {
       el: root,

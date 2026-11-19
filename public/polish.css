@@ -60,9 +60,8 @@ html.ui-light .brand-mark,html.ui-light .brand-mark.is-dark,html.ui-light .app-h
 
 /* site background: light rays (rays-bg.js). Replaces the background globe and the aurora blobs, on every page. */
 .aurora,.globe-bg{display:none!important}
+/* (no sway animation: animating a full-screen layer forces a re-composite every frame, which costs a lot on phones) */
 .rays-bg{position:fixed;inset:0;z-index:-1;width:100vw;height:100vh;height:100lvh;pointer-events:none;
-  opacity:0;transition:opacity 1.2s ease;transform-origin:100% 0;animation:raysSway 38s ease-in-out infinite alternate}
+  opacity:0;transition:opacity 1.2s ease}
 .rays-bg.is-ready{opacity:1}
-@keyframes raysSway{from{transform:rotate(-1.2deg) scale(1.03)}to{transform:rotate(1.4deg) scale(1.05)}}
-@media (prefers-reduced-motion:reduce){.rays-bg{animation:none}}
 .lbb-col.is-empty i{height:46px!important;max-height:none}

@@ -156,6 +156,8 @@
      what is really behind it: the page background blended with the globe pixels at that spot (read from a 96 px copy of
      the WebGL canvas, a few times per second at most). Dark behind -> white text, light behind -> dark text, for every theme. */
   var ink = (function () {
+    // with the rays background there is no globe behind the hero text: keep the text as plain text (no per-word colour animation)
+    if (window.__raysBg) return { now: function () {}, later: function () {}, afterDraw: function () {} };
     var S = 96, sc = document.createElement('canvas'); sc.width = sc.height = S;
     var sx = sc.getContext('2d', { willReadFrequently: true });
     var data = null, lastSample = 0, queued = false;
@@ -310,12 +312,15 @@
         if (!window.Lenis) return;
         document.querySelectorAll('.modal-box, .side-menu, .profile-menu').forEach(function (el) { el.setAttribute('data-lenis-prevent', ''); });
         lenis = new window.Lenis({ lerp: 0.09, wheelMultiplier: 0.95 });
+        if (!running) { running = true; requestAnimationFrame(frame); }
       }).catch(function () {});
     }
     if (!window.__raysBg) import(CDN.cobe)
       .then(function (mod) { window.__createGlobe = mod.default; start(); })
       .catch(function () { card.classList.add('is-fallback'); });
-    if (!running) { running = true; requestAnimationFrame(frame); }
+    // the per-frame loop only exists to drive the globe and Lenis: with the rays background and no Lenis (touch screens,
+    // reduced motion) there is nothing to drive, so no loop at all; with Lenis it starts once Lenis is ready
+    if (!window.__raysBg && !running) { running = true; requestAnimationFrame(frame); }
   }
 
   if (window.requestIdleCallback) requestIdleCallback(boot, { timeout: 1500 });
