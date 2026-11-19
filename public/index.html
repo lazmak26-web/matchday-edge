@@ -24,9 +24,8 @@
 <meta name="twitter:title" content="LuciBet — Football Match Analytics &amp; Value Bets">
 <meta name="twitter:description" content="Poisson model + live market odds. Daily picks where the model sees positive expected value. 18+.">
 <meta name="twitter:image" content="https://1uciferxyz.com/og-image.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<!-- Fonts: Plus Jakarta Sans is self-hosted (vendor/fonts, @font-face in app.css). The Google Fonts stylesheet that used to be
+     linked here was always blocked by the CSP (style-src/font-src 'self'), so it is gone: one less request, same look. -->
 <link rel="stylesheet" href="/app.css?v=20261117c">
 <link rel="stylesheet" href="/demo-arena.css">
 <link rel="stylesheet" href="/ui-pro.css">
@@ -53,7 +52,7 @@
     <div class="brand">
       <button class="icon-btn hidden" id="menuBtn" type="button" aria-label="Menu" data-act="openMenu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="brand-mark">
-        <img class="logo-w" src="logo.png" alt="LuciBet logo" width="34" height="34" decoding="async" fetchpriority="high"><img class="logo-k" src="logo-dark.png" alt="" aria-hidden="true" width="34" height="34" decoding="async">
+        <img class="logo-w" src="logo-68.webp" alt="LuciBet logo" width="34" height="34" decoding="async" loading="lazy"><img class="logo-k" src="logo-dark-68.webp" alt="" aria-hidden="true" width="34" height="34" decoding="async" loading="lazy">
       </div>
       <div class="brand-text">
         <div class="brand-name">LuciBet</div>
@@ -437,14 +436,14 @@
   <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
 </a>
 
-<script src="reblend.js"></script>
-<script src="/circular-carousel.js"></script>
-<script src="/code-slots.js"></script>
-<script src="/pixel-card.js"></script>
-<script src="/star-border.js"></script>
-<script src="/gooey-nav.js"></script>
-<script src="/stat-globe.js"></script>
-<script src="/odds-core.js"></script>
+<script src="reblend.js" defer></script>
+<script src="/circular-carousel.js" defer></script>
+<script src="/code-slots.js" defer></script>
+<script src="/pixel-card.js" defer></script>
+<script src="/star-border.js" defer></script>
+<script src="/gooey-nav.js" defer></script>
+<script src="/stat-globe.js" defer></script>
+<script src="/odds-core.js" defer></script>
 <script>
 (function () {
   var d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
@@ -1089,12 +1088,20 @@ async function appleSignIn() {
 document.getElementById('appleBtn').addEventListener('click', appleSignIn);
 
 let otpEmail = '', otpTimer = null;
-// 6-slot animated code field (code-slots.js); falls back to the plain input if the script is missing.
-// "Login to Dashboard" on the landing: running star border (star-border.js), colour = the button's text colour.
-if (window.StarBorder && document.getElementById('lpLoginBtn')) window.StarBorder.attach(document.getElementById('lpLoginBtn'), { duration: 4, stars: 1, trailLength: 0.3, thickness: 1, glow: 0.6, hover: 'lap', sparkle: false, clickPulse: true });
-// Bottom tab bar: gooey active pill (gooey-nav.js). switchTab() still toggles .active; the pill follows it.
-if (window.GooeyNav && document.getElementById('bottomNav')) window.GooeyNav.attach(document.getElementById('bottomNav'), { itemSelector: '.nav-item', particleCount: 15, spread: 56, animationTime: 600, timeVariance: 300, gooeyness: 0.5, wobble: 0.5, hoverEffect: true });
-const otpSlots = window.CodeSlots ? window.CodeSlots.enhance(document.getElementById('otpCode'), { length: 6, onComplete: () => verifyOtp() }) : null;
+// The effect scripts are loaded with "defer" (they no longer hold up the first paint), so they are attached on
+// DOMContentLoaded, which fires right after those scripts have run.
+let otpSlots = null;
+document.addEventListener('DOMContentLoaded', () => {
+  // "Login to Dashboard" on the landing: running star border (star-border.js), colour = the button's text colour.
+  if (window.StarBorder && document.getElementById('lpLoginBtn')) window.StarBorder.attach(document.getElementById('lpLoginBtn'), { duration: 4, stars: 1, trailLength: 0.3, thickness: 1, glow: 0.6, hover: 'lap', sparkle: false, clickPulse: true });
+  // Bottom tab bar: gooey active pill (gooey-nav.js). switchTab() still toggles .active; the pill follows it.
+  if (window.GooeyNav && document.getElementById('bottomNav')) window.GooeyNav.attach(document.getElementById('bottomNav'), { itemSelector: '.nav-item', particleCount: 15, spread: 56, animationTime: 600, timeVariance: 300, gooeyness: 0.5, wobble: 0.5, hoverEffect: true });
+  // 6-slot animated code field (code-slots.js); falls back to the plain input if the script is missing.
+  if (window.CodeSlots) otpSlots = window.CodeSlots.enhance(document.getElementById('otpCode'), { length: 6, onComplete: () => verifyOtp() });
+  else document.getElementById('otpCode').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); if (e.target.value.length === 6) verifyOtp(); });
+  // a match list that arrived before the carousel script: draw it again now that the carousel exists
+  if (document.querySelector('#lpCards .match') && !document.querySelector('#lpCards .circular-carousel')) loadPublicFixtures();
+});
 function otpReset() { if (otpSlots) otpSlots.reset(); else document.getElementById('otpCode').value = ''; }
 function resetAuthSteps() {
   clearInterval(otpTimer);
@@ -1163,7 +1170,7 @@ async function resendOtp() {
   } catch (e) { err.textContent = e.message; startOtpCountdown(0); }
 }
 document.getElementById('otpCode').addEventListener('keydown', e => { if (e.key === 'Enter') verifyOtp(); });
-if (!otpSlots) document.getElementById('otpCode').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); if (e.target.value.length === 6) verifyOtp(); });
+
 
 async function authSubmit() {
   const t = tNow();

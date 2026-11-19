@@ -5,8 +5,9 @@
 (function (global) {
   'use strict';
   global.__raysBg = true;
+  Array.prototype.forEach.call(document.querySelectorAll('link[data-async-css]'), function (l) { l.media = 'all'; });
 
-  var canvas, ctx, timer = 0;
+  var canvas, ctx, timer = 0, drawToken = 0;
   var SEED = 7;                                         // same rays on every visit
   function rand() { SEED = (SEED * 16807) % 2147483647; return (SEED - 1) / 2147483646; }
 
@@ -21,7 +22,7 @@
   function draw() {
     if (!canvas) return;
     var w = global.innerWidth, h = Math.max(global.innerHeight, document.documentElement.clientHeight);
-    var scale = Math.min(1, 1400 / Math.max(w, h));     // backing store capped: it is a blurred background
+    var scale = Math.min(0.5, (matchMedia('(pointer: coarse)').matches ? 560 : 760) / Math.max(w, h));     // backing store at most half size (CSS scales it up): it is a blurred background
     canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     ctx.clearRect(0, 0, w, h);
@@ -40,7 +41,14 @@
       { n: 16, wMin: 8, wMax: 26, blur: 10, aMin: 0.035, aMax: 0.075 },
       { n: 22, wMin: 1, wMax: 3, blur: 1.5, aMin: 0.05, aMax: 0.12 }
     ];
-    passes.forEach(function (p) {
+    // one pass per idle slot, so no single task blocks input for long
+    var queue = passes.slice(), token = ++drawToken;
+    function next(deadline) {
+      if (token !== drawToken || !queue.length) { if (!queue.length) canvas.classList.add('is-ready'); return; }
+      paint(queue.shift());
+      if (global.requestIdleCallback) requestIdleCallback(next, { timeout: 600 }); else setTimeout(next, 16);
+    }
+    function paint(p) {
       for (var i = 0; i < p.n; i++) {
         // angles between pointing left (180°) and straight down (90°), denser towards the diagonal
         var t = rand();
@@ -54,8 +62,8 @@
         g.addColorStop(0.6, 'rgba(' + tone + ',' + (a * 0.55).toFixed(3) + ')');
         g.addColorStop(1, 'rgba(' + tone + ',0)');
         ctx.save();
-        if (hasFilter) ctx.filter = 'blur(' + p.blur + 'px)';
-        else { ctx.shadowBlur = p.blur * 2; ctx.shadowColor = 'rgba(' + tone + ',' + a + ')'; }
+        if (hasFilter) ctx.filter = 'blur(' + Math.max(0.6, p.blur * scale).toFixed(2) + 'px)';   // filter lengths are in backing-store pixels
+        else { ctx.shadowBlur = p.blur * 2 * scale; ctx.shadowColor = 'rgba(' + tone + ',' + a + ')'; }
         ctx.strokeStyle = g;
         ctx.lineCap = 'round';
         ctx.lineWidth = p.wMin + (p.wMax - p.wMin) * rand();
@@ -65,8 +73,8 @@
         ctx.beginPath(); ctx.moveTo(ox, oy); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
         ctx.restore();
       }
-    });
-    canvas.classList.add('is-ready');
+    }
+    next();
   }
 
   function later() { clearTimeout(timer); timer = setTimeout(draw, 160); }
@@ -78,7 +86,9 @@
     document.body.insertBefore(canvas, document.body.firstChild);
     ctx = canvas.getContext('2d');
     if (!ctx) { canvas.remove(); canvas = null; return; }
-    draw();
+    // first draw once the page has loaded and the main thread is idle: the background never delays the first paint or input
+    var first = function () { if (global.requestIdleCallback) requestIdleCallback(draw, { timeout: 2000 }); else setTimeout(draw, 300); };
+    if (document.readyState === 'complete') first(); else global.addEventListener('load', first, { once: true });
     var lastW = global.innerWidth;
     global.addEventListener('resize', function () {      // mobile URL bars change the height constantly: only redraw on width changes
       if (global.innerWidth !== lastW) { lastW = global.innerWidth; later(); }
