@@ -1,0 +1,43 @@
+/* team-hero.css — national-team banner on top of the match-counter box (team-hero.js) */
+.sx.has-hero{row-gap:16px}
+.sx.has-hero::before{display:none}
+.sx-hero{position:relative;grid-column:1/-1;height:156px;margin:-18px -20px 0;overflow:hidden;
+  border-radius:17px 17px 0 0;background:color-mix(in srgb,var(--ink) 10%,var(--card));isolation:isolate;z-index:0}
+.sx-hero.is-empty{display:none}
+.sxh-flag{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* woven fabric texture, like a real flag up close */
+.sxh-fabric{position:absolute;inset:0;pointer-events:none;opacity:.22;mix-blend-mode:overlay;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.55) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,255,255,.5) 0 1px,transparent 1px 3px)}
+/* fade into the card at the bottom and a soft vignette so names stay readable */
+.sxh-shade{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 34%,transparent 52%,color-mix(in srgb,var(--card) 92%,transparent) 100%),
+             radial-gradient(120% 90% at 50% 120%,transparent 40%,rgba(0,0,0,.18) 100%)}
+.sxh-name{position:absolute;left:18px;top:12px;z-index:2;font-weight:900;font-size:15px;letter-spacing:.14em;text-transform:uppercase;
+  color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55),0 0 18px rgba(0,0,0,.35);transition:opacity .3s ease,transform .3s ease}
+.sxh-players{position:absolute;left:0;right:0;bottom:8px;z-index:2;display:flex;justify-content:center;align-items:flex-end;gap:clamp(6px,2.4vw,18px);padding:0 12px}
+.sxh-players figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;flex:0 1 92px;
+  animation:sxhIn .55s cubic-bezier(.23,1,.32,1) both;animation-delay:calc(var(--i) * 70ms)}
+.sxh-ph{display:block;width:clamp(54px,15vw,78px);aspect-ratio:1;border-radius:50%;overflow:hidden;
+  background:linear-gradient(180deg,#f4f5f7,#d9dce2);border:2px solid rgba(255,255,255,.92);
+  box-shadow:0 6px 16px -4px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.08)}
+.sxh-players figure:nth-child(3) .sxh-ph{width:clamp(64px,18vw,92px)}       /* the middle player a bit bigger, like a cover line-up */
+.sxh-ph img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 20%}
+.sxh-players figcaption{max-width:100%;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.35;color:var(--ink);
+  background:color-mix(in srgb,var(--card) 88%,transparent);border:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.sxh-players figcaption b{margin-right:4px;color:var(--brand);font-variant-numeric:tabular-nums}
+.sx-hero.no-players{height:96px}
+.sx-hero.no-players .sxh-name{top:auto;bottom:16px;font-size:18px}
+.sx-hero.is-out .sxh-players figure{animation:sxhOut .3s ease both}
+.sx-hero.is-out .sxh-name{opacity:0;transform:translateY(-4px)}
+.sx-hero .sxh-flag{transition:opacity .3s ease}
+.sx-hero.is-out .sxh-flag{opacity:.35}
+@keyframes sxhIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes sxhOut{to{opacity:0;transform:translateY(8px)}}
+@media (max-width:620px){
+  .sx-hero{height:142px;margin:-16px -16px 0;border-radius:17px 17px 0 0}
+  .sxh-players figure:nth-child(n+5){display:none}                            /* 4 players on phones */
+  .sxh-players figcaption{font-size:10px;padding:1px 6px}
+}
+@media (prefers-reduced-motion:reduce){.sxh-players figure,.sx-hero.is-out .sxh-players figure{animation:none}}
+.sx.has-hero .sx-globe{display:none}

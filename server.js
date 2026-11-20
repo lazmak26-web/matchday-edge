@@ -2269,6 +2269,58 @@ app.get('/api/public/config', (req, res) => {
   });
 });
 
+// National-team showcase for the match-counter box: a flag + a few squad players (API-Football squads, photos via /portraits).
+// Quota-friendly: squads are cached on the persistent disk for 30 days and filled lazily, at most one call per run,
+// one run every 3 hours (a nation costs 2 calls the first time, 1 afterwards). No key => flags only.
+const NATIONS = [
+  ['morocco', 'Morocco', 'ma'], ['argentina', 'Argentina', 'ar'], ['brazil', 'Brazil', 'br'], ['france', 'France', 'fr'],
+  ['england', 'England', 'gb-eng'], ['spain', 'Spain', 'es'], ['portugal', 'Portugal', 'pt'], ['germany', 'Germany', 'de'],
+  ['croatia', 'Croatia', 'hr'], ['netherlands', 'Netherlands', 'nl'], ['italy', 'Italy', 'it'], ['belgium', 'Belgium', 'be']
+].map(([key, name, flag]) => ({ key, name, flag }));
+const NATIONS_FILE = path.join(path.dirname(HISTORY_FILE), 'nations.json');
+const NATION_TTL = 30 * 24 * 3600e3, NATION_RETRY = 24 * 3600e3, NATION_RUN_GAP = 3 * 3600e3;
+let nationsCache = {};
+try { nationsCache = JSON.parse(fs.readFileSync(NATIONS_FILE, 'utf8')) || {}; } catch (_) {}
+let nationsBusy = false, nationsLastRun = 0;
+const NUM_RANK = [10, 7, 9, 11, 8, 1, 6, 4, 5, 3, 2];
+const POS_RANK = { Attacker: 0, Midfielder: 1, Defender: 2, Goalkeeper: 3 };
+function pickNationPlayers(list) {
+  const rank = p => { const i = NUM_RANK.indexOf(Number(p.number)); return (i < 0 ? 50 : i) * 10 + (POS_RANK[p.position] ?? 4); };
+  return (Array.isArray(list) ? list : []).filter(p => p && Number.isInteger(p.id) && p.name)
+    .sort((a, b) => rank(a) - rank(b)).slice(0, 5)
+    .map(p => ({ id: p.id, name: String(p.name).slice(0, 40), number: Number.isInteger(p.number) ? p.number : null, pos: p.position || '' }));
+}
+async function fillNations() {
+  if (nationsBusy || !apiFootball.enabled() || Date.now() - nationsLastRun < NATION_RUN_GAP) return;
+  const n = NATIONS.find(x => { const c = nationsCache[x.key]; return !(c && c.ts && Date.now() - c.ts < NATION_TTL) && !(c && c.failTs && Date.now() - c.failTs < NATION_RETRY); });
+  if (!n) return;
+  nationsBusy = true; nationsLastRun = Date.now();
+  const c = nationsCache[n.key] || {};
+  try {
+    let teamId = c.teamId;
+    if (!teamId) {
+      const d = await apiFootball.get('/teams?name=' + encodeURIComponent(n.name));
+      const t = (d.response || []).map(r => r && r.team).find(t => t && t.national && Number.isInteger(t.id));
+      if (!t) throw new Error('no national team');
+      teamId = t.id;
+      nationsCache[n.key] = Object.assign({}, c, { teamId });   // keep the id even if the squad call below fails
+    }
+    const s = await apiFootball.get('/players/squads?team=' + teamId);
+    nationsCache[n.key] = { teamId, ts: Date.now(), players: pickNationPlayers(((s.response || [])[0] || {}).players) };
+  } catch (e) {
+    if (e.message !== 'quota') nationsCache[n.key] = Object.assign({}, nationsCache[n.key] || c, { failTs: Date.now() });
+    else nationsLastRun = Date.now() - NATION_RUN_GAP + 3600e3;   // quota: try again in an hour
+  } finally {
+    nationsBusy = false;
+    fs.promises.writeFile(NATIONS_FILE, JSON.stringify(nationsCache)).catch(e => console.error('Nations cache write error:', e.message));
+  }
+}
+app.get('/api/public/nations', (req, res) => {
+  fillNations().catch(() => {});
+  res.setHeader('Cache-Control', 'public, max-age=600');
+  res.json({ nations: NATIONS.map(n => ({ key: n.key, name: n.name, flag: '/logos/flags/' + n.flag + '.svg', players: ((nationsCache[n.key] || {}).players) || [] })) });
+});
+
 app.post('/api/auth/logout', authMiddleware, (req, res) => {
   sessions.delete(req.authToken);
   saveSessionsSoon();

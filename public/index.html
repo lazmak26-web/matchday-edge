@@ -38,6 +38,7 @@
 <link rel="stylesheet" href="/football-dash.css">
 <link rel="stylesheet" href="/no-glow.css">
 <link rel="stylesheet" href="/polish.css">
+<link rel="stylesheet" href="/team-hero.css">
 <script src="/rays-bg.js" defer></script>
 <script src="/spatial.js" defer></script>
 <script src="/ui-pro.js" defer></script>
@@ -444,7 +445,7 @@
 <script src="/pixel-card.js" defer></script>
 <script src="/star-border.js" defer></script>
 <script src="/gooey-nav.js" defer></script>
-<script src="/stat-globe.js" defer></script>
+<script src="/team-hero.js" defer></script>
 <script src="/odds-core.js" defer></script>
 <script>
 (function () {
@@ -2149,7 +2150,7 @@ function renderSignals() {
       </div>
     </div>
   `;
-  if (window.StatGlobe) window.StatGlobe.place($('stats').querySelector('.sx'));
+  if (window.TeamHero) window.TeamHero.place($('stats').querySelector('.sx'));
 
 
   // One broken fixture (missing odds, missing scoreline...) must not stop the other cards from rendering, and it is never hidden silently: it is counted in `failed`.
@@ -3087,7 +3088,7 @@ function drawLandingBars(totals) {
   box.innerHTML = shown.map((x, i) => {
     const cls = i === last ? ' is-last' : i === best ? ' is-best' : '';
     const tip = `${d2(x.d, loc)} · ${x.w}/${x.n} ${t.lb_won || 'won'} (${Math.round(x.r * 100)}%)`;
-    return `<div class="lbb-col${cls}" title="${esc(tip)}"><em>${Math.round(x.r * 100)}%</em><i style="height:calc((100% - 68px) * ${(hgt(x.r) / 100).toFixed(3)})"></i><span>${esc(lbl(x.d))}</span><small>${x.w}/${x.n}</small></div>`;
+    return `<div class="lbb-col${cls}" title="${esc(tip)}"><em>${Math.round(x.r * 100)}%</em><i style="height:calc((100% - var(--lbb-reserve, 68px)) * ${(hgt(x.r) / 100).toFixed(3)})"></i><span>${esc(lbl(x.d))}</span><small>${x.w}/${x.n}</small></div>`;
   }).join('');
   box.setAttribute('aria-label', shown.map(x => `${d2(x.d, loc)} ${Math.round(x.r * 100)}%`).join(', '));
   if (shown.length < 2) { sub.textContent = t.lbb_one || 'First settled day of picks.'; return; }
