@@ -1470,6 +1470,18 @@ const PROXY_COUNT = parseInt(process.env.PROXY_COUNT, 10);
 app.set('trust proxy', Number.isInteger(PROXY_COUNT) && PROXY_COUNT >= 0 ? PROXY_COUNT : 1);
 if (!Number.isInteger(PROXY_COUNT) || PROXY_COUNT < 0) console.warn('⚠️  PROXY_COUNT not set — defaulting to 1. Set PROXY_COUNT=2 if behind Cloudflare + Railway, or PROXY_COUNT=0 if exposed directly.');
 
+// Old / secondary hostnames → 301 to the main domain, so Google moves the old results over to it.
+// Only page loads (GET/HEAD outside /api) are redirected; API calls from pages still open on an old host keep working.
+const CANONICAL_HOST = String(process.env.CANONICAL_HOST || 'lucibet.xyz').trim().toLowerCase();
+const REDIRECT_HOSTS = new Set(String(process.env.REDIRECT_HOSTS || '1uciferxyz.com,www.1uciferxyz.com,www.lucibet.xyz')
+  .split(',').map(h => h.trim().toLowerCase()).filter(Boolean));
+app.use((req, res, next) => {
+  const host = String(req.hostname || '').toLowerCase();
+  if (!CANONICAL_HOST || host === CANONICAL_HOST || !REDIRECT_HOSTS.has(host)) return next();
+  if ((req.method !== 'GET' && req.method !== 'HEAD') || req.path.startsWith('/api/')) return next();
+  res.redirect(301, 'https://' + CANONICAL_HOST + req.originalUrl);
+});
+
 function makeLimiter({ windowMs, max, message, maxKeys = 50000 }) {
   const hits = new Map();
   setInterval(() => { const n = Date.now(); for (const [k, v] of hits) if (n - v.t > windowMs) hits.delete(k); }, Math.min(windowMs, 60 * 1000)).unref();
@@ -1696,7 +1708,7 @@ async function sendMail(to, subject, text, html) {
 }
 
 // Branded OTP email (dark LuciBet identity). Absolute logo URL so it loads in email clients.
-const MAIL_BASE = (process.env.PUBLIC_BASE_URL || 'https://1uciferxyz.com').replace(/\/+$/, '');
+const MAIL_BASE = (process.env.PUBLIC_BASE_URL || 'https://lucibet.xyz').replace(/\/+$/, '');
 const MAIL_SUPPORT = process.env.SUPPORT_EMAIL || 'lucibetsupport@gmail.com';
 function otpEmailText(code) {
   return `Your LuciBet login code is ${code}.\n\nUse it to sign in to your dashboard. It is valid for 10 minutes.\nDid not request it? You can safely ignore this email. Never share this code with anyone.\n\n${MAIL_BASE} · Need help? ${MAIL_SUPPORT}\n18+ only. Predictions are statistical estimates, not guaranteed outcomes. Bet responsibly.`;
