@@ -1533,6 +1533,7 @@ app.use((req, res, next) => {
     const ip = req.ip || 'unknown';
     if (req.path === '/' || req.path.startsWith('/api/')) {
       activeUsers.set(ip, Date.now());
+      if (req.path.startsWith('/api/')) touchOnlineAccount(req, ip);
     }
     if (req.path === '/' || req.path === '/index.html') {
       totalVisits++;
@@ -1605,9 +1606,23 @@ function saveStatsSoon() {
 }
 
 const activeUsers = new Map();
+// Logged-in accounts seen in the last 5 minutes (email -> { t, ip }), for the admin "Online now" list.
+// Any API call that carries a valid session counts, so free users polling the public feed show up too.
+const onlineAccounts = new Map();
+function touchOnlineAccount(req, ip) {
+  try {
+    let token = String(req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+    if (!token && req.headers.cookie) token = parseCookies(req)[COOKIE_SESS] || '';
+    if (!token || token.length > 200) return;
+    const sess = sessions.get(tokHash(token)), now = Date.now();
+    if (!sess || !sess.username || sessionExpired(sess, now)) return;
+    onlineAccounts.set(String(sess.username).toLowerCase(), { t: now, ip });
+  } catch (_) {}
+}
 setInterval(() => {
   const now = Date.now();
   for (const [ip, time] of activeUsers) if (now - time > 5 * 60 * 1000) activeUsers.delete(ip);
+  for (const [em, o] of onlineAccounts) if (now - o.t > 5 * 60 * 1000) onlineAccounts.delete(em);
 }, 60 * 1000).unref();
 
 /* ═══════════════════════════════════════════════════════════
@@ -1963,8 +1978,16 @@ app.get('/api/admin/users', dataLimiter, authMiddleware, requireAdmin, (req, res
 
 // ✅ New Admin Endpoint for Live Visitors & Total Visits
 app.get('/api/admin/stats', dataLimiter, authMiddleware, requireAdmin, (req, res) => {
+  const now = Date.now(), ips = new Set();
+  const online = [...onlineAccounts].filter(([, o]) => now - o.t <= 5 * 60 * 1000).sort((a, b) => b[1].t - a[1].t).map(([email, o]) => {
+    ips.add(o.ip);
+    const u = users.get(email), pro = !!(u && u.plan === 'pro' && (!u.planUntil || u.planUntil > now));
+    return { email, plan: pro ? 'pro' : 'free', lastSeen: o.t };
+  });
   res.json({
     liveUsers: activeUsers.size,
+    online,
+    guests: [...activeUsers.keys()].filter(ip => !ips.has(ip)).length,
     totalVisits: totalVisits
   });
 });

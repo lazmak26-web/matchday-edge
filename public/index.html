@@ -263,6 +263,7 @@
         <div class="section-head"><div><div class="section-label">Admin</div><h2>Dashboard</h2></div>
           <button class="hide-btn" type="button" data-act="loadAdmin">Refresh</button></div>
         <div class="db-kpis" id="admKpis"></div>
+        <div class="db-card adm-online"><div class="db-card-h"><h3>Online now</h3><small class="db-muted" id="admOnlineMeta"></small></div><div id="admOnline"></div></div>
         <div class="db-row">
           <div class="db-card db-wide">
             <div class="db-card-h"><h3>Sign-ups</h3>
@@ -2744,6 +2745,14 @@ function renderAdminDash() {
   $('admDonut').innerHTML = dbDonut(Object.keys(ADM_PLAN).map(k => ({ name: ADM_PLAN[k][0], value: cnt[k], color: ADM_PLAN[k][1] })), { value: dbNum(total), label: 'users' });
   // Dated Pro plans that end within 14 days: the renewals to follow up.
   const soon = U.filter(u => u.plan === 'pro' && !u.lifetime && u.planUntil && u.planUntil > now && u.planUntil - now <= 14 * ADM_DAY).sort((a, b) => a.planUntil - b.planUntil);
+  // Who is online right now: logged-in accounts seen in the last 5 minutes, newest first, plus visitors without an account.
+  const on = (adminLive && adminLive.online) || [], guests = adminLive ? (adminLive.guests || 0) : 0;
+  const ago = t => { const m = Math.floor((now - t) / 60000); return m < 1 ? 'now' : m + ' min ago'; };
+  $('admOnlineMeta').textContent = adminLive ? `${on.length} logged in · ${guests} without account` : '';
+  $('admOnline').innerHTML = !adminLive ? '<p class="db-empty">—</p>' : on.length ? `<ul class="db-list">${on.map(o => {
+    const pl = o.plan === 'pro' ? 'pro' : 'free';
+    return `<li><span class="db-av adm-live">${esc((o.email || '?')[0].toUpperCase())}</span><span class="db-li-main"><b>${esc(o.email)}</b><small>${ago(o.lastSeen)}</small></span><span class="db-tag plan-${pl}">${ADM_PLAN[pl][0]}</span></li>`;
+  }).join('')}</ul>` : '<p class="db-empty">No logged-in user right now.</p>';
   $('admExpiring').innerHTML = soon.length ? `<ul class="db-list">${soon.slice(0, 8).map(u => {
     const days = Math.max(1, Math.ceil((u.planUntil - now) / ADM_DAY));
     return `<li><span class="db-av">${esc((u.email || '?')[0].toUpperCase())}</span><span class="db-li-main"><b>${esc(u.email)}</b><small>${new Date(u.planUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</small></span><span class="db-tag ${days <= 3 ? 'bad' : 'warn'}">${days} ${days === 1 ? 'day' : 'days'}</span></li>`;

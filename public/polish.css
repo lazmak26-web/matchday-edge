@@ -74,3 +74,9 @@ html.ui-light .brand-mark,html.ui-light .brand-mark.is-dark,html.ui-light .app-h
 .btn-x-handle{color:var(--ink-3);font-weight:500}
 @media (hover:hover){.btn-x:hover{background:var(--soft);border-color:var(--line-2,var(--line));transform:translateY(-1px)}}
 .btn-x:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+
+/* admin: "Online now" list (accounts active in the last 5 minutes) */
+.adm-online{margin-top:var(--s-4,16px)}
+.adm-online .db-li-main b{word-break:break-all}
+.db-av.adm-live{position:relative}
+.db-av.adm-live::after{content:"";position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;background:var(--good);border:2px solid var(--card)}
