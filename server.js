@@ -1778,8 +1778,13 @@ function auditLog(action, req, detail) {
   try { console.log('AUDIT ' + JSON.stringify({ at: new Date().toISOString(), action, ip: (req && req.ip) || null, ...(detail || {}) })); } catch (e) { /* logging must never break a request */ }
 }
 
+// Free-for-all mode: every logged-in account gets the full Pro experience (on by default; set FREE_PRO_FOR_ALL=0 to bring the paid plan back).
+// Purchased plans stay stored on the user, so turning this off later restores everyone's real plan.
+const FREE_PRO_FOR_ALL = String(process.env.FREE_PRO_FOR_ALL || '1').trim() !== '0';
+if (FREE_PRO_FOR_ALL) console.log('ℹ️  FREE_PRO_FOR_ALL is on: every logged-in account has Pro access.');
 function planOf(sess) {
   if (!sess) return 'free';
+  if (FREE_PRO_FOR_ALL) return 'pro';
   if (sess.kind === 'keyauth') return sess.lifetime === true || !sess.expiry || sess.expiry > Date.now() ? 'pro' : 'free';
   const u = users.get(sess.username);
   return u && u.plan === 'pro' && (!u.planUntil || u.planUntil > Date.now()) ? 'pro' : 'free';
@@ -1810,8 +1815,9 @@ function profileOf(sess) {
     name: String(sess.username).split('@')[0],
     uid: u ? 'USR' + String(u.seq).padStart(6, '0') : 'KEY-' + String(sess.username).slice(0, 8).toUpperCase(),
     plan: planOf(sess),
-    planUntil: u ? u.planUntil || null : (sess.expiry || null),
-    lifetime: u ? (u.plan === 'pro' && !u.planUntil) : sess.lifetime === true,
+    planUntil: FREE_PRO_FOR_ALL ? null : (u ? u.planUntil || null : (sess.expiry || null)),
+    lifetime: FREE_PRO_FOR_ALL ? false : (u ? (u.plan === 'pro' && !u.planUntil) : sess.lifetime === true),
+    freeForAll: FREE_PRO_FOR_ALL,
     since: u ? u.createdAt : sess.createdAt,
     kind: sess.kind || 'keyauth'
   };
