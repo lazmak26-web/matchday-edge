@@ -73,7 +73,7 @@ before(async () => {
     ] }));
   }).listen(afPort, '127.0.0.1');
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mde-af-'));
-  srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { PATH: process.env.PATH, NODE_ENV: 'test', PORT: String(port), HISTORY_FILE: path.join(dir, 'h.json'),
+  srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { PATH: process.env.PATH, NODE_ENV: 'test', FREE_PRO_FOR_ALL: '0', PORT: String(port), HISTORY_FILE: path.join(dir, 'h.json'),
     BZZOIRO_API_KEY: 'x', BZZOIRO_API_BASE: `http://127.0.0.1:${bzzPort}/api`, APIFOOTBALL_KEY: 'test-af-key', APIFOOTBALL_BASE: `http://127.0.0.1:${afPort}` }, stdio: ['ignore', 'pipe', 'pipe'] });
   srv.stdout.on('data', d => { out += d; }); srv.stderr.on('data', d => { out += d; });
   await new Promise((ok, no) => { const t = setTimeout(() => no(new Error(out)), 15000); const p = setInterval(() => { if (/Server on/.test(out)) { clearTimeout(t); clearInterval(p); ok(); } }, 50); });
