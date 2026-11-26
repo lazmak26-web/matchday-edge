@@ -342,6 +342,17 @@
 </div>
 
 
+<div id="trialModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="trialTitle">
+  <div class="modal-box trial-box">
+    <div class="trial-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+    <div class="trial-days" id="trialDaysBig">3</div>
+    <h2 id="trialTitle">Try Pro free for 3 days</h2>
+    <p id="trialBody">Create your account and get a 3-day Pro trial: every prediction unlocked.</p>
+    <button class="auth-btn" type="button" data-act="trialCta" id="trialCta">Create my account</button>
+    <button class="auth-btn auth-secondary" type="button" data-act="trialLater" id="trialLater">Maybe later</button>
+  </div>
+</div>
+
 <div id="fbTeamModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="fbTeamName">
   <div class="modal-box fb-team-box">
     <button class="icon-btn fb-x" type="button" data-act="fbCloseTeam" aria-label="Close">✕</button>
@@ -633,6 +644,9 @@ const translations = {
   }
 };
 
+Object.assign(translations.en, { trial_t: "Try Pro free for {n} days", trial_b: "Create your account and get a {n}-day Pro trial: every prediction unlocked. After that, Pro stays available on the paid plan.", trial_cta: "Create my account", trial_later: "Maybe later", trial_badge: "Free trial" });
+Object.assign(translations.fr, { trial_t: "Essayez Pro gratuitement pendant {n} jours", trial_b: "Créez votre compte et profitez d'un essai Pro de {n} jours : tous les pronostics débloqués. Ensuite, Pro reste disponible avec l'offre payante.", trial_cta: "Créer mon compte", trial_later: "Plus tard", trial_badge: "Essai gratuit" });
+Object.assign(translations.ar, { trial_t: "جرّب Pro مجانًا لمدة {n} أيام", trial_b: "أنشئ حسابك واحصل على تجربة Pro لمدة {n} أيام: جميع التوقعات مفتوحة. بعد ذلك، تبقى Pro متاحة بالباقة المدفوعة.", trial_cta: "إنشاء حسابي", trial_later: "لاحقًا", trial_badge: "تجربة مجانية" });
 Object.assign(translations.en, { left_lbl: "Time left", lifetime: "Lifetime", lic_checking: "Checking license…", otp_title: "Check your email", otp_sub: "We sent a 6-digit code to {email}.", otp_btn: "Verify", otp_back: "Back", otp_bad: "Enter the 6-digit code.", otp_resend: "Resend code", otp_resend_in: "Resend in {s}s", menu_title: "Menu", lic_menu: "Activate Premium", lic_title: "Activate Premium", lic_sub: "Enter your license key to activate Pro on your account.", lic_btn: "Activate", lic_have: "I have a license key", lic_ok: "Premium activated ✓", lic_fail: "Activation failed.", lic_login: "Session expired. Please log in again.", reg_title: "Create account", reg_sub: "Choose a name, then enter your email and a password.", reg_submit: "Create account", have_acc: "I already have an account", ph_name: "Your name", name_bad: "Enter your name (2 to 30 characters).", lic_doing: "Activating…", lic_timeout: "The server took too long. Try again.", or_email: "or use email", apple_btn: "Continue with Apple", consent_age: "I am 18 or older", legal_a: "By continuing, you accept the", login_sub: "Enter your email and we'll send you a login code.", consent_req: "Please confirm you are 18 or older.", other_comp: "Football", all_leagues: "All", updated: "Updated", matches_n: "matches", filter_league: "Filter by league", nav_standings: "Standings", nav_leagues: "Leagues", fb_label: "Football", fb_st_h: "League tables", fb_lg_h: "Current leagues", fb_matchday: "Matchday", fb_season: "Season", fb_teams: "teams", fb_teams_t: "Teams", fb_leader: "Leader", fb_view_table: "View full table", fb_top5: "Top of the table", fb_scorers: "Top scorers", fb_goals: "goals", fb_assists: "ast", fb_all_leagues: "All leagues", fb_open_info: "Open for table and top scorers", fb_squad: "Squad", fb_founded: "Founded", fb_venue: "Stadium", fb_coach: "Coach", fb_colors: "Colours", fb_website: "Official website", fb_comps: "Competitions", fb_pos: "Position", fb_points: "Points", fb_form: "Form", fb_retry: "Try again", fb_slow: "Still loading. Please try again in a minute.", fb_no_table: "No table for this competition yet.", fb_no_scorers: "No scorers yet.", fb_tap_team: "Tap a team for its details.", fb_source: "Data: football-data.org", fb_gk: "Goalkeepers", fb_df: "Defenders", fb_mf: "Midfielders", fb_fw: "Forwards", fb_other: "Other", th_team: "Team", th_p: "P", th_p_long: "played", th_w: "W", th_d: "D", th_l: "L", th_gfga: "Goals", th_gd: "GD", th_pts: "Pts" });
 Object.assign(translations.fr, { or_email: "ou avec l'email", apple_btn: "Continuer avec Apple", consent_age: "J'ai 18 ans ou plus", legal_a: "En continuant, vous acceptez les", login_sub: "Entrez votre email, nous vous enverrons un code de connexion.", consent_req: "Confirmez que vous avez 18 ans ou plus.", other_comp: "Football", all_leagues: "Tout", updated: "Mis à jour", matches_n: "matchs", filter_league: "Filtrer par compétition", nav_standings: "Classements", nav_leagues: "Compétitions", fb_label: "Football", fb_st_h: "Classements", fb_lg_h: "Compétitions en cours", fb_matchday: "Journée", fb_season: "Saison", fb_teams: "équipes", fb_teams_t: "Équipes", fb_leader: "Leader", fb_view_table: "Voir le classement", fb_top5: "Haut du classement", fb_scorers: "Meilleurs buteurs", fb_goals: "buts", fb_assists: "pd", fb_all_leagues: "Toutes les compétitions", fb_open_info: "Ouvrir pour le classement et les buteurs", fb_squad: "Effectif", fb_founded: "Fondé en", fb_venue: "Stade", fb_coach: "Entraîneur", fb_colors: "Couleurs", fb_website: "Site officiel", fb_comps: "Compétitions", fb_pos: "Position", fb_points: "Points", fb_form: "Forme", fb_retry: "Réessayer", fb_slow: "Chargement en cours. Réessayez dans une minute.", fb_no_table: "Pas encore de classement pour cette compétition.", fb_no_scorers: "Pas encore de buteurs.", fb_tap_team: "Touchez une équipe pour voir sa fiche.", fb_source: "Données : football-data.org", fb_gk: "Gardiens", fb_df: "Défenseurs", fb_mf: "Milieux", fb_fw: "Attaquants", fb_other: "Autres", th_team: "Équipe", th_p: "J", th_p_long: "joués", th_w: "G", th_d: "N", th_l: "P", th_gfga: "Buts", th_gd: "Diff", th_pts: "Pts" });
 Object.assign(translations.ar, { or_email: "أو بالبريد الإلكتروني", apple_btn: "المتابعة مع Apple", consent_age: "عمري 18 سنة أو أكثر", legal_a: "بالمتابعة، أنت توافق على", login_sub: "أدخل بريدك الإلكتروني وسنرسل لك رمز الدخول.", consent_req: "يرجى تأكيد أن عمرك 18 سنة أو أكثر.", other_comp: "كرة القدم", all_leagues: "الكل", updated: "آخر تحديث", matches_n: "مباراة", filter_league: "تصفية حسب البطولة", nav_standings: "الترتيب", nav_leagues: "البطولات", fb_label: "كرة القدم", fb_st_h: "جداول الترتيب", fb_lg_h: "البطولات الحالية", fb_matchday: "الجولة", fb_season: "الموسم", fb_teams: "فريق", fb_teams_t: "الفرق", fb_leader: "المتصدر", fb_view_table: "عرض الترتيب كاملاً", fb_top5: "صدارة الترتيب", fb_scorers: "الهدافون", fb_goals: "أهداف", fb_assists: "تمريرات", fb_all_leagues: "كل البطولات", fb_open_info: "افتح لعرض الترتيب والهدافين", fb_squad: "التشكيلة", fb_founded: "سنة التأسيس", fb_venue: "الملعب", fb_coach: "المدرب", fb_colors: "الألوان", fb_website: "الموقع الرسمي", fb_comps: "المسابقات", fb_pos: "المركز", fb_points: "النقاط", fb_form: "آخر النتائج", fb_retry: "إعادة المحاولة", fb_slow: "ما زال التحميل جارياً. حاول بعد دقيقة.", fb_no_table: "لا يوجد ترتيب لهذه المسابقة بعد.", fb_no_scorers: "لا يوجد هدافون بعد.", fb_tap_team: "اضغط على فريق لعرض تفاصيله.", fb_source: "المصدر: football-data.org", fb_gk: "حراس المرمى", fb_df: "المدافعون", fb_mf: "لاعبو الوسط", fb_fw: "المهاجمون", fb_other: "آخرون", th_team: "الفريق", th_p: "لعب", th_p_long: "مباراة", th_w: "ف", th_d: "ت", th_l: "خ", th_gfga: "الأهداف", th_gd: "الفارق", th_pts: "نقاط" });
@@ -809,7 +823,9 @@ const ACT = {
   toggleComments: el => toggleComments(el.dataset.post),
   deletePost: el => deletePost(el.dataset.post),
   addComment: el => addComment(el.dataset.post),
-  fbViewTable: el => { FB.sel = el.dataset.code; switchTab('standings'); }
+  fbViewTable: el => { FB.sel = el.dataset.code; switchTab('standings'); },
+  trialCta: () => { closeTrialPop(); openAuthModal(); },
+  trialLater: () => closeTrialPop()
 };
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act],[data-run]');
@@ -1017,10 +1033,33 @@ async function loadAuthProviders() {
     googleClientId = cfg.googleClientId || null;
     appleClientId = cfg.appleClientId || null;
     appleRedirectUri = cfg.appleRedirectUri || (location.origin + '/');
+    trialPop.days = Math.max(0, parseInt(cfg.trialDays, 10) || 0);
   } catch (e) {}
+  trialPop.cfg = true; maybeShowTrialPop();
   renderGoogleButton();
   initApple();
 }
+/* ── Free-trial popup: shown once per browser session to visitors who are not logged in ── */
+const trialPop = { days: 0, cfg: false, auth: false };
+function maybeShowTrialPop() {
+  if (!trialPop.cfg || !trialPop.auth || authState.loggedIn || !trialPop.days) return;
+  try { if (sessionStorage.getItem('mde:trialPop')) return; } catch (e) {}
+  setTimeout(() => {
+    if (authState.loggedIn || !document.getElementById('authModal').classList.contains('hidden')) return;
+    const t = tNow(), n = String(trialPop.days), f = s => String(s || '').replace('{n}', n);
+    document.getElementById('trialDaysBig').textContent = n;
+    document.getElementById('trialTitle').textContent = f(t.trial_t || translations.en.trial_t);
+    document.getElementById('trialBody').textContent = f(t.trial_b || translations.en.trial_b);
+    document.getElementById('trialCta').textContent = t.trial_cta || translations.en.trial_cta;
+    document.getElementById('trialLater').textContent = t.trial_later || translations.en.trial_later;
+    document.getElementById('trialModal').classList.remove('hidden');
+    try { sessionStorage.setItem('mde:trialPop', '1'); } catch (e) {}
+    setTimeout(() => { const b = document.getElementById('trialCta'); if (b) b.focus(); }, 60);
+  }, 1200);
+}
+function closeTrialPop() { document.getElementById('trialModal').classList.add('hidden'); }
+document.getElementById('trialModal').addEventListener('click', e => { if (e.target.id === 'trialModal') closeTrialPop(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('trialModal').classList.contains('hidden')) closeTrialPop(); });
 function showSso() { document.getElementById('ssoWrap').classList.remove('hidden'); }
 // Shared consent gate for both providers; returns null if the server said consent is required.
 async function ssoLogin(url, payload) {
@@ -1223,6 +1262,7 @@ async function checkAuth() {
       updateAuthUI();
     }
   } catch(e) { updateAuthUI(); }
+  trialPop.auth = true; maybeShowTrialPop();
 }
 
 // Called for every card on every slider move / render, so: parse each kick-off once, and build the time formatter once
@@ -2976,7 +3016,7 @@ function renderUnlock() {
       <ul class="plan-feats">${feats([t.sf_1, t.sf_2, t.sf_3, t.sf_4])}${feats([t.sf_x], true)}</ul>
       <div class="plan-cta">${pro ? '' : `<div class="plan-on">✓ ${esc(t.plan_starter_on)}</div>`}</div>
     </div>`;
-  const status = pro ? `<span class="pill good">✓ ${t.plan_active}${p.planUntil ? ' · ' + new Date(p.planUntil).toLocaleDateString('en-GB') : ''}</span>` : '';
+  const status = pro ? `<span class="pill good">✓ ${p.trial ? (t.trial_badge || translations.en.trial_badge) : t.plan_active}${p.planUntil ? ' · ' + new Date(p.planUntil).toLocaleDateString('en-GB') : ''}</span>` : '';
   const proCard = `<div class="plan-card is-pro">
       <div class="plan-head"><div class="plan-name">Pro</div>${status}</div>
       <div class="plan-price"><b>$30</b></div><p class="plan-note">${esc(t.plan_fees)}</p>

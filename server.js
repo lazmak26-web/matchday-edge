@@ -1778,9 +1778,20 @@ function auditLog(action, req, detail) {
   try { console.log('AUDIT ' + JSON.stringify({ at: new Date().toISOString(), action, ip: (req && req.ip) || null, ...(detail || {}) })); } catch (e) { /* logging must never break a request */ }
 }
 
-// Free-for-all mode: every logged-in account gets the full Pro experience (on by default; set FREE_PRO_FOR_ALL=0 to bring the paid plan back).
-// Purchased plans stay stored on the user, so turning this off later restores everyone's real plan.
-const FREE_PRO_FOR_ALL = String(process.env.FREE_PRO_FOR_ALL || '1').trim() !== '0';
+// Free-for-all mode: every logged-in account gets the full Pro experience. OFF by default (Pro is paid again);
+// set FREE_PRO_FOR_ALL=1 to switch it back on. Purchased plans stay stored on the user either way.
+const FREE_PRO_FOR_ALL = String(process.env.FREE_PRO_FOR_ALL || '0').trim() === '1';
+// Free trial: every NEW account gets Pro for TRIAL_DAYS days, counted from the moment the account is verified
+// (emailed code, Google or Apple). One trial per account, never granted twice; TRIAL_DAYS=0 turns it off.
+const TRIAL_DAYS = Math.max(0, Math.min(30, parseInt(process.env.TRIAL_DAYS == null ? '3' : process.env.TRIAL_DAYS, 10) || 0));
+function grantTrial(u) {
+  if (!u || !TRIAL_DAYS || u.trialAt) return false;
+  const now = Date.now();
+  if (u.plan === 'pro' && (!u.planUntil || u.planUntil > now)) return false;   // already Pro: nothing to give
+  u.plan = 'pro'; u.planUntil = now + TRIAL_DAYS * 86400000; u.trialAt = now; u.trialUntil = u.planUntil;
+  return true;
+}
+const onTrial = u => !!(u && u.trialUntil && u.plan === 'pro' && u.planUntil === u.trialUntil && u.planUntil > Date.now());
 if (FREE_PRO_FOR_ALL) console.log('ℹ️  FREE_PRO_FOR_ALL is on: every logged-in account has Pro access.');
 function planOf(sess) {
   if (!sess) return 'free';
@@ -1818,6 +1829,7 @@ function profileOf(sess) {
     planUntil: FREE_PRO_FOR_ALL ? null : (u ? u.planUntil || null : (sess.expiry || null)),
     lifetime: FREE_PRO_FOR_ALL ? false : (u ? (u.plan === 'pro' && !u.planUntil) : sess.lifetime === true),
     freeForAll: FREE_PRO_FOR_ALL,
+    trial: !FREE_PRO_FOR_ALL && onTrial(u),
     since: u ? u.createdAt : sess.createdAt,
     kind: sess.kind || 'keyauth'
   };
@@ -1902,6 +1914,7 @@ app.post('/api/auth/register', registerLimiter, loginLimiter, async (req, res) =
     else {
       const seq = [...users.values()].reduce((m, u) => Math.max(m, u.seq || 0), 0) + 1;
       users.set(email, { email, salt: salt.toString('hex'), hash: hash.toString('hex'), n: CUR_N, plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: !OTP_ENABLED, consentAt: Date.now(), termsVersion: TERMS_VERSION });
+      if (!OTP_ENABLED) grantTrial(users.get(email));
     }
     saveUsersSoon();
     if (!OTP_ENABLED) return startSession(req, res, { kind: 'local', username: email });
@@ -1948,9 +1961,10 @@ app.post('/api/auth/verify-otp', otpLimiter, (req, res) => {
     if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
     const seq = [...users.values()].reduce((m, x) => Math.max(m, x.seq || 0), 0) + 1;
     u = { email, kind: 'email', plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: true, consentAt: rec.newUser.consentAt, termsVersion: TERMS_VERSION };
+    grantTrial(u);
     users.set(email, u);
     saveUsersSoon();
-  } else if (u.verified === false) { u.verified = true; saveUsersSoon(); }
+  } else if (u.verified === false) { u.verified = true; grantTrial(u); saveUsersSoon(); }
   startSession(req, res, { kind: 'local', username: email });
 });
 
@@ -1974,6 +1988,7 @@ app.get('/api/admin/users', dataLimiter, authMiddleware, requireAdmin, (req, res
       planUntil: pro ? (u.planUntil || null) : null,
       lifetime: pro && !u.planUntil,
       expired: u.plan === 'pro' && !pro,
+      trial: onTrial(u),
       verified: u.verified !== false,
       createdAt: u.createdAt || null
     };
@@ -2176,6 +2191,7 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
     if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
     const seq = [...users.values()].reduce((m, x) => Math.max(m, x.seq || 0), 0) + 1;
     u = { email, kind: 'google', googleSub: c.sub || null, plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: true, consentAt: Date.now(), termsVersion: TERMS_VERSION };
+    grantTrial(u);
     users.set(email, u);
     saveUsersSoon();
     auditLog('google_signup', req, { seq });
@@ -2208,6 +2224,7 @@ app.post('/api/auth/apple', loginLimiter, async (req, res) => {
     if (users.size >= 50000) return res.status(503).json({ error: 'Registration is temporarily closed.' });
     const seq = [...users.values()].reduce((m, x) => Math.max(m, x.seq || 0), 0) + 1;
     u = { email, kind: 'apple', appleSub: c.sub || null, plan: 'free', planUntil: null, createdAt: Date.now(), seq, verified: true, consentAt: Date.now(), termsVersion: TERMS_VERSION };
+    grantTrial(u);
     users.set(email, u);
     saveUsersSoon();
     auditLog('apple_signup', req, { seq });
@@ -2294,7 +2311,8 @@ app.get('/api/public/config', (req, res) => {
   res.json({
     googleClientId: GOOGLE_CLIENT_ID || null,
     appleClientId: APPLE_CLIENT_ID || null,
-    appleRedirectUri: String(process.env.APPLE_REDIRECT_URI || '').trim() || null
+    appleRedirectUri: String(process.env.APPLE_REDIRECT_URI || '').trim() || null,
+    trialDays: FREE_PRO_FOR_ALL ? 0 : TRIAL_DAYS
   });
 });
 

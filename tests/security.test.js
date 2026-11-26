@@ -15,7 +15,7 @@ const freePort = () => new Promise((ok, no) => {
 async function startServer(extraEnv = {}) {
   const port = await freePort();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mde-sec-'));
-  const env = { PATH: process.env.PATH, NODE_ENV: 'test', FREE_PRO_FOR_ALL: '0', PORT: String(port), HISTORY_FILE: path.join(dir, 'history.json'), ...extraEnv };
+  const env = { PATH: process.env.PATH, NODE_ENV: 'test', FREE_PRO_FOR_ALL: '0', TRIAL_DAYS: '0', PORT: String(port), HISTORY_FILE: path.join(dir, 'history.json'), ...extraEnv };
   const child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
   let out = '';
   child.stdout.on('data', d => { out += d; });
