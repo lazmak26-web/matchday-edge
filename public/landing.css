@@ -1,6 +1,6 @@
 /* Landing page (logged-out home). Everything is scoped to #landingPage.lx so the app views keep their own styles.
    Colours come from the active theme (--bg, --card, --ink, --brand...), so every theme in Settings still applies.
-   One bold element: the "match ticket" in the hero. The rest stays quiet. */
+ */
 
 /* the strip above the floating header: page content no longer shows through it while scrolling */
 body::before{content:"";position:fixed;left:0;right:0;top:0;height:calc(12px + env(safe-area-inset-top,0px));background:var(--bg);z-index:49;pointer-events:none}
@@ -15,47 +15,20 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:calc(12px + e
 /* buttons */
 #landingPage.lx .lx-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 24px;border-radius:14px;font:inherit;font-size:16px;font-weight:700;letter-spacing:-.01em;cursor:pointer;border:1px solid transparent;transition:transform .15s ease,background-color .15s ease,border-color .15s ease}
 #landingPage.lx .lx-btn:active{transform:translateY(1px)}
-#landingPage.lx .lx-btn:focus-visible,#landingPage.lx summary:focus-visible,#landingPage.lx .lx-x:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+#landingPage.lx .lx-btn:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
 #landingPage.lx .lx-btn-main{background:var(--brand);color:var(--on-brand,#fff);box-shadow:0 10px 24px -14px var(--brand)}
 #landingPage.lx .lx-btn-main:hover{background:color-mix(in srgb,var(--brand) 88%,var(--ink))}
 #landingPage.lx .lx-btn-ghost{background:transparent;color:var(--ink);border-color:var(--line-2,var(--line))}
 #landingPage.lx .lx-btn-ghost:hover{border-color:var(--ink-3)}
 
 /* ── hero ─────────────────────────────────────────────── */
-#landingPage.lx .lx-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(28px,5vw,72px);align-items:center}
+#landingPage.lx .lx-hero{max-width:820px}
 #landingPage.lx .lx-h1{font-size:clamp(40px,6.2vw,76px);line-height:.98;letter-spacing:-.045em;font-weight:800;margin:0;text-shadow:none;overflow-wrap:break-word}
 #landingPage.lx .lx-h1 .w{display:inline-block}
 #landingPage.lx .lx-sub{max-width:46ch;margin-top:22px;font-size:clamp(16px,1.6vw,19px);line-height:1.55;color:var(--ink-2)}
 #landingPage.lx .lx-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
 #landingPage.lx .lx-fine{margin-top:14px;font-size:14px;color:var(--ink-3)}
 
-/* the match ticket */
-#landingPage.lx .lx-ticket-wrap{position:relative;min-height:330px}
-#landingPage.lx .lx-ticket-wrap::before{content:"";position:absolute;inset:14px -10px -12px 18px;border-radius:24px;background:color-mix(in srgb,var(--card) 70%,var(--brand) 8%);border:1px solid var(--line);transform:rotate(2.2deg);z-index:0}
-#landingPage.lx .lx-ticket-wrap:empty::after{content:"";position:absolute;inset:0;border-radius:24px;background:var(--card);border:1px solid var(--line)}
-#landingPage.lx .lx-ticket{position:relative;z-index:1;background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:0 30px 60px -36px rgba(0,0,0,.45);overflow:hidden}
-#landingPage.lx .lx-t-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;align-items:baseline;padding:20px 24px 0;font-size:14px;color:var(--ink-3)}
-#landingPage.lx .lx-t-comp{font-weight:700;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#landingPage.lx .lx-live{color:var(--bad,#e0414f);font-weight:700}
-#landingPage.lx .lx-t-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:22px 24px 26px;text-align:center}
-#landingPage.lx .lx-t-team{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
-#landingPage.lx .lx-t-team b{font-size:17px;line-height:1.2;font-weight:750;overflow-wrap:anywhere}
-#landingPage.lx .lx-t-team .crest{width:64px;height:64px;font-size:18px}
-#landingPage.lx .lx-t-team .crest img{width:100%;height:100%;object-fit:contain}
-#landingPage.lx .lx-t-vs{font-size:15px;font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums}
-/* perforated tear line, like a printed betting ticket */
-#landingPage.lx .lx-t-cut{position:relative;height:0;border-top:2px dashed var(--line-2,var(--line));margin:0 22px}
-#landingPage.lx .lx-t-cut::before,#landingPage.lx .lx-t-cut::after{content:"";position:absolute;top:-13px;width:24px;height:24px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
-#landingPage.lx .lx-t-cut::before{left:-35px}
-#landingPage.lx .lx-t-cut::after{right:-35px}
-#landingPage.lx .lx-t-pred{padding:22px 24px 24px}
-#landingPage.lx .lx-t-label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink-2)}
-#landingPage.lx .lx-odds{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-#landingPage.lx .lx-odd{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px;background:var(--soft,color-mix(in srgb,var(--ink) 5%,transparent))}
-#landingPage.lx .lx-odd i{font-style:normal;font-size:13px;color:var(--ink-3)}
-#landingPage.lx .lx-odd b{font-size:22px;font-weight:800;filter:blur(7px);user-select:none;opacity:.8}
-#landingPage.lx .lx-t-btn{width:100%;margin-top:16px}
-#landingPage.lx .lx-t-note{margin-top:10px;font-size:13px;color:var(--ink-3);text-align:center}
 
 /* ── sections ─────────────────────────────────────────── */
 #landingPage.lx .lx-sec{margin-top:clamp(64px,9vw,112px)}
@@ -84,63 +57,24 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:calc(12px + e
 #landingPage.lx .lx-step-n{display:block;font-size:15px;font-weight:800;color:var(--brand);margin-bottom:10px;font-variant-numeric:tabular-nums}
 #landingPage.lx .lx-steps p{margin-top:8px;color:var(--ink-2);line-height:1.55}
 
-/* plans */
-#landingPage.lx .lx-plan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-#landingPage.lx .lx-plan{display:flex;flex-direction:column;padding:28px;border:1px solid var(--line);border-radius:24px;background:var(--card)}
-#landingPage.lx .lx-plan.is-pro{border:2px solid var(--brand)}
-#landingPage.lx .lx-plan h3{display:flex;align-items:center;gap:10px;font-size:20px}
-#landingPage.lx .lx-tag{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand)}
-#landingPage.lx .lx-price{display:flex;align-items:baseline;gap:8px;margin-top:14px}
-#landingPage.lx .lx-price b{font-size:44px;line-height:1;letter-spacing:-.03em;font-weight:800}
-#landingPage.lx .lx-price span{color:var(--ink-3);font-size:15px}
-#landingPage.lx .lx-plan ul{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:10px;flex:1;align-content:start}
-#landingPage.lx .lx-plan li{position:relative;padding-left:26px;line-height:1.45;color:var(--ink-2)}
-#landingPage.lx .lx-plan li::before{content:"";position:absolute;left:2px;top:.35em;width:12px;height:7px;border-left:2px solid var(--good,#1aa06a);border-bottom:2px solid var(--good,#1aa06a);transform:rotate(-45deg)}
-#landingPage.lx .lx-plan li.off{color:var(--ink-3);text-decoration:line-through}
-#landingPage.lx .lx-plan li.off::before{width:12px;height:0;border-left:0;border-bottom:2px solid var(--ink-3);transform:none;top:.7em}
-#landingPage.lx .lx-plan .lx-btn{margin-top:24px;width:100%}
-
-/* questions */
-#landingPage.lx .lx-faq{max-width:760px}
-#landingPage.lx .lx-faq h2{margin-bottom:12px}
-#landingPage.lx details{border-bottom:1px solid var(--line)}
-#landingPage.lx summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0;font-size:17px;font-weight:700}
-#landingPage.lx summary::-webkit-details-marker{display:none}
-#landingPage.lx summary::after{content:"";flex:none;width:10px;height:10px;border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:rotate(45deg) translateY(-3px);transition:transform .2s ease}
-#landingPage.lx details[open] summary::after{transform:rotate(-135deg) translateY(-3px)}
-#landingPage.lx details p{padding:0 0 20px;color:var(--ink-2);line-height:1.6;max-width:64ch}
-
-/* closing call */
-#landingPage.lx .lx-close{margin-top:clamp(64px,9vw,112px);padding:clamp(32px,6vw,64px) 24px;text-align:center;border-radius:28px;background:var(--ink);color:var(--bg)}
-#landingPage.lx .lx-close h2{color:var(--bg);max-width:18ch;margin:0 auto}
-#landingPage.lx .lx-close .lx-btn{margin-top:26px}
-#landingPage.lx .lx-x{display:flex;width:max-content;align-items:center;gap:8px;margin:22px auto 0;color:color-mix(in srgb,var(--bg) 72%,var(--ink));font-size:14px;font-weight:600;text-decoration:none}
-#landingPage.lx .lx-x:hover{color:var(--bg)}
 
 /* Arabic: text reads right to left (the page itself stays LTR, like the rest of the site) */
-body.is-ar #landingPage.lx .lx-hero-text,body.is-ar #landingPage.lx .lx-sec-head,body.is-ar #landingPage.lx .lx-res-text,body.is-ar #landingPage.lx .lx-how,body.is-ar #landingPage.lx .lx-plan,body.is-ar #landingPage.lx .lx-faq,body.is-ar #landingPage.lx .lx-close,body.is-ar #landingPage.lx .lx-t-label,body.is-ar #landingPage.lx .lx-t-note,body.is-ar #landingPage.lx .lx-delta{direction:rtl;text-align:right}
-body.is-ar #landingPage.lx .lx-close{text-align:center}
-body.is-ar #landingPage.lx .lx-plan li{padding-left:0;padding-right:26px}
-body.is-ar #landingPage.lx .lx-plan li::before{left:auto;right:2px}
+body.is-ar #landingPage.lx .lx-hero-text,body.is-ar #landingPage.lx .lx-sec-head,body.is-ar #landingPage.lx .lx-res-text,body.is-ar #landingPage.lx .lx-how,body.is-ar #landingPage.lx .lx-delta{direction:rtl;text-align:right}
 body.is-ar #landingPage.lx .lx-h1{letter-spacing:0;line-height:1.15}
 
 /* tablet and phone */
 @media (max-width:900px){
-  #landingPage.lx .lx-hero{grid-template-columns:1fr}
-  #landingPage.lx .lx-ticket-wrap{max-width:460px;width:100%;margin:0 auto}
   #landingPage.lx .lx-results{grid-template-columns:1fr}
 }
 @media (max-width:640px){
   #landingPage.lx{padding-top:20px}
   #landingPage.lx .lx-actions .lx-btn{flex:1 1 100%}
-  #landingPage.lx .lx-steps,#landingPage.lx .lx-plan-grid{grid-template-columns:1fr}
-  #landingPage.lx .lx-plan{padding:22px}
+  #landingPage.lx .lx-steps{grid-template-columns:1fr}
   #landingPage.lx .lx-results{padding:22px;border-radius:20px}
   #landingPage.lx .lx-res-chart .lbb-bars{height:190px}
-  #landingPage.lx .lx-ticket-wrap::before{inset:12px -4px -10px 12px}
 }
 @media (prefers-reduced-motion:reduce){
-  #landingPage.lx .lx-btn,#landingPage.lx summary::after{transition:none}
+  #landingPage.lx .lx-btn{transition:none}
 }
 /* day labels under the bars: "19 Nov" wraps to two short lines on phones instead of being cut to "19 …" */
 @media (max-width:640px){
