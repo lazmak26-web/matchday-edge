@@ -2410,6 +2410,7 @@ async function loadHistory() {
     
     renderHistory();
     refreshCharts();
+    if (!authState.loggedIn) updateLandingStats([]);   // the landing results card: history can arrive after the match list
     notifSync();
 
     if (document.getElementById('view-performance').classList.contains('active')) {
