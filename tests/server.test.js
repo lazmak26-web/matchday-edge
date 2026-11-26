@@ -17,7 +17,7 @@ const freePort = () => new Promise((ok, no) => {
 async function startServer(extraEnv = {}) {
   const port = await freePort();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mde-test-'));
-  const env = { PATH: process.env.PATH, NODE_ENV: 'test', FREE_PRO_FOR_ALL: '0', PORT: String(port), HISTORY_FILE: path.join(dir, 'history.json'), ...extraEnv };
+  const env = { PATH: process.env.PATH, NODE_ENV: 'test', FREE_PRO_FOR_ALL: '0', TRIAL_DAYS: '0', PORT: String(port), HISTORY_FILE: path.join(dir, 'history.json'), ...extraEnv };
   const child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
   let out = '';
   child.stdout.on('data', d => { out += d; });
@@ -231,4 +231,30 @@ test('admin dashboard is refused when OTP is off (anyone could have registered t
   const a = await call(A.base, 'POST', '/api/auth/register', { ip: '10.2.1.1', body: signup(ADMIN_MAIL) });
   assert.strictEqual(a.json.profile.isAdmin, false);
   assert.strictEqual((await call(A.base, 'GET', '/api/admin/users', { ip: '10.2.1.1', token: a.json.token })).status, 404);
+});
+
+test('a new account gets a 3-day Pro trial once; paid mode stays on for everyone else', async () => {
+  const T = await startServer({ TRIAL_DAYS: '3' });
+  try {
+    const ip = '10.0.40.1';
+    const cfg = await call(T.base, 'GET', '/api/public/config', { ip });
+    assert.strictEqual(cfg.json.trialDays, 3);
+    const before = Date.now();
+    const reg = await call(T.base, 'POST', '/api/auth/register', { ip, body: signup('trial@example.com') });
+    assert.strictEqual(reg.status, 200);
+    const p = reg.json.profile;
+    assert.strictEqual(p.plan, 'pro');
+    assert.strictEqual(p.trial, true);
+    assert.strictEqual(p.freeForAll, false);
+    assert.ok(p.planUntil >= before + 3 * 86400000 - 5000 && p.planUntil <= Date.now() + 3 * 86400000 + 5000, 'trial ends 3 days after sign-up');
+    assert.notStrictEqual((await call(T.base, 'GET', '/api/fixtures', { token: reg.json.token, ip })).status, 403);
+    // logging in again does not restart or extend the trial
+    const login = await call(T.base, 'POST', '/api/auth/login', { ip, body: { username: 'trial@example.com', password: 'correct-horse-battery' } });
+    assert.strictEqual(login.json.profile.planUntil, p.planUntil);
+  } finally { await T.stop(); }
+});
+
+test('with the trial off, a new account is Free and the popup is not offered', async () => {
+  const cfg = await call(A.base, 'GET', '/api/public/config', { ip: '10.0.41.1' });
+  assert.strictEqual(cfg.json.trialDays, 0);
 });

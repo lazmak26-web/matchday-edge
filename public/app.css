@@ -1909,3 +1909,11 @@ html,body{max-width:100%;overflow-x:clip}
 .lbb-meta b.g{color:var(--good)}
 @keyframes lbbGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @media (prefers-reduced-motion:reduce){.lbb-col i{animation:none}}
+/* Free-trial popup */
+.trial-box{text-align:center;width:min(100%,400px);padding:30px 26px 22px}
+.trial-box .trial-ico{width:62px;height:62px;margin:0 auto 6px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:var(--on-brand,#fff);background:linear-gradient(135deg,var(--brand),var(--brand-2,var(--brand)));box-shadow:0 14px 34px -12px var(--brand)}
+.trial-box .trial-days{font-size:64px;font-weight:800;line-height:1;letter-spacing:-.04em;margin:10px 0 4px;background:linear-gradient(135deg,var(--brand),var(--info,var(--brand)));-webkit-background-clip:text;background-clip:text;color:transparent}
+.trial-box h2{margin-top:2px}
+.trial-box>p{margin:8px 0 16px;line-height:1.55}
+#trialModal{z-index:10000}
+#trialModal #trialLater{background:transparent;color:var(--ink-2);border:1px solid var(--line-2);box-shadow:none}
