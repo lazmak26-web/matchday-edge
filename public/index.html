@@ -121,7 +121,6 @@
         </div>
         <p class="lx-fine" data-i18n="lx_fine">No card needed. 18+ only.</p>
       </div>
-      <div class="lx-ticket-wrap" id="lxTicket" aria-live="polite"></div>
     </section>
 
     <section class="lx-sec lx-today" aria-labelledby="lxTodayH">
@@ -151,36 +150,8 @@
       </ol>
     </section>
 
-    <section class="lx-sec lx-plans" aria-labelledby="lxPlansH">
-      <div class="lx-sec-head"><h2 id="lxPlansH" data-i18n="lx_plans_h">Plans</h2><p class="lx-muted" data-i18n="lx_plans_p">Start with Pro for 3 days. Keep it, or stay on Free.</p></div>
-      <div class="lx-plan-grid">
-        <div class="lx-plan">
-          <h3 data-i18n="plan_starter">Starter</h3>
-          <div class="lx-price"><b>$0</b><span data-i18n="plan_free">free forever</span></div>
-          <ul><li data-i18n="sf_1">Today's matches and live scores</li><li data-i18n="sf_2">League tables and upcoming fixtures</li><li data-i18n="sf_3">Discover feed</li><li class="off" data-i18n="sf_x">Win probabilities and +EV value bets</li></ul>
-        </div>
-        <div class="lx-plan is-pro">
-          <h3>Pro <span class="lx-tag" data-i18n="lx_trial_tag">3 days free</span></h3>
-          <div class="lx-price"><b>$30</b><span data-i18n="lx_after_trial">after your trial</span></div>
-          <ul><li data-i18n="pf_1">Daily +EV value bets</li><li data-i18n="pf_2">Win probabilities for every match</li><li data-i18n="pf_3">Over/Under and scoreline predictions</li><li data-i18n="pf_4">Match-start notifications</li></ul>
-          <button class="lx-btn lx-btn-main" type="button" data-act="openAuthModal"><span data-i18n="lx_cta">Start 3-day free trial</span></button>
-        </div>
-      </div>
-    </section>
 
-    <section class="lx-sec lx-faq" aria-labelledby="lxFaqH">
-      <h2 id="lxFaqH" data-i18n="lx_faq_h">Questions</h2>
-      <details><summary data-i18n="lx_q1">What is LuciBet?</summary><p data-i18n="lx_a1">A football analytics site. For each match it estimates the chance of a home win, a draw and an away win, from team form, goals scored and conceded, and bookmaker odds.</p></details>
-      <details><summary data-i18n="lx_q2">Are the predictions guaranteed?</summary><p data-i18n="lx_a2">No. They are statistical estimates: even a 70% chance fails three times out of ten. Only bet what you can afford to lose.</p></details>
-      <details><summary data-i18n="lx_q3">What do I get in the free trial?</summary><p data-i18n="lx_a3">Everything in Pro for 3 days from the moment you create your account. No card needed, and it ends by itself.</p></details>
-      <details><summary data-i18n="lx_q4">How do I pay for Pro?</summary><p data-i18n="lx_a4">On Telegram (@l1uci7er). After paying, send us your account email and we activate your plan.</p></details>
-    </section>
 
-    <section class="lx-close">
-      <h2 data-i18n="lx_close_h">Today's matches are already in.</h2>
-      <button class="lx-btn lx-btn-main" type="button" data-act="openAuthModal"><span data-i18n="lx_cta">Start 3-day free trial</span></button>
-      <a class="lx-x" href="https://x.com/1uci7erCr" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg><span data-i18n="x_follow">Follow us on X</span></a>
-    </section>
   </div>
 
   <div id="appContent" class="hidden">
@@ -3123,36 +3094,11 @@ function lxSort(list) {
     .map((fx, i) => ({ fx, i, r: lxRank(fx), k: fxDateTime(fx).getTime() || 0, f: fx.status === 'finished' ? 1 : 0 }))
     .sort((a, b) => a.f - b.f || a.r - b.r || a.k - b.k || a.i - b.i).map(x => x.fx);
 }
-// Hero "match ticket": the first upcoming match of the biggest competition today, with its prediction locked.
-function lxTicket(list, t) {
-  const box = document.getElementById('lxTicket'); if (!box) return;
-  const fx = list.find(x => x.status !== 'finished' && !mxLive(x)) || list.find(x => x.status !== 'finished') || list[0];
-  if (!fx) { box.innerHTML = ''; return; }
-  const live = mxLive(fx);
-  const when = live ? `<span class="lx-live">${esc(t.lx_live || 'Live now')}</span>` : `<span>${esc(fxDateLabel(fx))}, ${esc(fxLocalTime(fx))}</span>`;
-  const lock = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-  const tile = (k, v) => `<div class="lx-odd"><i>${esc(k)}</i><b aria-hidden="true">${v}%</b></div>`;
-  box.innerHTML = `<article class="lx-ticket">
-    <header class="lx-t-head"><span class="lx-t-comp">${esc(leagueDisp(fx))}</span>${when}</header>
-    <div class="lx-t-teams">
-      <div class="lx-t-team">${crestHTML(fx.home)}<b>${esc(teamDisp(fx.home, fx))}</b></div>
-      <div class="lx-t-vs">${live ? esc(scoreTxt(fx)) : 'vs'}</div>
-      <div class="lx-t-team">${crestHTML(fx.away)}<b>${esc(teamDisp(fx.away, fx))}</b></div>
-    </div>
-    <div class="lx-t-cut" aria-hidden="true"></div>
-    <div class="lx-t-pred">
-      <div class="lx-t-label">${lock}<span>${esc(t.lx_t_label || 'Our prediction')}</span></div>
-      <div class="lx-odds" aria-label="${esc(t.lx_t_hidden || 'Hidden until you log in')}">${tile(t.home || 'Home', 48)}${tile(t.draw || 'Draw', 27)}${tile(t.away || 'Away', 25)}</div>
-      <button class="lx-btn lx-btn-main lx-t-btn" type="button" data-act="openAuthModal">${esc(t.lx_t_btn || 'See the prediction')}</button>
-      <p class="lx-t-note">${esc(t.lx_t_note || 'Unlocked during your 3-day free trial.')}</p>
-    </div>
-  </article>`;
-}
 function renderLanding(list, elId = 'lpCards', unlockCall = () => openAuthModal()) {
   const t = tNow();
   const el = $(elId); if (!el) return;
   if (!list.length) { const bar = document.getElementById(elId + 'Bar'); if (bar) bar.innerHTML = ''; if (elId === 'lpCards') { lpCarouselOff(el); updateLandingStats(list); } el.innerHTML = `<div class="empty-state">${t.no_upcoming}</div>`; return; }
-  if (elId === 'lpCards') { list = lxSort(list); lxTicket(list, t); }
+  if (elId === 'lpCards') list = lxSort(list);
   const shown = lgBar(elId, list, () => renderLanding(list, elId, unlockCall));
   const cardHTML = fx => {
     const live = mxLive(fx);
@@ -3573,7 +3519,7 @@ document.addEventListener('DOMContentLoaded',function(){
   var words=title.querySelectorAll('.w');
   Motion.from(words,{opacity:0,y:30,duration:.7,stagger:.06,ease:'power3.out'});
   // the subtitle and CTA start .4s before the last word lands (same rhythm as the old GSAP timeline)
-  Motion.from('.lx-sub,.lx-actions,.lx-fine,.lx-ticket-wrap',{opacity:0,y:16,duration:.5,stagger:.1,ease:'power3.out',delay:Math.max(0,(words.length-1)*.06+.7-.4)});
+  Motion.from('.lx-sub,.lx-actions,.lx-fine',{opacity:0,y:16,duration:.5,stagger:.1,ease:'power3.out',delay:Math.max(0,(words.length-1)*.06+.7-.4)});
 });
 </script>
 <script>
