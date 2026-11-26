@@ -142,3 +142,7 @@ body.is-ar #landingPage.lx .lx-h1{letter-spacing:0;line-height:1.15}
 @media (prefers-reduced-motion:reduce){
   #landingPage.lx .lx-btn,#landingPage.lx summary::after{transition:none}
 }
+/* day labels under the bars: "19 Nov" wraps to two short lines on phones instead of being cut to "19 …" */
+@media (max-width:640px){
+  #landingPage.lx .lbb-col span{white-space:normal;overflow:visible;text-overflow:clip;font-size:11px;line-height:1.2;text-align:center}
+}
