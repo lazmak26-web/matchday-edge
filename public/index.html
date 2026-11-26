@@ -3087,8 +3087,9 @@ function lpCarouselOff(el) {
   if (el) el.classList.remove('cc-host');
 }
 // Landing order: the big competitions first (what a visitor recognises), then live matches, then by kick-off.
-const LX_TOP = [/champions league/i, /premier league/i, /laliga|la liga|primera divisi/i, /serie a/i, /bundesliga/i, /ligue 1/i, /europa league/i, /conference league/i, /botola/i, /eredivisie/i, /primeira liga|liga portugal/i, /saudi|roshn/i];
-const lxRank = fx => { const n = String(leagueDisp(fx) || '') + ' ' + String(fx.league || ''); const i = LX_TOP.findIndex(r => r.test(n)); return i < 0 ? 99 : i; };
+// Country-qualified: "Premier League" alone would also match Syria, Kenya or Uganda, and "Ligue 1" Congo-DR.
+const LX_TOP = [/^(europe|world)\b.*champions league/i, /^england\b.*premier league/i, /^spain\b.*(laliga|la liga|primera divisi)/i, /^italy\b.*serie a\b/i, /^germany\b.*bundesliga/i, /^france\b.*ligue 1\b/i, /^europe\b.*europa league/i, /^europe\b.*conference league/i, /^morocco\b.*botola/i, /^netherlands\b.*eredivisie/i, /^portugal\b.*(primeira liga|liga portugal)/i, /^saudi\b.*(pro league|roshn)/i];
+const lxRank = fx => { const n = [String(leagueDisp(fx) || ''), String(fx.league || '')]; const i = LX_TOP.findIndex(r => n.some(x => r.test(x))); return i < 0 ? 99 : i; };
 function lxSort(list) {
   return list.filter(fx => fx.status !== 'finished').concat(list.filter(fx => fx.status === 'finished'))
     .map((fx, i) => ({ fx, i, r: lxRank(fx), k: fxDateTime(fx).getTime() || 0, f: fx.status === 'finished' ? 1 : 0 }))
