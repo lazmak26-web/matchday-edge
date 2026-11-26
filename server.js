@@ -1792,6 +1792,15 @@ function grantTrial(u) {
   return true;
 }
 const onTrial = u => !!(u && u.trialUntil && u.plan === 'pro' && u.planUntil === u.trialUntil && u.planUntil > Date.now());
+// One-time catch-up: accounts created while the site was free for everyone (from 2026-11-21) never got a trial, and lost
+// Pro when paid mode came back. Give each of them the same 3-day trial, counted from this start. grantTrial marks the
+// account (trialAt), so this runs once per account and never repeats on later restarts.
+const FREE_PERIOD_START = Date.parse('2026-11-21T14:00:00Z');
+if (!FREE_PRO_FOR_ALL && TRIAL_DAYS) {
+  let n = 0;
+  for (const u of users.values()) if (u.verified !== false && (u.createdAt || 0) >= FREE_PERIOD_START && grantTrial(u)) n++;
+  if (n) { saveUsersSoon(); console.log(`🎁 Gave a ${TRIAL_DAYS}-day Pro trial to ${n} account(s) created during the free period`); }
+}
 if (FREE_PRO_FOR_ALL) console.log('ℹ️  FREE_PRO_FOR_ALL is on: every logged-in account has Pro access.');
 function planOf(sess) {
   if (!sess) return 'free';

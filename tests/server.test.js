@@ -258,3 +258,34 @@ test('with the trial off, a new account is Free and the popup is not offered', a
   const cfg = await call(A.base, 'GET', '/api/public/config', { ip: '10.0.41.1' });
   assert.strictEqual(cfg.json.trialDays, 0);
 });
+
+test('accounts created during the free period get the 3-day trial once, at start-up; older and Pro accounts are left alone', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mde-bf-'));
+  const file = path.join(dir, 'users.json');
+  const mk = (email, extra) => Object.assign({ email, kind: 'email', plan: 'free', planUntil: null, verified: true, seq: 1 }, extra);
+  const during = Date.parse('2026-11-23T10:00:00Z'), beforeFree = Date.parse('2026-11-10T10:00:00Z');
+  fs.writeFileSync(file, JSON.stringify([
+    mk('during@example.com', { createdAt: during }),
+    mk('old@example.com', { createdAt: beforeFree }),
+    mk('paid@example.com', { createdAt: during, plan: 'pro', planUntil: null }),
+    mk('pending@example.com', { createdAt: during, verified: false })
+  ]));
+  const T = await startServer({ TRIAL_DAYS: '3', USERS_FILE: file });
+  try {
+    await new Promise(r => setTimeout(r, 1600));   // users are saved ~1s after the change
+    const by = Object.fromEntries(JSON.parse(fs.readFileSync(file, 'utf8')).map(u => [u.email, u]));
+    assert.strictEqual(by['during@example.com'].plan, 'pro');
+    assert.ok(by['during@example.com'].trialAt && by['during@example.com'].planUntil > Date.now() + 2.9 * 86400000);
+    assert.strictEqual(by['old@example.com'].plan, 'free');
+    assert.strictEqual(by['paid@example.com'].planUntil, null);
+    assert.ok(!by['paid@example.com'].trialAt);
+    assert.strictEqual(by['pending@example.com'].plan, 'free');
+  } finally { await T.stop(); }
+  // a restart does not give a second trial
+  const first = JSON.parse(fs.readFileSync(file, 'utf8')).find(u => u.email === 'during@example.com').planUntil;
+  const T2 = await startServer({ TRIAL_DAYS: '3', USERS_FILE: file });
+  try {
+    await new Promise(r => setTimeout(r, 1600));
+    assert.strictEqual(JSON.parse(fs.readFileSync(file, 'utf8')).find(u => u.email === 'during@example.com').planUntil, first);
+  } finally { await T2.stop(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
