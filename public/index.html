@@ -349,17 +349,6 @@
 </div>
 
 
-<div id="trialModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="trialTitle">
-  <div class="modal-box trial-box">
-    <div class="trial-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
-    <div class="trial-days" id="trialDaysBig">3</div>
-    <h2 id="trialTitle">Try Pro free for 3 days</h2>
-    <p id="trialBody">Create your account and get a 3-day Pro trial: every prediction unlocked.</p>
-    <button class="auth-btn" type="button" data-act="trialCta" id="trialCta">Create my account</button>
-    <button class="auth-btn auth-secondary" type="button" data-act="trialLater" id="trialLater">Maybe later</button>
-  </div>
-</div>
-
 <div id="fbTeamModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="fbTeamName">
   <div class="modal-box fb-team-box">
     <button class="icon-btn fb-x" type="button" data-act="fbCloseTeam" aria-label="Close">✕</button>
@@ -833,9 +822,7 @@ const ACT = {
   toggleComments: el => toggleComments(el.dataset.post),
   deletePost: el => deletePost(el.dataset.post),
   addComment: el => addComment(el.dataset.post),
-  fbViewTable: el => { FB.sel = el.dataset.code; switchTab('standings'); },
-  trialCta: () => { closeTrialPop(); openAuthModal(); },
-  trialLater: () => closeTrialPop()
+  fbViewTable: el => { FB.sel = el.dataset.code; switchTab('standings'); }
 };
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act],[data-run]');
@@ -1043,33 +1030,10 @@ async function loadAuthProviders() {
     googleClientId = cfg.googleClientId || null;
     appleClientId = cfg.appleClientId || null;
     appleRedirectUri = cfg.appleRedirectUri || (location.origin + '/');
-    trialPop.days = Math.max(0, parseInt(cfg.trialDays, 10) || 0);
   } catch (e) {}
-  trialPop.cfg = true; maybeShowTrialPop();
   renderGoogleButton();
   initApple();
 }
-/* ── Free-trial popup: shown once per browser session to visitors who are not logged in ── */
-const trialPop = { days: 0, cfg: false, auth: false };
-function maybeShowTrialPop() {
-  if (!trialPop.cfg || !trialPop.auth || authState.loggedIn || !trialPop.days) return;
-  try { if (sessionStorage.getItem('mde:trialPop')) return; } catch (e) {}
-  setTimeout(() => {
-    if (authState.loggedIn || !document.getElementById('authModal').classList.contains('hidden')) return;
-    const t = tNow(), n = String(trialPop.days), f = s => String(s || '').replace('{n}', n);
-    document.getElementById('trialDaysBig').textContent = n;
-    document.getElementById('trialTitle').textContent = f(t.trial_t || translations.en.trial_t);
-    document.getElementById('trialBody').textContent = f(t.trial_b || translations.en.trial_b);
-    document.getElementById('trialCta').textContent = t.trial_cta || translations.en.trial_cta;
-    document.getElementById('trialLater').textContent = t.trial_later || translations.en.trial_later;
-    document.getElementById('trialModal').classList.remove('hidden');
-    try { sessionStorage.setItem('mde:trialPop', '1'); } catch (e) {}
-    setTimeout(() => { const b = document.getElementById('trialCta'); if (b) b.focus(); }, 60);
-  }, 1200);
-}
-function closeTrialPop() { document.getElementById('trialModal').classList.add('hidden'); }
-document.getElementById('trialModal').addEventListener('click', e => { if (e.target.id === 'trialModal') closeTrialPop(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('trialModal').classList.contains('hidden')) closeTrialPop(); });
 function showSso() { document.getElementById('ssoWrap').classList.remove('hidden'); }
 // Shared consent gate for both providers; returns null if the server said consent is required.
 async function ssoLogin(url, payload) {
@@ -1271,7 +1235,6 @@ async function checkAuth() {
       updateAuthUI();
     }
   } catch(e) { updateAuthUI(); }
-  trialPop.auth = true; maybeShowTrialPop();
 }
 
 // Called for every card on every slider move / render, so: parse each kick-off once, and build the time formatter once
